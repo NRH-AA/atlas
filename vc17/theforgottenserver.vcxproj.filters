@@ -270,6 +270,9 @@
     <ClCompile Include="..\src\http\serverinfo.cpp">
       <Filter>Source Files\http</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\quadtree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\actions.h">
@@ -541,6 +544,9 @@
     </ClInclude>
     <ClInclude Include="..\src\http\serverinfo.h">
       <Filter>Header Files\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\quadtree.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

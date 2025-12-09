@@ -10,8 +10,22 @@
 #include "game.h"
 #include "iomap.h"
 #include "iomapserialize.h"
+#include "quadtree.h"
 
 extern Game g_game;
+
+namespace {
+
+uint32_t hashCoord(uint16_t x, uint16_t y) { return (static_cast<uint32_t>(x) << 16) | y; }
+
+uint16_t calculateHeuristic(const Position& p1, const Position& p2)
+{
+	uint16_t dx = std::abs(p1.getX() - p2.getX());
+	uint16_t dy = std::abs(p1.getY() - p2.getY());
+	return dx * dx + dy * dy;
+}
+
+} // namespace
 
 void Map::loadMap(const std::string& identifier, bool loadHouses, bool isCalledByLua)
 {
@@ -62,17 +76,7 @@ std::shared_ptr<Tile> Map::getTile(uint16_t x, uint16_t y, uint8_t z) const
 	if (z >= MAP_MAX_LAYERS) {
 		return nullptr;
 	}
-
-	const QTreeLeafNode* leaf = QTreeNode::getLeafStatic<const QTreeLeafNode*, const QTreeNode*>(&root, x, y);
-	if (!leaf) {
-		return nullptr;
-	}
-
-	const Floor* floor = leaf->getFloor(z);
-	if (!floor) {
-		return nullptr;
-	}
-	return floor->tiles[x & FLOOR_MASK][y & FLOOR_MASK];
+	return tfs::map::quadtree::find_tile(x, y, z);
 }
 
 void Map::setTile(uint16_t x, uint16_t y, uint8_t z, const std::shared_ptr<Tile>& newTile)
@@ -82,41 +86,7 @@ void Map::setTile(uint16_t x, uint16_t y, uint8_t z, const std::shared_ptr<Tile>
 		return;
 	}
 
-	QTreeLeafNode::newLeaf = false;
-	QTreeLeafNode* leaf = root.createLeaf(x, y, 15);
-
-	if (QTreeLeafNode::newLeaf) {
-		// update north
-		QTreeLeafNode* northLeaf = root.getLeaf(x, y - FLOOR_SIZE);
-		if (northLeaf) {
-			northLeaf->leafS = leaf;
-		}
-
-		// update west leaf
-		QTreeLeafNode* westLeaf = root.getLeaf(x - FLOOR_SIZE, y);
-		if (westLeaf) {
-			westLeaf->leafE = leaf;
-		}
-
-		// update south
-		QTreeLeafNode* southLeaf = root.getLeaf(x, y + FLOOR_SIZE);
-		if (southLeaf) {
-			leaf->leafS = southLeaf;
-		}
-
-		// update east
-		QTreeLeafNode* eastLeaf = root.getLeaf(x + FLOOR_SIZE, y);
-		if (eastLeaf) {
-			leaf->leafE = eastLeaf;
-		}
-	}
-
-	Floor* floor = leaf->createFloor(z);
-	uint32_t offsetX = x & FLOOR_MASK;
-	uint32_t offsetY = y & FLOOR_MASK;
-
-	auto& tile = floor->tiles[offsetX][offsetY];
-	if (tile) {
+	if (const auto& tile = tfs::map::quadtree::find_tile(x, y, z)) {
 		TileItemVector* items = newTile->getItemList();
 		if (items) {
 			for (auto it = items->rbegin(), end = items->rend(); it != end; ++it) {
@@ -130,7 +100,7 @@ void Map::setTile(uint16_t x, uint16_t y, uint8_t z, const std::shared_ptr<Tile>
 			newTile->setGround(nullptr);
 		}
 	} else {
-		tile = newTile;
+		tfs::map::quadtree::create_tile(x, y, z, newTile);
 	}
 }
 
@@ -140,37 +110,30 @@ void Map::removeTile(uint16_t x, uint16_t y, uint8_t z)
 		return;
 	}
 
-	const QTreeLeafNode* leaf = QTreeNode::getLeafStatic<const QTreeLeafNode*, const QTreeNode*>(&root, x, y);
-	if (!leaf) {
+	const auto& tile = tfs::map::quadtree::find_tile(x, y, z);
+	if (!tile) {
 		return;
 	}
 
-	const Floor* floor = leaf->getFloor(z);
-	if (!floor) {
-		return;
+	if (const CreatureVector* creatures = tile->getCreatures()) {
+		for (int32_t i = creatures->size(); --i >= 0;) {
+			if (const auto& player = (*creatures)[i]->getPlayer()) {
+				g_game.internalTeleport(player, player->getTown()->templePosition, false, FLAG_NOLIMIT);
+			} else {
+				g_game.removeCreature((*creatures)[i]);
+			}
+		}
 	}
 
-	if (const auto& tile = floor->tiles[x & FLOOR_MASK][y & FLOOR_MASK]) {
-		if (const CreatureVector* creatures = tile->getCreatures()) {
-			for (int32_t i = creatures->size(); --i >= 0;) {
-				if (const auto& player = (*creatures)[i]->getPlayer()) {
-					g_game.internalTeleport(player, player->getTown()->templePosition, false, FLAG_NOLIMIT);
-				} else {
-					g_game.removeCreature((*creatures)[i]);
-				}
-			}
+	if (TileItemVector* items = tile->getItemList()) {
+		for (auto it = items->begin(), end = items->end(); it != end; ++it) {
+			g_game.internalRemoveItem(*it);
 		}
+	}
 
-		if (TileItemVector* items = tile->getItemList()) {
-			for (auto it = items->begin(), end = items->end(); it != end; ++it) {
-				g_game.internalRemoveItem(*it);
-			}
-		}
-
-		if (const auto& ground = tile->getGround()) {
-			g_game.internalRemoveItem(ground);
-			tile->setGround(nullptr);
-		}
+	if (const auto& ground = tile->getGround()) {
+		g_game.internalRemoveItem(ground);
+		tile->setGround(nullptr);
 	}
 }
 
@@ -231,8 +194,8 @@ bool Map::placeCreature(const Position& centerPos, const std::shared_ptr<Creatur
 	const auto& toThing = tile->queryDestination(index, creature, toItem, flags);
 	toThing->internalAddThing(creature);
 
-	const Position& dest = toThing->getPosition();
-	getQTNode(dest.x, dest.y)->addCreature(creature);
+	const auto& destPosition = toThing->getPosition();
+	tfs::map::quadtree::add_creature(destPosition.x, destPosition.y, creature);
 	return true;
 }
 
@@ -270,14 +233,7 @@ void Map::moveCreature(const std::shared_ptr<Creature>& creature, const std::sha
 	// remove the creature
 	oldTile->removeThing(creature, 0);
 
-	QTreeLeafNode* leaf = getQTNode(oldPos.x, oldPos.y);
-	QTreeLeafNode* new_leaf = getQTNode(newPos.x, newPos.y);
-
-	// Switch the node ownership
-	if (leaf != new_leaf) {
-		leaf->removeCreature(creature);
-		new_leaf->addCreature(creature);
-	}
+	tfs::map::quadtree::move_creature(oldPos.x, oldPos.y, newPos.x, newPos.y, creature);
 
 	// add the creature
 	newTile->addThing(creature);
@@ -316,67 +272,6 @@ void Map::moveCreature(const std::shared_ptr<Creature>& creature, const std::sha
 
 	oldTile->postRemoveNotification(creature, newTile, 0);
 	newTile->postAddNotification(creature, oldTile, 0);
-}
-
-void Map::getSpectatorsInternal(SpectatorVec& spectators, const Position& centerPos, int32_t minRangeX,
-                                int32_t maxRangeX, int32_t minRangeY, int32_t maxRangeY, int32_t minRangeZ,
-                                int32_t maxRangeZ, bool onlyPlayers) const
-{
-	auto min_y = centerPos.y + minRangeY;
-	auto min_x = centerPos.x + minRangeX;
-	auto max_y = centerPos.y + maxRangeY;
-	auto max_x = centerPos.x + maxRangeX;
-
-	int32_t minoffset = centerPos.getZ() - maxRangeZ;
-	uint16_t x1 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (min_x + minoffset)));
-	uint16_t y1 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (min_y + minoffset)));
-
-	int32_t maxoffset = centerPos.getZ() - minRangeZ;
-	uint16_t x2 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (max_x + maxoffset)));
-	uint16_t y2 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (max_y + maxoffset)));
-
-	int32_t startx1 = x1 - (x1 % FLOOR_SIZE);
-	int32_t starty1 = y1 - (y1 % FLOOR_SIZE);
-	int32_t endx2 = x2 - (x2 % FLOOR_SIZE);
-	int32_t endy2 = y2 - (y2 % FLOOR_SIZE);
-
-	const QTreeLeafNode* startLeaf =
-	    QTreeNode::getLeafStatic<const QTreeLeafNode*, const QTreeNode*>(&root, startx1, starty1);
-	const QTreeLeafNode* leafS = startLeaf;
-	const QTreeLeafNode* leafE;
-
-	for (int_fast32_t ny = starty1; ny <= endy2; ny += FLOOR_SIZE) {
-		leafE = leafS;
-		for (int_fast32_t nx = startx1; nx <= endx2; nx += FLOOR_SIZE) {
-			if (leafE) {
-				for (auto&& creature : leafE->creatures | std::views::filter([onlyPlayers](const auto& creature) {
-					                       return !onlyPlayers || creature->getPlayer() != nullptr;
-				                       })) {
-					const Position& cpos = creature->getPosition();
-					if (minRangeZ > cpos.z || maxRangeZ < cpos.z) {
-						continue;
-					}
-
-					int16_t offsetZ = centerPos.getOffsetZ(cpos);
-					if ((min_y + offsetZ) > cpos.y || (max_y + offsetZ) < cpos.y || (min_x + offsetZ) > cpos.x ||
-					    (max_x + offsetZ) < cpos.x) {
-						continue;
-					}
-
-					spectators.emplace(creature);
-				}
-				leafE = leafE->leafE;
-			} else {
-				leafE = QTreeNode::getLeafStatic<const QTreeLeafNode*, const QTreeNode*>(&root, nx + FLOOR_SIZE, ny);
-			}
-		}
-
-		if (leafS) {
-			leafS = leafS->leafS;
-		} else {
-			leafS = QTreeNode::getLeafStatic<const QTreeLeafNode*, const QTreeNode*>(&root, startx1, ny + FLOOR_SIZE);
-		}
-	}
 }
 
 void Map::getSpectators(SpectatorVec& spectators, const Position& centerPos, bool multifloor /*= false*/,
@@ -460,8 +355,38 @@ void Map::getSpectators(SpectatorVec& spectators, const Position& centerPos, boo
 			maxRangeZ = centerPos.z;
 		}
 
-		getSpectatorsInternal(spectators, centerPos, minRangeX, maxRangeX, minRangeY, maxRangeY, minRangeZ, maxRangeZ,
-		                      onlyPlayers);
+		const auto min_y = centerPos.y + minRangeY;
+		const auto min_x = centerPos.x + minRangeX;
+		const auto max_y = centerPos.y + maxRangeY;
+		const auto max_x = centerPos.x + maxRangeX;
+
+		int32_t minoffset = centerPos.getZ() - maxRangeZ;
+		uint16_t x1 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (min_x + minoffset)));
+		uint16_t y1 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (min_y + minoffset)));
+
+		int32_t maxoffset = centerPos.getZ() - minRangeZ;
+		uint16_t x2 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (max_x + maxoffset)));
+		uint16_t y2 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (max_y + maxoffset)));
+
+		for (const auto& creature :
+		     tfs::map::quadtree::find_creature_in_range(x1, y1, x2, y2) | tfs::views::lock_weak_ptrs) {
+			if (onlyPlayers && !creature->getPlayer()) {
+				continue;
+			}
+
+			const auto& position = creature->getPosition();
+			if (minRangeZ > position.z || maxRangeZ < position.z) {
+				continue;
+			}
+
+			const auto offsetZ = centerPos.getOffsetZ(position);
+			if ((min_y + offsetZ) > position.y || (max_y + offsetZ) < position.y || (min_x + offsetZ) > position.x ||
+			    (max_x + offsetZ) < position.x) {
+				continue;
+			}
+
+			spectators.emplace(creature);
+		}
 
 		if (cacheResult) {
 			if (onlyPlayers) {
@@ -651,13 +576,6 @@ const std::shared_ptr<Tile> Map::canWalkTo(const std::shared_ptr<const Creature>
 		}
 	}
 	return tile;
-}
-
-static uint16_t calculateHeuristic(const Position& p1, const Position& p2)
-{
-	uint16_t dx = std::abs(p1.getX() - p2.getX());
-	uint16_t dy = std::abs(p1.getY() - p2.getY());
-	return dx * dx + dy * dy;
 }
 
 bool Map::getPathMatching(const std::shared_ptr<const Creature>& creature, const Position& targetPos,
@@ -954,62 +872,6 @@ uint16_t AStarNodes::getTileWalkCost(const std::shared_ptr<const Creature>& crea
 		}
 	}
 	return cost;
-}
-
-// QTreeNode
-QTreeNode::~QTreeNode()
-{
-	for (auto* ptr : child) {
-		delete ptr;
-	}
-}
-
-QTreeLeafNode* QTreeNode::getLeaf(uint32_t x, uint32_t y)
-{
-	if (leaf) {
-		return static_cast<QTreeLeafNode*>(this);
-	}
-
-	auto node = child[((x & 0x8000) >> 15) | ((y & 0x8000) >> 14)];
-	if (!node) {
-		return nullptr;
-	}
-	return node->getLeaf(x << 1, y << 1);
-}
-
-QTreeLeafNode* QTreeNode::createLeaf(uint32_t x, uint32_t y, uint32_t level)
-{
-	if (!isLeaf()) {
-		uint32_t index = ((x & 0x8000) >> 15) | ((y & 0x8000) >> 14);
-		if (!child[index]) {
-			if (level != FLOOR_BITS) {
-				child[index] = new QTreeNode();
-			} else {
-				child[index] = new QTreeLeafNode();
-				QTreeLeafNode::newLeaf = true;
-			}
-		}
-		return child[index]->createLeaf(x * 2, y * 2, level - 1);
-	}
-	return static_cast<QTreeLeafNode*>(this);
-}
-
-// QTreeLeafNode
-bool QTreeLeafNode::newLeaf = false;
-
-QTreeLeafNode::~QTreeLeafNode()
-{
-	for (auto* ptr : array) {
-		delete ptr;
-	}
-}
-
-Floor* QTreeLeafNode::createFloor(uint32_t z)
-{
-	if (!array[z]) {
-		array[z] = new Floor();
-	}
-	return array[z];
 }
 
 uint32_t Map::clean() const

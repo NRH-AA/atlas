@@ -11,6 +11,7 @@
 #include "game.h"
 #include "mailbox.h"
 #include "movement.h"
+#include "quadtree.h"
 #include "teleport.h"
 #include "trashholder.h"
 
@@ -1104,7 +1105,7 @@ bool Tile::hasCreature(const std::shared_ptr<Creature>& creature) const
 
 void Tile::removeCreature(const std::shared_ptr<Creature>& creature)
 {
-	g_game.map.getQTNode(tilePos.x, tilePos.y)->removeCreature(creature);
+	tfs::map::quadtree::remove_creature(tilePos.x, tilePos.y, creature);
 	removeThing(creature, 0);
 }
 
