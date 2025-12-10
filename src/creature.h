@@ -163,11 +163,13 @@ public:
 	void setBaseSpeed(uint32_t newBaseSpeed) { baseSpeed = newBaseSpeed; }
 	uint32_t getBaseSpeed() const { return baseSpeed; }
 
-	int32_t getHealth() const { return health; }
-	void setHealth(int32_t newHealth) { health = std::clamp(newHealth, 0, healthMax); }
-	virtual int32_t getMaxHealth() const { return healthMax; }
-	virtual void setMaxHealth(int32_t newMaxHealth) { healthMax = newMaxHealth; }
 	bool isDead() const { return health <= 0; }
+
+	auto getHealth() const { return health; }
+	void setHealth(int32_t health) { this->health = std::clamp(health, 0, maxHealth); }
+
+	virtual int32_t getMaxHealth() const { return maxHealth; }
+	virtual void setMaxHealth(int32_t maxHealth) { this->maxHealth = maxHealth; }
 
 	void setDrunkenness(uint8_t newDrunkenness) { drunkenness = newDrunkenness; }
 	uint8_t getDrunkenness() const { return drunkenness; }
@@ -413,8 +415,6 @@ protected:
 	uint32_t lastStepCost = 1;
 	uint32_t baseSpeed = 220;
 	int32_t varSpeed = 0;
-	int32_t health = 1000;
-	int32_t healthMax = 1000;
 	uint8_t drunkenness = 0;
 
 	Outfit_t currentOutfit;
@@ -469,6 +469,9 @@ private:
 
 	std::map<uint32_t, CountBlock_t> damageMap;
 	std::map<uint32_t, int32_t> storageMap;
+
+	int32_t health = 1000;
+	int32_t maxHealth = 1000;
 
 	Position position;
 	Position lastPosition;

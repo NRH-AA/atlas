@@ -356,11 +356,14 @@ public:
 		return std::max<int32_t>(0, capacity - inventoryWeight);
 	}
 
-	int32_t getMaxHealth() const override { return std::max<int32_t>(1, healthMax + varStats[STAT_MAXHITPOINTS]); }
-	void setMaxHealth(int32_t newMaxHealth) override
+	int32_t getMaxHealth() const override
 	{
-		healthMax = newMaxHealth;
-		health = std::min<int32_t>(health, getMaxHealth());
+		return std::max<int32_t>(1, Creature::getMaxHealth() + varStats[STAT_MAXHITPOINTS]);
+	}
+	void setMaxHealth(int32_t maxHealth) override
+	{
+		Creature::setMaxHealth(maxHealth);
+		Creature::setHealth(std::min<int32_t>(getHealth(), getMaxHealth()));
 	}
 
 	uint32_t getMana() const { return mana; }

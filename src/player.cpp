@@ -556,7 +556,7 @@ int32_t Player::getDefaultStats(stats_t stat) const
 {
 	switch (stat) {
 		case STAT_MAXHITPOINTS:
-			return healthMax;
+			return getMaxHealth();
 		case STAT_MAXMANAPOINTS:
 			return manaMax;
 		case STAT_MAGICPOINTS:
@@ -1771,8 +1771,8 @@ void Player::addExperience(const std::shared_ptr<Creature>& source, uint64_t exp
 	uint32_t prevLevel = level;
 	while (experience >= nextLevelExp) {
 		++level;
-		healthMax += vocation->getHPGain();
-		health += vocation->getHPGain();
+		setMaxHealth(getMaxHealth() + vocation->getHPGain());
+		setHealth(getHealth() + vocation->getHPGain());
 		manaMax += vocation->getManaGain();
 		mana += vocation->getManaGain();
 		capacity += vocation->getCapGain();
@@ -1786,7 +1786,7 @@ void Player::addExperience(const std::shared_ptr<Creature>& source, uint64_t exp
 	}
 
 	if (prevLevel != level) {
-		health = getMaxHealth();
+		setHealth(getMaxHealth());
 		mana = getMaxMana();
 
 		updateBaseSpeed();
@@ -1864,14 +1864,15 @@ void Player::removeExperience(uint64_t exp, bool sendText /* = false*/)
 
 	while (level > 1 && experience < currLevelExp) {
 		--level;
-		healthMax = std::max<int32_t>(0, healthMax - vocation->getHPGain());
+
+		setMaxHealth(std::max<int32_t>(0, getMaxHealth() - vocation->getHPGain()));
 		manaMax = std::max<int32_t>(0, manaMax - vocation->getManaGain());
 		capacity = std::max<int32_t>(0, capacity - vocation->getCapGain());
 		currLevelExp = Player::getExpForLevel(level);
 	}
 
 	if (oldLevel != level) {
-		health = getMaxHealth();
+		setHealth(getMaxHealth());
 		mana = getMaxMana();
 
 		updateBaseSpeed();
@@ -2129,7 +2130,7 @@ void Player::death(const std::shared_ptr<Creature>& lastHitCreature)
 
 			while (level > 1 && experience < Player::getExpForLevel(level)) {
 				--level;
-				healthMax = std::max<int32_t>(0, healthMax - vocation->getHPGain());
+				setMaxHealth(std::max<int32_t>(0, getMaxHealth() - vocation->getHPGain()));
 				manaMax = std::max<int32_t>(0, manaMax - vocation->getManaGain());
 				capacity = std::max<int32_t>(0, capacity - vocation->getCapGain());
 			}
@@ -2164,10 +2165,10 @@ void Player::death(const std::shared_ptr<Creature>& lastHitCreature)
 		sendReLoginWindow(unfairFightReduction);
 
 		if (getSkull() == SKULL_BLACK) {
-			health = 40;
+			setHealth(40);
 			mana = 0;
 		} else {
-			health = healthMax;
+			setHealth(getMaxHealth());
 			mana = manaMax;
 		}
 
@@ -2201,7 +2202,7 @@ void Player::death(const std::shared_ptr<Creature>& lastHitCreature)
 			}
 		}
 
-		health = healthMax;
+		setHealth(getMaxHealth());
 		g_game.internalTeleport(getCreature(), getTemplePosition(), true);
 		g_game.addCreatureHealth(getPlayer());
 		onThink(EVENT_CREATURE_THINK_INTERVAL);

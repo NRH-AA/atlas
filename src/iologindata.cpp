@@ -220,8 +220,8 @@ bool IOLoginData::loadPlayer(const std::shared_ptr<Player>& player, DBResult_ptr
 	player->manaSpent = manaSpent;
 	player->magLevelPercent = Player::getBasisPointLevel(player->manaSpent, nextManaCount);
 
-	player->health = result->getNumber<int32_t>("health");
-	player->healthMax = result->getNumber<int32_t>("healthmax");
+	player->setHealth(result->getNumber<int32_t>("health"));
+	player->setMaxHealth(result->getNumber<int32_t>("healthmax"));
 
 	player->defaultOutfit.lookType = result->getNumber<uint16_t>("looktype");
 	player->defaultOutfit.lookHead = result->getNumber<uint16_t>("lookhead");
@@ -614,8 +614,8 @@ bool IOLoginData::savePlayer(const std::shared_ptr<Player>& player)
 	query << "`level` = " << player->level << ',';
 	query << "`group_id` = " << player->group->id << ',';
 	query << "`vocation` = " << player->getVocationId() << ',';
-	query << "`health` = " << player->health << ',';
-	query << "`healthmax` = " << player->healthMax << ',';
+	query << "`health` = " << player->getHealth() << ',';
+	query << "`healthmax` = " << player->getMaxHealth() << ',';
 	query << "`experience` = " << player->experience << ',';
 	query << "`lookbody` = " << static_cast<uint32_t>(player->defaultOutfit.lookBody) << ',';
 	query << "`lookfeet` = " << static_cast<uint32_t>(player->defaultOutfit.lookFeet) << ',';
