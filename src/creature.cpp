@@ -423,7 +423,7 @@ void Creature::onDeath()
 	const uint32_t inFightTicks = getNumber(ConfigManager::PZ_LOCKED);
 	int32_t mostDamage = 0;
 	std::map<std::shared_ptr<Creature>, uint64_t> experienceMap;
-	for (const auto& [id, cb] : damageMap | std::views::as_const) {
+	for (const auto& [id, cb] : damageMap) {
 		if (auto attacker = g_game.getCreatureByID(id)) {
 			if ((cb.total > mostDamage && (timeNow - cb.ticks <= inFightTicks))) {
 				mostDamage = cb.total;
@@ -452,7 +452,7 @@ void Creature::onDeath()
 		}
 	}
 
-	for (auto&& [attacker, gainExp] : experienceMap | std::views::as_const) {
+	for (const auto& [attacker, gainExp] : experienceMap) {
 		attacker->onGainExperience(gainExp, getCreature());
 	}
 
@@ -820,7 +820,7 @@ double Creature::getDamageRatio(const std::shared_ptr<Creature>& attacker) const
 	uint32_t totalDamage = 0;
 	uint32_t attackerDamage = 0;
 
-	for (auto&& [id, cb] : damageMap | std::views::as_const) {
+	for (const auto& [id, cb] : damageMap) {
 		totalDamage += cb.total;
 		if (id == attacker->getID()) {
 			attackerDamage += cb.total;

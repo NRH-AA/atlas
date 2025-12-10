@@ -150,9 +150,9 @@ bool IOMapSerialize::saveHouseItems()
 	DBInsert stmt("INSERT INTO `tile_store` (`house_id`, `data`) VALUES ");
 
 	PropWriteStream stream;
-	for (auto&& house : g_game.map.houses.getHouses() | std::views::values | std::views::as_const) {
+	for (const auto& house : g_game.map.houses.getHouses() | std::views::values) {
 		// save house items
-		for (auto&& tile : house->getTiles() | tfs::views::lock_weak_ptrs | std::views::as_const) {
+		for (const auto& tile : house->getTiles() | tfs::views::lock_weak_ptrs) {
 			saveTile(stream, tile);
 
 			if (auto attributes = stream.getStream(); !attributes.empty()) {
@@ -186,7 +186,7 @@ void IOMapSerialize::saveItem(PropWriteStream& stream, const std::shared_ptr<con
 		// Hack our way into the attributes
 		stream.write<uint8_t>(ATTR_CONTAINER_ITEMS);
 		stream.write<uint32_t>(container->size());
-		for (auto&& containerItem : container->getItemList() | std::views::reverse) {
+		for (const auto& containerItem : container->getItemList() | std::views::reverse) {
 			saveItem(stream, containerItem);
 		}
 	}
@@ -272,7 +272,7 @@ bool IOMapSerialize::saveHouseInfo()
 		return false;
 	}
 
-	for (auto&& house : g_game.map.houses.getHouses() | std::views::values | std::views::as_const) {
+	for (const auto& house : g_game.map.houses.getHouses() | std::views::values) {
 		DBResult_ptr result = db.storeQuery(std::format("SELECT `id` FROM `houses` WHERE `id` = {:d}", house->getId()));
 		if (result) {
 			db.executeQuery(std::format(
@@ -291,7 +291,7 @@ bool IOMapSerialize::saveHouseInfo()
 
 	DBInsert stmt("INSERT INTO `house_lists` (`house_id` , `listid` , `list`) VALUES ");
 
-	for (auto&& house : g_game.map.houses.getHouses() | std::views::values | std::views::as_const) {
+	for (const auto& house : g_game.map.houses.getHouses() | std::views::values) {
 		std::string listText;
 		if (house->getAccessList(GUEST_LIST, listText) && !listText.empty()) {
 			if (!stmt.addRow(std::format("{:d}, {:d}, {:s}", house->getId(), std::to_underlying(GUEST_LIST),

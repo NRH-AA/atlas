@@ -294,7 +294,7 @@ uint32_t ScriptEnvironment::addThing(const std::shared_ptr<Thing>& thing)
 		return item->getUniqueId();
 	}
 
-	for (auto&& [uid, localItem] : localMap | std::views::as_const) {
+	for (const auto& [uid, localItem] : localMap) {
 		if (localItem == item) {
 			return uid;
 		}
@@ -3880,7 +3880,7 @@ int LuaScriptInterface::luaAddEvent(lua_State* L)
 			}
 
 			if (ConfigManager::getBoolean(ConfigManager::CONVERT_UNSAFE_SCRIPTS)) {
-				for (auto&& [index, type] : indexes | std::views::as_const) {
+				for (const auto& [index, type] : indexes) {
 					switch (type) {
 						case LuaData_Item:
 						case LuaData_Container:
@@ -4508,7 +4508,7 @@ int LuaScriptInterface::luaGameGetPlayers(lua_State* L)
 	lua_createtable(L, players.size(), 0);
 
 	int index = 0;
-	for (auto&& player : players) {
+	for (const auto& player : players) {
 		tfs::lua::pushSharedPtr(L, player);
 		tfs::lua::setMetatable(L, -1, "Player");
 		lua_rawseti(L, -2, ++index);
@@ -4523,7 +4523,7 @@ int LuaScriptInterface::luaGameGetNpcs(lua_State* L)
 	lua_createtable(L, npcs.size(), 0);
 
 	int index = 0;
-	for (auto&& npc : npcs) {
+	for (const auto& npc : npcs) {
 		tfs::lua::pushSharedPtr(L, npc);
 		tfs::lua::setMetatable(L, -1, "Npc");
 		lua_rawseti(L, -2, ++index);
@@ -4538,7 +4538,7 @@ int LuaScriptInterface::luaGameGetMonsters(lua_State* L)
 	lua_createtable(L, monsters.size(), 0);
 
 	int index = 0;
-	for (auto&& monster : monsters) {
+	for (const auto& monster : monsters) {
 		tfs::lua::pushSharedPtr(L, monster);
 		tfs::lua::setMetatable(L, -1, "Monster");
 		lua_rawseti(L, -2, ++index);
@@ -4646,7 +4646,7 @@ int LuaScriptInterface::luaGameGetCurrencyItems(lua_State* L)
 	size_t size = currencyItems.size();
 	lua_createtable(L, size, 0);
 
-	for (auto&& itemId : currencyItems | std::views::values | std::views::as_const) {
+	for (const auto& itemId : currencyItems | std::views::values) {
 		const ItemType& itemType = Item::items[itemId];
 		tfs::lua::pushUserdata(L, &itemType);
 		tfs::lua::setMetatable(L, -1, "ItemType");
@@ -4707,7 +4707,7 @@ int LuaScriptInterface::luaGameGetHouses(lua_State* L)
 	lua_createtable(L, houses.size(), 0);
 
 	int index = 0;
-	for (auto&& house : houses | std::views::values | std::views::as_const) {
+	for (const auto& house : houses | std::views::values) {
 		tfs::lua::pushUserdata(L, house.get());
 		tfs::lua::setMetatable(L, -1, "House");
 		lua_rawseti(L, -2, ++index);
@@ -8539,7 +8539,7 @@ int LuaScriptInterface::luaCreatureGetDamageMap(lua_State* L)
 
 	const auto& damageMap = creature->getDamageMap();
 	lua_createtable(L, damageMap.size(), 0);
-	for (auto&& [id, cb] : damageMap) {
+	for (const auto& [id, cb] : damageMap) {
 		lua_createtable(L, 0, 2);
 		setField(L, "total", cb.total);
 		setField(L, "ticks", cb.ticks);
@@ -10743,14 +10743,14 @@ int LuaScriptInterface::luaPlayerSetGhostMode(lua_State* L)
 	}
 
 	if (player->isInGhostMode()) {
-		for (auto&& onlinePlayer : g_game.getPlayers() | tfs::views::lock_weak_ptrs) {
+		for (const auto& onlinePlayer : g_game.getPlayers() | tfs::views::lock_weak_ptrs) {
 			if (!onlinePlayer->isAccessPlayer()) {
 				onlinePlayer->notifyStatusChange(player, VIPSTATUS_OFFLINE);
 			}
 		}
 		IOLoginData::updateOnlineStatus(player->getGUID(), false);
 	} else {
-		for (auto&& onlinePlayer : g_game.getPlayers() | tfs::views::lock_weak_ptrs) {
+		for (const auto& onlinePlayer : g_game.getPlayers() | tfs::views::lock_weak_ptrs) {
 			if (!onlinePlayer->isAccessPlayer()) {
 				onlinePlayer->notifyStatusChange(player, VIPSTATUS_ONLINE);
 			}
@@ -10847,7 +10847,7 @@ int LuaScriptInterface::luaPlayerGetInstantSpells(lua_State* L)
 	}
 
 	std::vector<const InstantSpell*> spells;
-	for (auto&& spell : g_spells->getInstantSpells() | std::views::values | std::views::as_const) {
+	for (const auto& spell : g_spells->getInstantSpells() | std::views::values) {
 		if (spell.canCast(player)) {
 			spells.push_back(&spell);
 		}
@@ -10856,7 +10856,7 @@ int LuaScriptInterface::luaPlayerGetInstantSpells(lua_State* L)
 	lua_createtable(L, spells.size(), 0);
 
 	int index = 0;
-	for (auto&& spell : spells | std::views::as_const) {
+	for (const auto& spell : spells) {
 		lua_createtable(L, 0, 7);
 
 		setField(L, "name", spell->getName());
@@ -14729,7 +14729,7 @@ int LuaScriptInterface::luaMonsterTypeGetElementList(lua_State* L)
 	}
 
 	lua_createtable(L, monsterType->info.elementMap.size(), 0);
-	for (auto&& [combatType, percent] : monsterType->info.elementMap | std::views::as_const) {
+	for (const auto& [combatType, percent] : monsterType->info.elementMap) {
 		tfs::lua::pushNumber(L, percent);
 		lua_rawseti(L, -2, combatType);
 	}
@@ -16522,7 +16522,7 @@ int LuaScriptInterface::luaSpellVocation(lua_State* L)
 	if (lua_gettop(L) == 1) {
 		lua_createtable(L, 0, 0);
 		int i = 0;
-		for (auto&& vocation : spell->getVocationSpellMap() | std::views::keys | std::views::as_const) {
+		for (const auto& vocation : spell->getVocationSpellMap() | std::views::keys) {
 			const std::string& name = g_vocations.getVocation(vocation)->getVocName();
 			tfs::lua::pushString(L, name);
 			lua_rawseti(L, -2, ++i);
@@ -18472,15 +18472,15 @@ bool LuaEnvironment::closeState()
 		return false;
 	}
 
-	for (auto&& interface : combatIdMap | std::views::keys | std::views::as_const) {
+	for (const auto& interface : combatIdMap | std::views::keys) {
 		clearCombatObjects(interface);
 	}
 
-	for (auto&& interface : areaIdMap | std::views::keys | std::views::as_const) {
+	for (const auto& interface : areaIdMap | std::views::keys) {
 		clearAreaObjects(interface);
 	}
 
-	for (auto&& timerEvent : timerEvents | std::views::values) {
+	for (auto& timerEvent : timerEvents | std::views::values) {
 		LuaTimerEventDesc timerEventDesc = std::move(timerEvent);
 		for (int32_t parameter : timerEventDesc.parameters) {
 			luaL_unref(L, LUA_REGISTRYINDEX, parameter);

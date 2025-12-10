@@ -698,7 +698,7 @@ void Item::serializeAttr(PropWriteStream& propWriteStream) const
 		const ItemAttributes::CustomAttributeMap* customAttrMap = attributes->getCustomAttributeMap();
 		propWriteStream.write<uint8_t>(ATTR_CUSTOM_ATTRIBUTES);
 		propWriteStream.write<uint64_t>(static_cast<uint64_t>(customAttrMap->size()));
-		for (auto&& [key, value] : *customAttrMap | std::views::as_const) {
+		for (const auto& [key, value] : *customAttrMap) {
 			// Serializing key type and value
 			propWriteStream.writeString(key);
 
@@ -713,7 +713,7 @@ void Item::serializeAttr(PropWriteStream& propWriteStream) const
 			propWriteStream.write<uint8_t>(ATTR_REFLECT);
 			propWriteStream.write<uint16_t>(reflects.size());
 
-			for (auto&& [combatType, reflect] : reflects | std::views::as_const) {
+			for (const auto& [combatType, reflect] : reflects) {
 				propWriteStream.write<CombatType_t>(combatType);
 				propWriteStream.write<uint16_t>(reflect.percent);
 				propWriteStream.write<uint16_t>(reflect.chance);
@@ -725,7 +725,7 @@ void Item::serializeAttr(PropWriteStream& propWriteStream) const
 			propWriteStream.write<uint8_t>(ATTR_BOOST);
 			propWriteStream.write<uint16_t>(boosts.size());
 
-			for (auto&& [combatType, boost] : boosts | std::views::as_const) {
+			for (const auto& [combatType, boost] : boosts) {
 				propWriteStream.write<CombatType_t>(combatType);
 				propWriteStream.write<uint16_t>(boost);
 			}

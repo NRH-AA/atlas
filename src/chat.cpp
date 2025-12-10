@@ -36,7 +36,7 @@ void PrivateChatChannel::invitePlayer(const std::shared_ptr<const Player>& playe
 
 	player->sendTextMessage(MESSAGE_INFO_DESCR, std::format("{:s} has been invited.", invitePlayer->getName()));
 
-	for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 		user->sendChannelEvent(id, invitePlayer->getName(), CHANNELEVENT_INVITE);
 	}
 }
@@ -54,14 +54,14 @@ void PrivateChatChannel::excludePlayer(const std::shared_ptr<const Player>& play
 
 	excludePlayer->sendClosePrivate(id);
 
-	for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 		user->sendChannelEvent(id, excludePlayer->getName(), CHANNELEVENT_EXCLUDE);
 	}
 }
 
 void PrivateChatChannel::closeChannel() const
 {
-	for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 		user->sendClosePrivate(id);
 	}
 }
@@ -85,7 +85,7 @@ bool ChatChannel::addUser(const std::shared_ptr<Player>& player)
 	}
 
 	if (!publicChannel) {
-		for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+		for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 			user->sendChannelEvent(id, player->getName(), CHANNELEVENT_JOIN);
 		}
 	}
@@ -104,7 +104,7 @@ bool ChatChannel::removeUser(const std::shared_ptr<const Player>& player)
 	users.erase(iter);
 
 	if (!publicChannel) {
-		for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+		for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 			user->sendChannelEvent(id, player->getName(), CHANNELEVENT_LEAVE);
 		}
 	}
@@ -120,7 +120,7 @@ bool ChatChannel::hasUser(const std::shared_ptr<const Player>& player)
 
 void ChatChannel::sendToAll(const std::string& message, SpeakClasses type) const
 {
-	for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 		user->sendChannelMessage("", message, type, id);
 	}
 }
@@ -131,7 +131,7 @@ bool ChatChannel::talk(const std::shared_ptr<const Player>& fromPlayer, SpeakCla
 		return false;
 	}
 
-	for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 		user->sendToChannel(fromPlayer, type, text, id);
 	}
 	return true;
@@ -300,7 +300,7 @@ bool Chat::load()
 			}
 
 			UsersMap tempUserMap = std::move(channel.users);
-			for (auto&& player : tempUserMap | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+			for (const auto& player : tempUserMap | std::views::values | tfs::views::lock_weak_ptrs) {
 				channel.addUser(player);
 			}
 			continue;
@@ -433,15 +433,15 @@ bool Chat::removeUserFromChannel(const std::shared_ptr<const Player>& player, ui
 
 void Chat::removeUserFromAllChannels(const std::shared_ptr<const Player>& player)
 {
-	for (auto&& channel : normalChannels | std::views::values) {
+	for (auto& channel : normalChannels | std::views::values) {
 		channel.removeUser(player);
 	}
 
-	for (auto&& channel : partyChannels | std::views::values) {
+	for (auto& channel : partyChannels | std::views::values) {
 		channel.removeUser(player);
 	}
 
-	for (auto&& channel : guildChannels | std::views::values) {
+	for (auto& channel : guildChannels | std::views::values) {
 		channel.removeUser(player);
 	}
 
@@ -512,7 +512,7 @@ ChannelList Chat::getChannelList(const std::shared_ptr<const Player>& player)
 		}
 	}
 
-	for (const auto& channelId : normalChannels | std::views::keys | std::views::as_const) {
+	for (const auto& channelId : normalChannels | std::views::keys) {
 		ChatChannel* channel = getChannel(player, channelId);
 		if (channel) {
 			list.push_back(channel);

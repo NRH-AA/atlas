@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(test_hmac_sha1)
 	     .expected = "\xe8\xe9\x9d\x0f\x45\x23\x7d\x78\x6d\x6b\xba\xa7\x96\x5c\x78\x08\xbb\xff\x1a\x91"sv},
 	};
 
-	for (auto&& [key, message, expected] : testVectors) {
+	for (const auto&& [key, message, expected] : testVectors) {
 		auto actual = hmac("SHA1", key, message);
 		BOOST_TEST(actual == expected, "expected " << expected << ", got: " << actual << "");
 	}
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(test_totp)
 	    {.time = 2000000000, .expected = "69279037"}, {.time = 20000000000, .expected = "65353130"},
 	};
 
-	for (auto&& [time, expected] : testVectors) {
+	for (const auto&& [time, expected] : testVectors) {
 		auto actual = generateToken("12345678901234567890", time / 30u, 8);
 		BOOST_TEST(actual == expected, "expected: " << expected << ", got: " << actual);
 	}

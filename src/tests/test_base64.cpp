@@ -26,7 +26,7 @@ auto testVectors = std::vector<Basee64Fixture>{
 
 BOOST_AUTO_TEST_CASE(test_base64_encode)
 {
-	for (auto&& [plain, encoded] : testVectors) {
+	for (const auto&& [plain, encoded] : testVectors) {
 		std::string result = tfs::base64::encode(plain);
 		BOOST_TEST(result == encoded, "expected '" << encoded << "', got '" << result << "'");
 	}
@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(test_base64_encode)
 
 BOOST_AUTO_TEST_CASE(test_base64_decode)
 {
-	for (auto&& [plain, encoded] : testVectors) {
+	for (const auto&& [plain, encoded] : testVectors) {
 		std::string result = tfs::base64::decode(encoded);
 		BOOST_TEST(result == plain, "expected '" << plain << "', got '" << result << "'");
 	}

@@ -203,7 +203,7 @@ bool Map::placeCreature(const Position& centerPos, const std::shared_ptr<Creatur
 			std::shuffle(relList.begin(), relList.end(), getRandomGenerator());
 		}
 
-		for (auto&& [dx, dy] : relList | std::views::as_const) {
+		for (const auto& [dx, dy] : relList) {
 			Position tryPos(centerPos.x + dx, centerPos.y + dy, centerPos.z);
 
 			tile = getTile(tryPos.x, tryPos.y, tryPos.z);
@@ -349,7 +349,7 @@ void Map::getSpectatorsInternal(SpectatorVec& spectators, const Position& center
 		leafE = leafS;
 		for (int_fast32_t nx = startx1; nx <= endx2; nx += FLOOR_SIZE) {
 			if (leafE) {
-				for (auto&& creature : leafE->creatures | std::views::filter([onlyPlayers](const auto& creature) {
+				for (const auto& creature : leafE->creatures | std::views::filter([onlyPlayers](const auto& creature) {
 					                       return !onlyPlayers || creature->getPlayer() != nullptr;
 				                       })) {
 					const Position& cpos = creature->getPosition();

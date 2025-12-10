@@ -358,7 +358,7 @@ bool IOLoginData::loadPlayer(const std::shared_ptr<Player>& player, DBResult_ptr
 	         player->getGUID())))) {
 		loadItems(itemMap, result);
 
-		for (auto&& [item, pid] : itemMap | std::views::reverse | std::views::values) {
+		for (const auto& [item, pid] : itemMap | std::views::reverse | std::views::values) {
 			if (const auto& itemContainer = item->getContainer()) {
 				uint8_t cid = item->getIntAttr(ITEM_ATTRIBUTE_OPENCONTAINER);
 				if (cid > 0) {
@@ -381,7 +381,7 @@ bool IOLoginData::loadPlayer(const std::shared_ptr<Player>& player, DBResult_ptr
 		}
 	}
 
-	for (auto&& [cid, container] : openContainersList | std::views::as_const) {
+	for (const auto& [cid, container] : openContainersList) {
 		player->addContainer(cid - 1, container);
 		player->onSendContainer(container);
 	}
@@ -394,7 +394,7 @@ bool IOLoginData::loadPlayer(const std::shared_ptr<Player>& player, DBResult_ptr
 	         player->getGUID())))) {
 		loadItems(itemMap, result);
 
-		for (auto&& [item, pid] : itemMap | std::views::reverse | std::views::values | std::views::as_const) {
+		for (const auto& [item, pid] : itemMap | std::views::reverse | std::views::values) {
 			if (pid < 100) {
 				if (const auto& depotChest = player->getDepotChest(pid, true)) {
 					depotChest->internalAddThing(item);
@@ -420,7 +420,7 @@ bool IOLoginData::loadPlayer(const std::shared_ptr<Player>& player, DBResult_ptr
 	         player->getGUID())))) {
 		loadItems(itemMap, result);
 
-		for (auto&& [item, pid] : itemMap | std::views::reverse | std::views::values | std::views::as_const) {
+		for (const auto& [item, pid] : itemMap | std::views::reverse | std::views::values) {
 			if (pid < 100) {
 				player->getInbox()->internalAddThing(item);
 			} else {
@@ -444,7 +444,7 @@ bool IOLoginData::loadPlayer(const std::shared_ptr<Player>& player, DBResult_ptr
 	         player->getGUID())))) {
 		loadItems(itemMap, result);
 
-		for (auto&& [item, pid] : itemMap | std::views::reverse | std::views::values | std::views::as_const) {
+		for (const auto& [item, pid] : itemMap | std::views::reverse | std::views::values) {
 			if (pid < 100) {
 				player->getStoreInbox()->internalAddThing(item);
 			} else {
@@ -509,7 +509,7 @@ bool IOLoginData::saveItems(const std::shared_ptr<const Player>& player, const I
 	const auto& openContainers = player->getOpenContainers();
 
 	Database& db = Database::getInstance();
-	for (auto&& [pid, item] : itemList | std::views::as_const) {
+	for (const auto& [pid, item] : itemList) {
 		++runningId;
 
 		if (const auto& container = item->getContainer()) {
@@ -518,7 +518,7 @@ bool IOLoginData::saveItems(const std::shared_ptr<const Player>& player, const I
 			}
 
 			if (!openContainers.empty()) {
-				for (auto&& [cid, openContainer] : openContainers | std::views::as_const) {
+				for (const auto& [cid, openContainer] : openContainers) {
 					const auto& opcontainer = openContainer.container;
 
 					if (opcontainer == container) {
@@ -555,7 +555,7 @@ bool IOLoginData::saveItems(const std::shared_ptr<const Player>& player, const I
 				}
 
 				if (!openContainers.empty()) {
-					for (auto&& [cid, openContainer] : openContainers | std::views::as_const) {
+					for (const auto& [cid, openContainer] : openContainers) {
 						const auto& opcontainer = openContainer.container;
 
 						if (opcontainer == subContainer) {
@@ -753,7 +753,7 @@ bool IOLoginData::savePlayer(const std::shared_ptr<Player>& player)
 	    "INSERT INTO `player_depotitems` (`player_id`, `pid`, `sid`, `itemtype`, `count`, `attributes`) VALUES ");
 	itemList.clear();
 
-	for (auto&& [depotId, depotChest] : player->getDepotChests()) {
+	for (const auto& [depotId, depotChest] : player->getDepotChests()) {
 		for (const auto& item : depotChest->getItemList()) {
 			itemList.emplace_back(depotId, item);
 		}
@@ -821,7 +821,7 @@ bool IOLoginData::savePlayer(const std::shared_ptr<Player>& player)
 
 	DBInsert outfitQuery("INSERT INTO `player_outfits` (`player_id`, `outfit_id`, `addons`) VALUES ");
 
-	for (auto&& [outfitId, addons] : player->outfits | std::views::as_const) {
+	for (const auto& [outfitId, addons] : player->outfits) {
 		if (!outfitQuery.addRow(std::format("{:d}, {:d}, {:d}", player->getGUID(), outfitId, addons))) {
 			return false;
 		}

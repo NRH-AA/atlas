@@ -38,7 +38,7 @@ auto testVectors = std::vector<SHA1Fixture>{
 
 BOOST_AUTO_TEST_CASE(test_sha1)
 {
-	for (auto&& [input, expected] : testVectors) {
+	for (const auto&& [input, expected] : testVectors) {
 		std::string result = transformToSHA1(input);
 		BOOST_TEST(result == expected, "expected '" << expected << "', got '" << result << "'");
 	}

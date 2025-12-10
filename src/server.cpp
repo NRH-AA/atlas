@@ -90,7 +90,7 @@ void ServiceManager::stop()
 
 	running = false;
 
-	for (auto&& servicePort : acceptors | std::views::values | std::views::as_const) {
+	for (const auto& servicePort : acceptors | std::views::values) {
 		try {
 			boost::asio::post(io_context, [servicePort]() { servicePort->onStopServer(); });
 		} catch (boost::system::system_error& e) {

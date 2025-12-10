@@ -559,7 +559,7 @@ House* Houses::getHouse(uint32_t houseId)
 
 House* Houses::getHouseByPlayerId(uint32_t playerId)
 {
-	for (auto&& house : houseMap | std::views::values | std::views::as_const) {
+	for (const auto& house : houseMap | std::views::values) {
 		if (house->getOwner() == playerId) {
 			return house.get();
 		}
@@ -616,7 +616,7 @@ void Houses::payHouses(RentPeriod_t rentPeriod) const
 	}
 
 	time_t currentTime = time(nullptr);
-	for (auto&& house : houseMap | std::views::values | std::views::as_const) {
+	for (const auto& house : houseMap | std::views::values) {
 		if (house->getOwner() == 0) {
 			continue;
 		}

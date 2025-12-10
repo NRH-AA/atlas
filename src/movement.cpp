@@ -18,7 +18,7 @@ MoveEvents::~MoveEvents() { clear(false); }
 
 void MoveEvents::clearMap(MoveListMap& map, bool fromLua)
 {
-	for (auto&& moveEventList : map | std::views::values) {
+	for (auto& moveEventList : map | std::views::values) {
 		for (int eventType = MOVE_EVENT_STEP_IN; eventType < MOVE_EVENT_LAST; ++eventType) {
 			auto& moveEvents = moveEventList.moveEvent[eventType];
 			for (auto find = moveEvents.begin(); find != moveEvents.end();) {
@@ -34,7 +34,7 @@ void MoveEvents::clearMap(MoveListMap& map, bool fromLua)
 
 void MoveEvents::clearPosMap(MovePosListMap& map, bool fromLua)
 {
-	for (auto&& moveEventList : map | std::views::values) {
+	for (auto& moveEventList : map | std::views::values) {
 		for (int eventType = MOVE_EVENT_STEP_IN; eventType < MOVE_EVENT_LAST; ++eventType) {
 			auto& moveEvents = moveEventList.moveEvent[eventType];
 			for (auto find = moveEvents.begin(); find != moveEvents.end();) {

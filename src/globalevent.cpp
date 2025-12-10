@@ -153,7 +153,7 @@ void GlobalEvents::think()
 	int64_t now = OTSYS_TIME();
 
 	int64_t nextScheduledTime = std::numeric_limits<int64_t>::max();
-	for (auto&& globalEvent : thinkMap | std::views::values) {
+	for (auto& globalEvent : thinkMap | std::views::values) {
 		int64_t nextExecutionTime = globalEvent.getNextExecution() - now;
 		if (nextExecutionTime > 0) {
 			if (nextExecutionTime < nextScheduledTime) {
@@ -182,7 +182,7 @@ void GlobalEvents::think()
 
 void GlobalEvents::execute(GlobalEvent_t type) const
 {
-	for (auto&& globalEvent : serverMap | std::views::values | std::views::as_const) {
+	for (const auto& globalEvent : serverMap | std::views::values) {
 		if (globalEvent.getEventType() == type) {
 			globalEvent.executeEvent();
 		}

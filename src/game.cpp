@@ -148,7 +148,7 @@ void Game::saveGameState()
 
 	std::cout << "Saving server..." << std::endl;
 
-	for (const auto& player : getPlayers() | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& player : getPlayers() | tfs::views::lock_weak_ptrs) {
 		player->setLoginPosition(player->getPosition());
 		IOLoginData::savePlayer(player);
 	}
@@ -412,7 +412,7 @@ std::shared_ptr<Npc> Game::getNpcByName(const std::string& name)
 		return nullptr;
 	}
 
-	for (auto&& npc : npcs | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& npc : npcs | std::views::values | tfs::views::lock_weak_ptrs) {
 		if (boost::iequals(name, npc->getName())) {
 			return npc;
 		}
@@ -426,7 +426,7 @@ std::shared_ptr<Player> Game::getPlayerByName(const std::string& name)
 		return nullptr;
 	}
 
-	for (auto&& player : players | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& player : players | std::views::values | tfs::views::lock_weak_ptrs) {
 		if (boost::iequals(name, player->getName())) {
 			return player;
 		}
@@ -476,7 +476,7 @@ ReturnValue Game::getPlayerByNameWildcard(const std::string& s, std::shared_ptr<
 
 std::shared_ptr<Player> Game::getPlayerByAccount(uint32_t acc)
 {
-	for (auto&& player : getPlayers() | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& player : getPlayers() | tfs::views::lock_weak_ptrs) {
 		if (player->getAccount() == acc) {
 			return player;
 		}
@@ -1559,7 +1559,7 @@ bool Game::removeMoney(const std::shared_ptr<Thing>& fromThing, uint64_t money, 
 		return false;
 	}
 
-	for (auto&& [worth, item] : moneyMap | std::views::as_const) {
+	for (const auto& [worth, item] : moneyMap) {
 		if (worth < money) {
 			internalRemoveItem(item);
 			money -= worth;
@@ -1584,7 +1584,7 @@ void Game::addMoney(const std::shared_ptr<Thing>& thing, uint64_t money, uint32_
 		return;
 	}
 
-	for (auto&& [worth, type] : Item::items.currencyItems | std::views::as_const) {
+	for (const auto& [worth, type] : Item::items.currencyItems) {
 		uint32_t currencyCoins = money / worth;
 		if (currencyCoins <= 0) {
 			continue;
@@ -1885,7 +1885,7 @@ bool Game::playerBroadcastMessage(const std::shared_ptr<Player>& player, const s
 
 	std::cout << "> " << player->getName() << " broadcasted: \"" << text << "\"." << std::endl;
 
-	for (auto&& onlinePlayer : getPlayers() | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& onlinePlayer : getPlayers() | tfs::views::lock_weak_ptrs) {
 		onlinePlayer->sendPrivateMessage(player, TALKTYPE_BROADCAST, text);
 	}
 
@@ -2679,7 +2679,7 @@ void Game::playerRequestTrade(uint32_t playerId, const Position& pos, uint8_t st
 	}
 
 	if (const auto& tradeItemContainer = tradeItem->getContainer()) {
-		for (auto&& item : tradeItems | std::views::keys | std::views::as_const) {
+		for (const auto& item : tradeItems | std::views::keys) {
 			if (tradeItem == item) {
 				player->sendCancelMessage("This item is already being traded.");
 				return;
@@ -2697,7 +2697,7 @@ void Game::playerRequestTrade(uint32_t playerId, const Position& pos, uint8_t st
 			}
 		}
 	} else {
-		for (auto&& item : tradeItems | std::views::keys | std::views::as_const) {
+		for (const auto& item : tradeItems | std::views::keys) {
 			if (tradeItem == item) {
 				player->sendCancelMessage("This item is already being traded.");
 				return;
@@ -4770,7 +4770,7 @@ void Game::cleanup()
 void Game::broadcastMessage(const std::string& text, MessageClasses type) const
 {
 	std::cout << "> Broadcasted message: \"" << text << "\"." << std::endl;
-	for (auto&& player : getPlayers() | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& player : getPlayers() | tfs::views::lock_weak_ptrs) {
 		player->sendTextMessage(type, text);
 	}
 }
@@ -4830,7 +4830,7 @@ void Game::checkPlayersRecord()
 		uint32_t previousRecord = playersRecord;
 		playersRecord = playersOnline;
 
-		for (auto&& globalEvent : g_globalEvents->getEventMap(GLOBALEVENT_RECORD) | std::views::values) {
+		for (auto& globalEvent : g_globalEvents->getEventMap(GLOBALEVENT_RECORD) | std::views::values) {
 			globalEvent.executeRecord(playersRecord, previousRecord);
 		}
 		updatePlayersRecord();
@@ -5444,7 +5444,7 @@ std::vector<std::shared_ptr<Item>> Game::getMarketItemList(uint16_t wareId, uint
 	uint16_t count = 0;
 	auto containers = std::deque<std::shared_ptr<Container>>{player.getInbox()};
 
-	for (auto&& chest : player.getDepotChests() | std::views::values) {
+	for (const auto& chest : player.getDepotChests() | std::views::values) {
 		if (!chest->empty()) {
 			containers.push_front(chest);
 		}

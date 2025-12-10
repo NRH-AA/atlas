@@ -238,7 +238,7 @@ void Spawn::startSpawnCheck()
 
 Spawn::~Spawn()
 {
-	for (auto&& monster : spawnedMap | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& monster : spawnedMap | std::views::values | tfs::views::lock_weak_ptrs) {
 		monster->setSpawn(nullptr);
 	}
 }
@@ -262,7 +262,7 @@ bool Spawn::spawnMonster(uint32_t spawnId, spawnBlock_t sb, bool startup /* = fa
 	size_t monstersCount = sb.mTypes.size(), blockedMonsters = 0;
 
 	const auto spawnFunc = [&](bool roll) {
-		for (auto&& [monsterType, spawnChance] : sb.mTypes | std::views::as_const) {
+		for (const auto& [monsterType, spawnChance] : sb.mTypes) {
 			if (isBlocked && !monsterType->info.isIgnoringSpawnBlock) {
 				++blockedMonsters;
 				continue;
@@ -327,7 +327,7 @@ bool Spawn::spawnMonster(uint32_t spawnId, MonsterType* mType, const Position& p
 
 void Spawn::startup()
 {
-	for (auto&& [spawnId, sb] : spawnMap | std::views::as_const) {
+	for (const auto& [spawnId, sb] : spawnMap) {
 		spawnMonster(spawnId, sb, true);
 	}
 }
@@ -340,7 +340,7 @@ void Spawn::checkSpawn()
 
 	uint32_t spawnCount = 0;
 
-	for (auto&& [spawnId, sb] : spawnMap) {
+	for (auto& [spawnId, sb] : spawnMap) {
 		if (spawnedMap.find(spawnId) != spawnedMap.end()) {
 			continue;
 		}

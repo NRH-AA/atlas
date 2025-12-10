@@ -1061,7 +1061,7 @@ static bool pushItem(const std::shared_ptr<Item>& item)
 
 	std::shuffle(relList.begin(), relList.end(), getRandomGenerator());
 
-	for (auto&& [dx, dy] : relList | std::views::as_const) {
+	for (const auto& [dx, dy] : relList) {
 		Position tryPos(centerPos.x + dx, centerPos.y + dy, centerPos.z);
 		if (const auto& tile = g_game.map.getTile(tryPos)) {
 			std::shared_ptr<Item> moveItem = nullptr;

@@ -342,7 +342,7 @@ bool ConfigManager::getBoolean(boolean_config_t what)
 
 float ConfigManager::getExperienceStage(uint32_t level)
 {
-	auto it = std::find_if(expStages.begin(), expStages.end(), [level](auto&& stage) {
+	auto it = std::find_if(expStages.begin(), expStages.end(), [level](const auto& stage) {
 		auto&& [minLevel, maxLevel, _] = stage;
 		return level >= minLevel && level <= maxLevel;
 	});

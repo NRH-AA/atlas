@@ -11,7 +11,7 @@ CreatureEvents::CreatureEvents() : scriptInterface("CreatureScript Interface") {
 
 void CreatureEvents::clear(bool fromLua)
 {
-	for (auto&& event : creatureEvents | std::views::values) {
+	for (auto& event : creatureEvents | std::views::values) {
 		if (fromLua == event.fromLua) {
 			event.clearEvent();
 		}
@@ -102,7 +102,7 @@ CreatureEvent* CreatureEvents::getEventByName(const std::string& name, bool forc
 bool CreatureEvents::playerLogin(const std::shared_ptr<Player>& player) const
 {
 	// fire global event if is registered
-	for (auto&& event : creatureEvents | std::views::values | std::views::as_const) {
+	for (const auto& event : creatureEvents | std::views::values) {
 		if (event.getEventType() == CREATURE_EVENT_LOGIN) {
 			if (!event.executeOnLogin(player)) {
 				return false;
@@ -115,7 +115,7 @@ bool CreatureEvents::playerLogin(const std::shared_ptr<Player>& player) const
 bool CreatureEvents::playerLogout(const std::shared_ptr<Player>& player) const
 {
 	// fire global event if is registered
-	for (auto&& event : creatureEvents | std::views::values | std::views::as_const) {
+	for (const auto& event : creatureEvents | std::views::values) {
 		if (event.getEventType() == CREATURE_EVENT_LOGOUT) {
 			if (!event.executeOnLogout(player)) {
 				return false;
@@ -128,7 +128,7 @@ bool CreatureEvents::playerLogout(const std::shared_ptr<Player>& player) const
 void CreatureEvents::playerReconnect(const std::shared_ptr<Player>& player) const
 {
 	// fire global event if is registered
-	for (auto&& event : creatureEvents | std::views::values | std::views::as_const) {
+	for (const auto& event : creatureEvents | std::views::values) {
 		if (event.getEventType() == CREATURE_EVENT_RECONNECT) {
 			event.executeOnReconnect(player);
 		}
@@ -139,7 +139,7 @@ bool CreatureEvents::playerAdvance(const std::shared_ptr<Player>& player, skills
                                    uint32_t newLevel)
 {
 	// fire global event if is registered
-	for (auto&& creatureEvent : creatureEvents | std::views::values) {
+	for (auto& creatureEvent : creatureEvents | std::views::values) {
 		if (creatureEvent.getEventType() == CREATURE_EVENT_ADVANCE) {
 			if (!creatureEvent.executeAdvance(player, skill, oldLevel, newLevel)) {
 				return false;

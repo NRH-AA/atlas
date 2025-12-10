@@ -59,7 +59,7 @@ bool Monsters::loadFromXml(bool reloading /*= false*/)
 
 	bool forceLoad = getBoolean(ConfigManager::FORCE_MONSTERTYPE_LOAD);
 
-	for (auto&& [file, monsterName] : unloadedMonsters | std::views::as_const) {
+	for (const auto& [file, monsterName] : unloadedMonsters) {
 		if (forceLoad || (reloading && monsters.find(monsterName) != monsters.end())) {
 			loadMonster(file, monsterName, reloading);
 		}

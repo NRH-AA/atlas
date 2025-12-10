@@ -184,7 +184,7 @@ RuneSpell* Spells::getRuneSpell(uint32_t id)
 {
 	auto it = runes.find(id);
 	if (it == runes.end()) {
-		for (auto&& rune : runes | std::views::values) {
+		for (auto& rune : runes | std::views::values) {
 			if (rune.getId() == id) {
 				return &rune;
 			}
@@ -196,7 +196,7 @@ RuneSpell* Spells::getRuneSpell(uint32_t id)
 
 RuneSpell* Spells::getRuneSpellByName(const std::string& name)
 {
-	for (auto&& rune : runes | std::views::values) {
+	for (auto& rune : runes | std::views::values) {
 		if (boost::iequals(rune.getName(), name)) {
 			return &rune;
 		}
@@ -208,7 +208,7 @@ InstantSpell* Spells::getInstantSpell(const std::string& words)
 {
 	InstantSpell* result = nullptr;
 
-	for (auto&& spell : instants | std::views::values) {
+	for (auto& spell : instants | std::views::values) {
 		const std::string& instantSpellWords = spell.getWords();
 		size_t spellLen = instantSpellWords.length();
 		if (boost::istarts_with(words, instantSpellWords)) {
@@ -241,7 +241,7 @@ InstantSpell* Spells::getInstantSpell(const std::string& words)
 
 InstantSpell* Spells::getInstantSpellByName(const std::string& name)
 {
-	for (auto&& spell : instants | std::views::values) {
+	for (auto& spell : instants | std::views::values) {
 		if (boost::iequals(spell.getName(), name)) {
 			return &spell;
 		}

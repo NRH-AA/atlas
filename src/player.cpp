@@ -595,7 +595,7 @@ std::shared_ptr<Container> Player::getContainerByID(uint8_t cid)
 
 int8_t Player::getContainerID(const std::shared_ptr<const Container>& container) const
 {
-	for (auto&& [cid, openContainer] : openContainers | std::views::as_const) {
+	for (const auto& [cid, openContainer] : openContainers) {
 		if (openContainer.container == container) {
 			return cid;
 		}
@@ -885,7 +885,7 @@ void Player::sendAddContainerItem(const std::shared_ptr<const Container>& contai
 	}
 
 	auto slotItem = item;
-	for (auto&& [cid, openContainer] : openContainers | std::views::as_const) {
+	for (const auto& [cid, openContainer] : openContainers) {
 		if (openContainer.container != container) {
 			continue;
 		}
@@ -917,7 +917,7 @@ void Player::sendUpdateContainerItem(const std::shared_ptr<const Container>& con
 		return;
 	}
 
-	for (auto&& [cid, openContainer] : openContainers | std::views::as_const) {
+	for (const auto& [cid, openContainer] : openContainers) {
 		if (openContainer.container != container) {
 			continue;
 		}
@@ -941,12 +941,12 @@ void Player::sendRemoveContainerItem(const std::shared_ptr<const Container>& con
 		return;
 	}
 
-	for (auto&& [cid, openContainer] : openContainers) {
+	for (auto& [cid, openContainer] : openContainers) {
 		if (openContainer.container != container) {
 			continue;
 		}
 
-		uint16_t& firstIndex = openContainer.index;
+		auto& firstIndex = openContainer.index;
 		if (firstIndex > 0 && firstIndex >= container->size() - 1) {
 			firstIndex -= container->capacity();
 			sendContainer(cid, container, firstIndex);
@@ -990,7 +990,7 @@ void Player::openSavedContainers()
 	}
 
 	// send actual containers
-	for (auto&& [cid, container] : openContainersList | std::views::as_const) {
+	for (const auto& [cid, container] : openContainersList) {
 		addContainer(cid - 1, container);
 		onSendContainer(container);
 	}
@@ -1096,7 +1096,7 @@ void Player::onCreatureAppear(const std::shared_ptr<Creature>& creature, bool is
 			}
 		}
 
-		for (auto&& onlinePlayer : g_game.getPlayers() | tfs::views::lock_weak_ptrs) {
+		for (const auto& onlinePlayer : g_game.getPlayers() | tfs::views::lock_weak_ptrs) {
 			if (onlinePlayer != getPlayer()) {
 				onlinePlayer->notifyStatusChange(getPlayer(), VIPSTATUS_ONLINE);
 			}
@@ -1243,7 +1243,7 @@ void Player::onRemoveCreature(const std::shared_ptr<Creature>& creature, bool is
 			}
 		}
 
-		for (auto&& onlinePlayer : g_game.getPlayers() | tfs::views::lock_weak_ptrs) {
+		for (const auto& onlinePlayer : g_game.getPlayers() | tfs::views::lock_weak_ptrs) {
 			if (onlinePlayer != getPlayer()) {
 				onlinePlayer->notifyStatusChange(getPlayer(), VIPSTATUS_OFFLINE);
 			}
@@ -1395,7 +1395,7 @@ void Player::onCloseContainer(const std::shared_ptr<const Container>& container)
 		return;
 	}
 
-	for (auto&& [cid, openContainer] : openContainers | std::views::as_const) {
+	for (const auto& [cid, openContainer] : openContainers) {
 		if (openContainer.container == container) {
 			client->sendCloseContainer(cid);
 		}
@@ -1408,7 +1408,7 @@ void Player::onSendContainer(const std::shared_ptr<const Container>& container)
 		return;
 	}
 
-	for (auto&& [cid, openContainer] : openContainers | std::views::as_const) {
+	for (const auto& [cid, openContainer] : openContainers) {
 		if (openContainer.container == container) {
 			client->sendContainer(cid, container, openContainer.index);
 		}
@@ -2081,7 +2081,7 @@ void Player::death(const std::shared_ptr<Creature>& lastHitCreature)
 		if (lastHitPlayer) {
 			uint32_t sumLevels = 0;
 			uint32_t inFightTicks = getNumber(ConfigManager::PZ_LOCKED);
-			for (auto&& [id, cb] : getDamageMap()) {
+			for (const auto& [id, cb] : getDamageMap()) {
 				if ((OTSYS_TIME() - cb.ticks) <= inFightTicks) {
 					if (const auto& damageDealer = g_game.getPlayerByID(id)) {
 						sumLevels += damageDealer->getLevel();
@@ -2368,7 +2368,7 @@ bool Player::editVIP(uint32_t vipGuid, const std::string& description, uint32_t 
 void Player::autoCloseContainers(const std::shared_ptr<const Container>& container)
 {
 	std::vector<uint32_t> closeList;
-	for (auto&& [cid, openContainer] : openContainers | std::views::as_const) {
+	for (const auto& [cid, openContainer] : openContainers) {
 		auto tmpContainer = openContainer.container;
 		while (tmpContainer) {
 			if (tmpContainer->isRemoved() || tmpContainer == container) {
@@ -3154,7 +3154,7 @@ void Player::postAddNotification(const std::shared_ptr<Thing>& thing, const std:
 			// check containers
 			std::vector<std::shared_ptr<Container>> containers;
 
-			for (auto&& openContainer : openContainers | std::views::values | std::views::as_const) {
+			for (const auto& openContainer : openContainers | std::views::values) {
 				if (!openContainer.container->getPosition().isInRange(getPosition(), 1, 1, 0)) {
 					containers.push_back(openContainer.container);
 				}
@@ -3213,7 +3213,7 @@ void Player::postRemoveNotification(const std::shared_ptr<Thing>& thing, const s
 				if (const auto& depotChest = std::dynamic_pointer_cast<const DepotChest>(topContainer)) {
 					bool isOwner = false;
 
-					for (auto&& chest : depotChests | std::views::values | std::views::as_const) {
+					for (const auto& chest : depotChests | std::views::values) {
 						if (tfs::owner_equal(chest, depotChest)) {
 							isOwner = true;
 							onSendContainer(container);
@@ -3247,7 +3247,7 @@ bool Player::updateSaleShopList(const std::shared_ptr<const Item>& item)
 {
 	uint16_t itemId = item->getID();
 	bool isCurrency = false;
-	for (auto&& currencyId : Item::items.currencyItems | std::views::values | std::views::as_const) {
+	for (const auto& currencyId : Item::items.currencyItems | std::views::values) {
 		if (currencyId == itemId) {
 			isCurrency = true;
 			break;
