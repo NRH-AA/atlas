@@ -1102,8 +1102,9 @@ void Player::onCreatureAppear(const std::shared_ptr<Creature>& creature, bool is
 		}
 	}
 
-	tfs::events::player::onJoin(getPlayer());
-
+	sendPendingStateEntered();
+	sendEnterWorld();
+	sendMapDescription();
 	sendStats();
 	sendSkills();
 	sendIcons();
@@ -1113,9 +1114,6 @@ void Player::onCreatureAppear(const std::shared_ptr<Creature>& creature, bool is
 	sendClientFeatures();
 	sendBasicData();
 	sendItems();
-	sendPendingStateEntered();
-	sendEnterWorld();
-	sendMapDescription();
 
 	for (int i = CONST_SLOT_FIRST; i <= CONST_SLOT_LAST; ++i) {
 		auto slot = static_cast<slots_t>(i);
@@ -1128,6 +1126,8 @@ void Player::onCreatureAppear(const std::shared_ptr<Creature>& creature, bool is
 	if (magicEffect != CONST_ME_NONE) {
 		sendMagicEffect(magicEffect);
 	}
+
+	tfs::events::player::onJoin(getPlayer());
 }
 
 void Player::onAttackedCreatureDisappear(bool isLogout)
