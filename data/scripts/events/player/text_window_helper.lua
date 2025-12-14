@@ -68,7 +68,7 @@ event:register()
 
 event = Event()
 
-function event.onPlayerLogout(self)
+event.onPlayerLogout = function(self)
 	TextWindows[self:getGuid()] = nil
 	return true
 end
@@ -77,12 +77,10 @@ event:register()
 
 event = Event()
 
-function event.onCreatureDeath(self)
-	if not self:isPlayer() then
-		return
+event.onCreatureDeath = function(self)
+	if self:isPlayer() then
+		TextWindows[self:getGuid()] = nil
 	end
-
-	TextWindows[self:getGuid()] = nil
 end
 
 event:register()
