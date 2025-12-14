@@ -150,8 +150,6 @@ public:
 	uint32_t getGUID() const { return guid; }
 	bool canSeeInvisibility() const override { return hasFlag(PlayerFlag_CanSenseInvisibility) || group->access; }
 
-	void removeList() override;
-	void addList() override;
 	void kickPlayer(bool displayEffect);
 
 	static uint64_t getExpForLevel(const uint64_t lv)
@@ -448,7 +446,7 @@ public:
 	}
 
 	// V.I.P. functions
-	void notifyStatusChange(const std::shared_ptr<Player>& loginPlayer, VipStatus_t status);
+	void notifyStatusChange(const std::shared_ptr<Player>& loginPlayer, VipStatus_t status) const;
 	bool removeVIP(uint32_t vipGuid);
 	bool addVIP(uint32_t vipGuid, const std::string& vipName, VipStatus_t status);
 	bool addVIPInternal(uint32_t vipGuid);
@@ -555,8 +553,8 @@ public:
 
 	LightInfo getCreatureLight() const override;
 
+	Skulls_t getCombatSkull(const std::shared_ptr<const Creature>& creature) const;
 	Skulls_t getSkull() const override;
-	Skulls_t getSkullClient(const std::shared_ptr<const Creature>& creature) const override;
 	int64_t getSkullTicks() const { return skullTicks; }
 	void setSkullTicks(int64_t ticks) { skullTicks = ticks; }
 
@@ -730,7 +728,7 @@ public:
 	void sendLight()
 	{
 		if (client) {
-			client->sendCreatureLight(getCreature());
+			client->sendCreatureLight(asCreature());
 		}
 	}
 	void sendCreatureLight(const std::shared_ptr<const Creature>& creature)
@@ -809,7 +807,7 @@ public:
 		if (!sendAll) {
 			// update one slot
 			if (const auto& slotThing = getThing(CONST_SLOT_RIGHT)) {
-				if (const auto& slotItem = slotThing->getItem()) {
+				if (const auto& slotItem = slotThing->asItem()) {
 					if (slotItem->getWeaponType() == WEAPON_QUIVER) {
 						sendInventoryItem(CONST_SLOT_RIGHT, slotItem);
 					}
@@ -820,7 +818,7 @@ public:
 			constexpr auto slots = std::array{CONST_SLOT_RIGHT, CONST_SLOT_LEFT, CONST_SLOT_AMMO};
 			for (const auto& slot : slots) {
 				if (const auto& slotThing = getThing(slot)) {
-					if (const auto& slotItem = slotThing->getItem()) {
+					if (const auto& slotItem = slotThing->asItem()) {
 						if (slotItem->getWeaponType() == WEAPON_QUIVER) {
 							sendInventoryItem(slot, slotItem);
 						}
@@ -883,7 +881,7 @@ public:
 	void sendMapDescription() const
 	{
 		if (client) {
-			client->sendMapDescription(position);
+			client->sendMapDescription(getPosition());
 		}
 	}
 	void sendPendingStateEntered() const
@@ -946,7 +944,7 @@ public:
 	void sendMagicEffect(uint8_t type) const
 	{
 		if (client) {
-			client->sendMagicEffect(position, type);
+			client->sendMagicEffect(getPosition(), type);
 		}
 	}
 	void sendMagicEffect(const Position& pos, uint8_t type) const
@@ -1231,7 +1229,7 @@ public:
 
 	void addExperience(const std::shared_ptr<Creature>& source, uint64_t exp, bool sendText = false);
 	void removeExperience(uint64_t exp, bool sendText = false);
-	double getLostPercent() const;
+	double getLossPercent() const;
 
 private:
 	std::forward_list<Condition*> getMuteConditions() const;
@@ -1415,7 +1413,7 @@ private:
 
 	uint64_t getLostExperience() const override
 	{
-		return skillLoss ? static_cast<uint64_t>(experience * getLostPercent()) : 0;
+		return skillLoss ? static_cast<uint64_t>(experience * getLossPercent()) : 0;
 	}
 	uint32_t getDamageImmunities() const override { return damageImmunities; }
 	uint32_t getConditionImmunities() const override { return conditionImmunities; }

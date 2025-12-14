@@ -424,7 +424,7 @@ void ProtocolGame::onRecvFirstMessage(NetworkMessage& msg)
 	}
 
 	Database& db = Database::getInstance();
-	auto result = db.storeQuery(std::format(
+	const auto& result = db.storeQuery(std::format(
 	    "SELECT `a`.`id` AS `account_id`, INET6_NTOA(`s`.`ip`) AS `session_ip`, `p`.`id` AS `character_id` FROM `accounts` `a` JOIN `sessions` `s` ON `a`.`id` = `s`.`account_id` JOIN `players` `p` ON `a`.`id` = `p`.`account_id` WHERE `s`.`token` = {:s} AND `s`.`expired_at` IS NULL AND `p`.`name` = {:s} AND `p`.`deletion` = 0",
 	    db.escapeString(sessionToken), db.escapeString(characterName)));
 	if (!result) {
@@ -726,9 +726,6 @@ void ProtocolGame::parsePacket(NetworkMessage& msg)
 			parseSeekInContainer(msg);
 			break;
 		// case 0xCD: break; // request inspect window
-		case 0xD2:
-			g_dispatcher.addTask([playerID = player->getID()]() { g_game.playerRequestOutfit(playerID); });
-			break;
 		case 0xD3:
 			parseSetOutfit(msg);
 			break;
@@ -1514,19 +1511,22 @@ void ProtocolGame::parseMarketCreateOffer(NetworkMessage& msg)
 	uint16_t amount = msg.get<uint16_t>();
 	uint64_t price = msg.get<uint64_t>();
 	bool anonymous = (msg.getByte() != 0);
-	g_dispatcher.addTask([=, playerID = player->getID()]() {
+
+	g_dispatcher.addTask([=, playerID = player->getID(), thisPtr = getThis()]() {
+		thisPtr->sendStoreBalance();
 		g_game.playerCreateMarketOffer(playerID, type, spriteId, amount, price, anonymous);
 	});
-	sendStoreBalance();
 }
 
 void ProtocolGame::parseMarketCancelOffer(NetworkMessage& msg)
 {
 	uint32_t timestamp = msg.get<uint32_t>();
 	uint16_t counter = msg.get<uint16_t>();
-	g_dispatcher.addTask(
-	    [=, playerID = player->getID()]() { g_game.playerCancelMarketOffer(playerID, timestamp, counter); });
-	sendStoreBalance();
+
+	g_dispatcher.addTask([=, playerID = player->getID(), thisPtr = getThis()]() {
+		thisPtr->sendStoreBalance();
+		g_game.playerCancelMarketOffer(playerID, timestamp, counter);
+	});
 }
 
 void ProtocolGame::parseMarketAcceptOffer(NetworkMessage& msg)
@@ -1648,7 +1648,7 @@ void ProtocolGame::sendCreatureSkull(const std::shared_ptr<const Creature>& crea
 	NetworkMessage msg;
 	msg.addByte(0x90);
 	msg.add<uint32_t>(creature->getID());
-	msg.addByte(player->getSkullClient(creature));
+	msg.addByte(player->getCombatSkull(creature));
 	writeToOutputBuffer(msg);
 }
 
@@ -3430,7 +3430,7 @@ void ProtocolGame::AddCreature(NetworkMessage& msg, const std::shared_ptr<const 
 
 	AddCreatureIcons(msg, creature);
 
-	msg.addByte(player->getSkullClient(creature));
+	msg.addByte(player->getCombatSkull(creature));
 
 	const auto& otherPlayer = creature->getPlayer();
 	msg.addByte(player->getPartyShield(otherPlayer));

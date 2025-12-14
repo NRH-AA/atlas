@@ -377,7 +377,6 @@ public:
 	void playerRequestEditVip(uint32_t playerId, uint32_t guid, const std::string& description, uint32_t icon,
 	                          bool notify);
 	void playerTurn(uint32_t playerId, Direction dir);
-	void playerRequestOutfit(uint32_t playerId);
 	void playerRequestEditPodium(uint32_t playerId, const Position& position, uint8_t stackPos,
 	                             const uint16_t spriteId);
 	void playerEditPodium(uint32_t playerId, Outfit_t outfit, const Position& position, uint8_t stackPos,
@@ -462,15 +461,6 @@ public:
 	auto getPlayers() const { return players | std::views::values; }
 	auto getNpcs() const { return npcs | std::views::values; }
 	auto getMonsters() const { return monsters | std::views::values; }
-
-	void addPlayer(const std::shared_ptr<Player>& player);
-	void removePlayer(const std::shared_ptr<Player>& player);
-
-	void addNpc(const std::shared_ptr<Npc>& npc) { npcs[npc->getID()] = npc; }
-	void removeNpc(const std::shared_ptr<Npc>& npc) { npcs.erase(npc->getID()); }
-
-	void addMonster(const std::shared_ptr<Monster>& monster) { monsters[monster->getID()] = monster; }
-	void removeMonster(const std::shared_ptr<Monster>& monster) { monsters.erase(monster->getID()); }
 
 	std::shared_ptr<Guild> getGuild(uint32_t id) const;
 	void addGuild(std::shared_ptr<Guild> guild) { guilds[guild->getId()] = std::move(guild); }

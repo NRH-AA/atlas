@@ -721,7 +721,7 @@ bool Spell::playerRuneSpellCheck(const std::shared_ptr<Player>& player, const Po
 
 	if (aggressive && needTarget && topVisibleCreature && player->hasSecureMode()) {
 		if (const auto& targetPlayer = topVisibleCreature->getPlayer()) {
-			if (targetPlayer != player && player->getSkullClient(targetPlayer) == SKULL_NONE &&
+			if (targetPlayer != player && player->getCombatSkull(targetPlayer) == SKULL_NONE &&
 			    !Combat::isInPvpZone(player, targetPlayer)) {
 				player->sendCancelMessage(RETURNVALUE_TURNSECUREMODETOATTACKUNMARKEDPLAYERS);
 				g_game.addMagicEffect(player->getPosition(), CONST_ME_POFF);
@@ -1149,7 +1149,7 @@ bool RuneSpell::executeUse(const std::shared_ptr<Player>& player, const std::sha
 				}
 			}
 		} else {
-			var.setNumber(target->getCreature()->getID());
+			var.setNumber(target->asCreature()->getID());
 		}
 	} else {
 		var.setPosition(toPosition);
@@ -1164,7 +1164,7 @@ bool RuneSpell::executeUse(const std::shared_ptr<Player>& player, const std::sha
 	if (var.isNumber()) {
 		if (const auto& targetCreature = g_game.getCreatureByID(var.getNumber())) {
 			if (getPzLock()) {
-				player->onAttackedCreature(targetCreature->getCreature());
+				player->onAttackedCreature(targetCreature->asCreature());
 			}
 		}
 	}

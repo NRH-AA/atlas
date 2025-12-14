@@ -33,7 +33,7 @@ Monster::Monster(MonsterType* mType) : Creature(), nameDescription(mType->nameDe
 {
 	defaultOutfit = mType->info.outfit;
 	currentOutfit = mType->info.outfit;
-	skull = mType->info.skull;
+	setSkull(mType->info.skull);
 	health = mType->info.health;
 	healthMax = mType->info.healthMax;
 	baseSpeed = mType->info.baseSpeed;
@@ -47,10 +47,6 @@ Monster::Monster(MonsterType* mType) : Creature(), nameDescription(mType->nameDe
 		}
 	}
 }
-
-void Monster::addList() { g_game.addMonster(getMonster()); }
-
-void Monster::removeList() { g_game.removeMonster(getMonster()); }
 
 const std::string& Monster::getName() const
 {
@@ -336,7 +332,7 @@ void Monster::updateTargetList()
 	             std::ranges::to<decltype(targetList)>();
 
 	SpectatorVec spectators;
-	g_game.map.getSpectators(spectators, position, true);
+	g_game.map.getSpectators(spectators, getPosition(), true);
 	spectators.erase(getMonster());
 	for (const auto& spectator : spectators) {
 		onCreatureFound(spectator);
@@ -439,7 +435,7 @@ void Monster::onCreatureLeave(const std::shared_ptr<Creature>& creature)
 
 		if (!isSummon() && targetList.empty()) {
 			int32_t walkToSpawnRadius = getNumber(ConfigManager::DEFAULT_WALKTOSPAWNRADIUS);
-			if (walkToSpawnRadius > 0 && !position.isInRange(masterPos, walkToSpawnRadius, walkToSpawnRadius)) {
+			if (walkToSpawnRadius > 0 && !getPosition().isInRange(masterPos, walkToSpawnRadius, walkToSpawnRadius)) {
 				walkToSpawn();
 			}
 		}
@@ -717,7 +713,7 @@ void Monster::onThink(uint32_t interval)
 		}
 	}
 
-	if (!isInSpawnRange(position)) {
+	if (!isInSpawnRange(getPosition())) {
 		if (getBoolean(ConfigManager::MONSTER_OVERSPAWN)) {
 			if (spawn) {
 				spawn->removeMonster(getMonster());
@@ -1032,6 +1028,7 @@ bool Monster::walkToSpawn()
 		return false;
 	}
 
+	const auto& position = getPosition();
 	int32_t distance = std::max(position.getDistanceX(masterPos), position.getDistanceY(masterPos));
 	if (distance == 0) {
 		return false;

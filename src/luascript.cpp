@@ -69,7 +69,7 @@ enum LuaDataType
 
 // result map
 uint32_t lastResultId = 0;
-std::map<uint32_t, DBResult_ptr> tempResults = {};
+std::map<uint32_t, std::shared_ptr<DBResult>> tempResults = {};
 
 bool isNumber(lua_State* L, int32_t arg) { return lua_type(L, arg) == LUA_TNUMBER; }
 
@@ -285,11 +285,11 @@ uint32_t ScriptEnvironment::addThing(const std::shared_ptr<Thing>& thing)
 		return 0;
 	}
 
-	if (const auto& creature = thing->getCreature()) {
+	if (const auto& creature = thing->asCreature()) {
 		return creature->getID();
 	}
 
-	const auto& item = thing->getItem();
+	const auto& item = thing->asItem();
 	if (item && item->hasAttribute(ITEM_ATTRIBUTE_UNIQUEID)) {
 		return item->getUniqueId();
 	}
@@ -343,7 +343,7 @@ std::shared_ptr<Item> ScriptEnvironment::getItemByUID(uint32_t uid)
 	if (!thing) {
 		return nullptr;
 	}
-	return thing->getItem();
+	return thing->asItem();
 }
 
 std::shared_ptr<Container> ScriptEnvironment::getContainerByUID(uint32_t uid)
@@ -365,9 +365,9 @@ void ScriptEnvironment::removeItemByUID(uint32_t uid)
 	localMap.erase(uid);
 }
 
-static uint32_t addResult(DBResult_ptr res)
+static uint32_t addResult(std::shared_ptr<DBResult> result)
 {
-	tempResults[++lastResultId] = std::move(res);
+	tempResults[++lastResultId] = std::move(result);
 	return lastResultId;
 }
 
@@ -382,7 +382,7 @@ static bool removeResult(uint32_t id)
 	return true;
 }
 
-static DBResult_ptr getResultByID(uint32_t id)
+static std::shared_ptr<DBResult> getResultByID(uint32_t id)
 {
 	auto it = tempResults.find(id);
 	if (it == tempResults.end()) {
@@ -735,10 +735,10 @@ void tfs::lua::pushThing(lua_State* L, const std::shared_ptr<Thing>& thing)
 		return;
 	}
 
-	if (const auto& item = thing->getItem()) {
+	if (const auto& item = thing->asItem()) {
 		pushSharedPtr(L, item);
 		setItemMetatable(L, -1, item);
-	} else if (const auto& creature = thing->getCreature()) {
+	} else if (const auto& creature = thing->asCreature()) {
 		pushSharedPtr(L, creature);
 		setCreatureMetatable(L, -1, creature);
 	} else if (const auto& tile = thing->getTile()) {
@@ -3784,7 +3784,15 @@ int LuaScriptInterface::luaIsMoveable(lua_State* L)
 	// isMoveable(uid)
 	// isMovable(uid)
 	const auto& thing = tfs::lua::getScriptEnv()->getThingByUID(tfs::lua::getNumber<uint32_t>(L, -1));
-	tfs::lua::pushBoolean(L, thing && thing->isPushable());
+	if (const auto& item = thing->asItem()) {
+		tfs::lua::pushBoolean(L, item->isPushable());
+	} else if (const auto& creature = thing->asCreature()) {
+		tfs::lua::pushBoolean(L, creature->isPushable());
+	} else if (const auto& tile = thing->getTile()) {
+		tfs::lua::pushBoolean(L, false);
+	} else {
+		tfs::lua::pushBoolean(L, false);
+	}
 	return 1;
 }
 
@@ -4143,11 +4151,11 @@ int LuaScriptInterface::luaDatabaseExecute(lua_State* L)
 int LuaScriptInterface::luaDatabaseAsyncExecute(lua_State* L)
 {
 	// db.asyncQuery(query, callback)
-	std::function<void(const DBResult_ptr&, bool)> callback;
+	std::function<void(const std::shared_ptr<DBResult>&, bool)> callback;
 	if (lua_gettop(L) > 1) {
 		int32_t ref = luaL_ref(L, LUA_REGISTRYINDEX);
 		auto scriptId = tfs::lua::getScriptEnv()->getScriptId();
-		callback = [ref, scriptId](const DBResult_ptr&, bool success) {
+		callback = [ref, scriptId](const std::shared_ptr<DBResult>&, bool success) {
 			lua_State* L = g_luaEnvironment.getLuaState();
 			if (!L) {
 				return;
@@ -4174,8 +4182,8 @@ int LuaScriptInterface::luaDatabaseAsyncExecute(lua_State* L)
 int LuaScriptInterface::luaDatabaseStoreQuery(lua_State* L)
 {
 	// db.storeQuery(query)
-	if (DBResult_ptr res = Database::getInstance().storeQuery(tfs::lua::getString(L, -1))) {
-		tfs::lua::pushNumber(L, addResult(res));
+	if (const auto& result = Database::getInstance().storeQuery(tfs::lua::getString(L, -1))) {
+		tfs::lua::pushNumber(L, addResult(result));
 	} else {
 		tfs::lua::pushBoolean(L, false);
 	}
@@ -4185,11 +4193,11 @@ int LuaScriptInterface::luaDatabaseStoreQuery(lua_State* L)
 int LuaScriptInterface::luaDatabaseAsyncStoreQuery(lua_State* L)
 {
 	// db.asyncStoreQuery(query, callback)
-	std::function<void(const DBResult_ptr&, bool)> callback;
+	std::function<void(const std::shared_ptr<DBResult>&, bool)> callback;
 	if (lua_gettop(L) > 1) {
 		int32_t ref = luaL_ref(L, LUA_REGISTRYINDEX);
 		auto scriptId = tfs::lua::getScriptEnv()->getScriptId();
-		callback = [ref, scriptId](const DBResult_ptr& result, bool) {
+		callback = [ref, scriptId](const std::shared_ptr<DBResult>& result, bool) {
 			lua_State* L = g_luaEnvironment.getLuaState();
 			if (!L) {
 				return;
@@ -4253,39 +4261,39 @@ const luaL_Reg LuaScriptInterface::luaResultTable[] = {
 
 int LuaScriptInterface::luaResultGetNumber(lua_State* L)
 {
-	DBResult_ptr res = getResultByID(tfs::lua::getNumber<uint32_t>(L, 1));
-	if (!res) {
+	const auto& result = getResultByID(tfs::lua::getNumber<uint32_t>(L, 1));
+	if (!result) {
 		tfs::lua::pushBoolean(L, false);
 		return 1;
 	}
 
 	const std::string& s = tfs::lua::getString(L, 2);
-	tfs::lua::pushNumber(L, res->getNumber<int64_t>(s));
+	tfs::lua::pushNumber(L, result->getNumber<int64_t>(s));
 	return 1;
 }
 
 int LuaScriptInterface::luaResultGetString(lua_State* L)
 {
-	DBResult_ptr res = getResultByID(tfs::lua::getNumber<uint32_t>(L, 1));
-	if (!res) {
+	const auto& result = getResultByID(tfs::lua::getNumber<uint32_t>(L, 1));
+	if (!result) {
 		tfs::lua::pushBoolean(L, false);
 		return 1;
 	}
 
 	const std::string& s = tfs::lua::getString(L, 2);
-	tfs::lua::pushString(L, res->getString(s));
+	tfs::lua::pushString(L, result->getString(s));
 	return 1;
 }
 
 int LuaScriptInterface::luaResultGetStream(lua_State* L)
 {
-	DBResult_ptr res = getResultByID(tfs::lua::getNumber<uint32_t>(L, 1));
-	if (!res) {
+	const auto& result = getResultByID(tfs::lua::getNumber<uint32_t>(L, 1));
+	if (!result) {
 		tfs::lua::pushBoolean(L, false);
 		return 1;
 	}
 
-	auto stream = res->getString(tfs::lua::getString(L, 2));
+	auto stream = result->getString(tfs::lua::getString(L, 2));
 	lua_pushlstring(L, stream.data(), stream.size());
 	tfs::lua::pushNumber(L, stream.size());
 	return 2;
@@ -4293,13 +4301,13 @@ int LuaScriptInterface::luaResultGetStream(lua_State* L)
 
 int LuaScriptInterface::luaResultNext(lua_State* L)
 {
-	DBResult_ptr res = getResultByID(tfs::lua::getNumber<uint32_t>(L, -1));
-	if (!res) {
+	const auto& result = getResultByID(tfs::lua::getNumber<uint32_t>(L, -1));
+	if (!result) {
 		tfs::lua::pushBoolean(L, false);
 		return 1;
 	}
 
-	tfs::lua::pushBoolean(L, res->next());
+	tfs::lua::pushBoolean(L, result->next());
 	return 1;
 }
 
@@ -5321,10 +5329,10 @@ int LuaScriptInterface::luaTileGetThing(lua_State* L)
 		return 1;
 	}
 
-	if (const auto& creature = thing->getCreature()) {
+	if (const auto& creature = thing->asCreature()) {
 		tfs::lua::pushSharedPtr(L, creature);
 		tfs::lua::setCreatureMetatable(L, -1, creature);
-	} else if (const auto& item = thing->getItem()) {
+	} else if (const auto& item = thing->asItem()) {
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {
@@ -5360,10 +5368,10 @@ int LuaScriptInterface::luaTileGetTopVisibleThing(lua_State* L)
 		return 1;
 	}
 
-	if (const auto& visibleCreature = thing->getCreature()) {
+	if (const auto& visibleCreature = thing->asCreature()) {
 		tfs::lua::pushSharedPtr(L, visibleCreature);
 		tfs::lua::setCreatureMetatable(L, -1, visibleCreature);
-	} else if (const auto& visibleItem = thing->getItem()) {
+	} else if (const auto& visibleItem = thing->asItem()) {
 		tfs::lua::pushSharedPtr(L, visibleItem);
 		tfs::lua::setItemMetatable(L, -1, visibleItem);
 	} else {
@@ -6503,7 +6511,7 @@ int LuaScriptInterface::luaItemIsItem(lua_State* L)
 {
 	// item:isItem()
 	if (const auto& thing = tfs::lua::getThing(L, 1)) {
-		tfs::lua::pushBoolean(L, thing->getItem() != nullptr);
+		tfs::lua::pushBoolean(L, thing->asItem() != nullptr);
 	} else {
 		lua_pushnil(L);
 	}
@@ -8281,6 +8289,7 @@ int LuaScriptInterface::luaCreatureSetSkull(lua_State* L)
 	// creature:setSkull(skull)
 	if (const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1)) {
 		creature->setSkull(tfs::lua::getNumber<Skulls_t>(L, 2));
+		g_game.updateCreatureSkull(creature);
 		tfs::lua::pushBoolean(L, true);
 	} else {
 		lua_pushnil(L);
@@ -9001,7 +9010,7 @@ int LuaScriptInterface::luaPlayerGetDeathPenalty(lua_State* L)
 {
 	// player:getDeathPenalty()
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
-		tfs::lua::pushNumber(L, player->getLostPercent() * 100);
+		tfs::lua::pushNumber(L, player->getLossPercent() * 100);
 	} else {
 		lua_pushnil(L);
 	}
@@ -10189,7 +10198,7 @@ int LuaScriptInterface::luaPlayerGetSlotItem(lua_State* L)
 		return 1;
 	}
 
-	if (const auto& item = thing->getItem()) {
+	if (const auto& item = thing->asItem()) {
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {

@@ -90,11 +90,11 @@ public:
 	Creature(const Creature&) = delete;
 	Creature& operator=(const Creature&) = delete;
 
-	std::shared_ptr<Creature> getCreature() override final
+	std::shared_ptr<Creature> asCreature() override final
 	{
 		return std::static_pointer_cast<Creature>(shared_from_this());
 	}
-	std::shared_ptr<const Creature> getCreature() const override final
+	std::shared_ptr<const Creature> asCreature() const override final
 	{
 		return std::static_pointer_cast<const Creature>(shared_from_this());
 	}
@@ -116,27 +116,24 @@ public:
 	void setRemoved() { isInternalRemoved = true; }
 
 	uint32_t getID() const { return id; }
-	virtual void removeList() = 0;
-	virtual void addList() = 0;
 
 	virtual bool canSee(const Position& pos) const;
 	virtual bool canSeeCreature(const std::shared_ptr<const Creature>& creature) const;
 
 	virtual RaceType_t getRace() const { return RACE_NONE; }
+
 	virtual Skulls_t getSkull() const { return skull; }
-	virtual Skulls_t getSkullClient(const std::shared_ptr<const Creature>& creature) const
-	{
-		return creature->getSkull();
-	}
-	void setSkull(Skulls_t newSkull);
+	void setSkull(Skulls_t skull) { this->skull = skull; }
+
 	Direction getDirection() const { return direction; }
 	void setDirection(Direction dir) { direction = dir; }
 
 	bool isHealthHidden() const { return hiddenHealth; }
 	void setHiddenHealth(bool b) { hiddenHealth = b; }
 
-	int32_t getThrowRange() const override final { return 1; }
-	bool isPushable() const override { return getWalkDelay() <= 0; }
+	int32_t getThrowRange() const { return 1; }
+	virtual bool isPushable() const { return getWalkDelay() <= 0; }
+
 	bool isRemoved() const override final { return isInternalRemoved; }
 	virtual bool canSeeInvisibility() const { return false; }
 	virtual bool isInGhostMode() const { return false; }
@@ -399,8 +396,6 @@ protected:
 		int64_t ticks;
 	};
 
-	Position position;
-
 	CreatureEventList eventsList;
 	std::vector<Condition*> conditions;
 	CreatureIconHashMap creatureIcons;
@@ -427,11 +422,7 @@ protected:
 	Outfit_t defaultOutfit;
 	uint16_t currentMount;
 
-	Position lastPosition;
 	LightInfo internalLight;
-
-	Direction direction = DIRECTION_SOUTH;
-	Skulls_t skull = SKULL_NONE;
 
 	bool isInternalRemoved = false;
 	bool creatureCheck = false;
@@ -479,6 +470,12 @@ private:
 
 	std::map<uint32_t, CountBlock_t> damageMap;
 	std::map<uint32_t, int32_t> storageMap;
+
+	Position position;
+	Position lastPosition;
+
+	Skulls_t skull = SKULL_NONE;
+	Direction direction = DIRECTION_SOUTH;
 };
 
 #endif // FS_CREATURE_H
