@@ -9,7 +9,6 @@
 #include "chat.h"
 #include "combat.h"
 #include "configmanager.h"
-#include "creatureevent.h"
 #include "depotchest.h"
 #include "events.h"
 #include "game.h"
@@ -27,7 +26,6 @@ extern Chat* g_chat;
 extern Vocations g_vocations;
 extern MoveEvents* g_moveEvents;
 extern Weapons* g_weapons;
-extern CreatureEvents* g_creatureEvents;
 
 MuteCountMap Player::muteCountMap;
 
@@ -458,7 +456,7 @@ void Player::addSkillAdvance(skills_t skill, uint64_t count)
 		sendTextMessage(MESSAGE_EVENT_ADVANCE,
 		                std::format("You advanced to {:s} level {:d}.", getSkillName(skill), skills[skill].level));
 
-		g_creatureEvents->playerAdvance(getPlayer(), skill, (skills[skill].level - 1), skills[skill].level);
+		tfs::events::player::onAdvance(getPlayer(), skill, (skills[skill].level - 1), skills[skill].level);
 
 		sendUpdateSkills = true;
 		currReqTries = nextReqTries;
@@ -819,15 +817,11 @@ void Player::sendPing()
 			return;
 		}
 
-		if (!g_creatureEvents->playerLogout(getPlayer())) {
+		if (!tfs::events::player::onLogout(getPlayer())) {
 			return;
 		}
 
-		if (client) {
-			client->logout(true, true);
-		} else {
-			g_game.removeCreature(getPlayer(), true);
-		}
+		kickPlayer(true);
 	}
 }
 
@@ -1102,11 +1096,13 @@ void Player::onCreatureAppear(const std::shared_ptr<Creature>& creature, bool is
 			}
 		}
 
-		if (!g_creatureEvents->playerLogin(getPlayer())) {
+		if (!tfs::events::player::onLogin(getPlayer())) {
 			kickPlayer(true);
 			return;
 		}
 	}
+
+	tfs::events::player::onJoin(getPlayer());
 
 	sendStats();
 	sendSkills();
@@ -1682,7 +1678,7 @@ void Player::addManaSpent(uint64_t amount)
 
 		sendTextMessage(MESSAGE_EVENT_ADVANCE, std::format("You advanced to magic level {:d}.", magLevel));
 
-		g_creatureEvents->playerAdvance(getPlayer(), SKILL_MAGLEVEL, magLevel - 1, magLevel);
+		tfs::events::player::onAdvance(getPlayer(), SKILL_MAGLEVEL, magLevel - 1, magLevel);
 
 		sendUpdateStats = true;
 		currReqMana = nextReqMana;
@@ -1804,7 +1800,7 @@ void Player::addExperience(const std::shared_ptr<Creature>& source, uint64_t exp
 			party->updateSharedExperience();
 		}
 
-		g_creatureEvents->playerAdvance(getPlayer(), SKILL_LEVEL, prevLevel, level);
+		tfs::events::player::onAdvance(getPlayer(), SKILL_LEVEL, prevLevel, level);
 
 		sendTextMessage(MESSAGE_EVENT_ADVANCE,
 		                std::format("You advanced from Level {:d} to Level {:d}.", prevLevel, level));
@@ -2286,9 +2282,10 @@ void Player::addInFightTicks(bool pzlock /*= false*/)
 
 void Player::kickPlayer(bool displayEffect)
 {
-	g_creatureEvents->playerLogout(getPlayer());
+	tfs::events::player::onLogout(getPlayer());
+
 	if (client) {
-		client->logout(displayEffect, true);
+		client->forceLogout(displayEffect);
 	} else {
 		g_game.removeCreature(getPlayer());
 	}
@@ -4435,7 +4432,7 @@ bool Player::addOfflineTrainingTries(skills_t skill, uint64_t tries)
 			magLevel++;
 			manaSpent = 0;
 
-			g_creatureEvents->playerAdvance(getPlayer(), SKILL_MAGLEVEL, magLevel - 1, magLevel);
+			tfs::events::player::onAdvance(getPlayer(), SKILL_MAGLEVEL, magLevel - 1, magLevel);
 
 			sendUpdate = true;
 			currReqMana = nextReqMana;
@@ -4488,7 +4485,7 @@ bool Player::addOfflineTrainingTries(skills_t skill, uint64_t tries)
 			skills[skill].tries = 0;
 			skills[skill].percent = 0;
 
-			g_creatureEvents->playerAdvance(getPlayer(), skill, (skills[skill].level - 1), skills[skill].level);
+			tfs::events::player::onAdvance(getPlayer(), skill, (skills[skill].level - 1), skills[skill].level);
 
 			sendUpdate = true;
 			currReqTries = nextReqTries;

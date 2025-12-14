@@ -27,7 +27,11 @@ class LuaScriptInterface;
 class LuaVariant;
 class Npc;
 class Player;
+class Monster;
 class Thing;
+class NetworkMessage;
+class Party;
+class ItemType;
 struct Outfit;
 
 using Combat_ptr = std::shared_ptr<Combat>;
@@ -512,10 +516,6 @@ private:
 
 	// Creature
 	static int luaCreatureCreate(lua_State* L);
-
-	static int luaCreatureGetEvents(lua_State* L);
-	static int luaCreatureRegisterEvent(lua_State* L);
-	static int luaCreatureUnregisterEvent(lua_State* L);
 
 	static int luaCreatureIsRemoved(lua_State* L);
 	static int luaCreatureIsCreature(lua_State* L);
@@ -1120,9 +1120,6 @@ private:
 	static int luaMonsterTypeGetLoot(lua_State* L);
 	static int luaMonsterTypeAddLoot(lua_State* L);
 
-	static int luaMonsterTypeGetCreatureEvents(lua_State* L);
-	static int luaMonsterTypeRegisterEvent(lua_State* L);
-
 	static int luaMonsterTypeEventOnCallback(lua_State* L);
 	static int luaMonsterTypeEventType(lua_State* L);
 
@@ -1275,12 +1272,6 @@ private:
 	static int luaTalkactionAccess(lua_State* L);
 	static int luaTalkactionAccountType(lua_State* L);
 
-	// CreatureEvents
-	static int luaCreateCreatureEvent(lua_State* L);
-	static int luaCreatureEventType(lua_State* L);
-	static int luaCreatureEventRegister(lua_State* L);
-	static int luaCreatureEventOnCallback(lua_State* L);
-
 	// MoveEvents
 	static int luaCreateMoveEvent(lua_State* L);
 	static int luaMoveEventType(lua_State* L);
@@ -1418,9 +1409,14 @@ void reportError(std::string_view function, std::string_view error_desc, lua_Sta
 
 // push/pop common structures
 void pushThing(lua_State* L, const std::shared_ptr<Thing>& thing);
+void pushMonster(lua_State* L, const std::shared_ptr<Monster>& monster);
+void pushNpc(lua_State* L, const std::shared_ptr<Npc>& npc);
+void pushPlayer(lua_State* L, const std::shared_ptr<Player>& player);
+void pushContainer(lua_State* L, const std::shared_ptr<Container>& container);
 void pushVariant(lua_State* L, const LuaVariant& var);
 void pushString(lua_State* L, std::string_view value);
 void pushCallback(lua_State* L, int32_t callback);
+void pushNil(lua_State* L);
 
 std::string popString(lua_State* L);
 int32_t popCallback(lua_State* L);
@@ -1528,6 +1524,9 @@ void pushSpell(lua_State* L, const Spell& spell);
 void pushPosition(lua_State* L, const Position& position, int32_t stackpos = 0);
 void pushOutfit(lua_State* L, const Outfit_t& outfit);
 void pushOutfit(lua_State* L, const Outfit* outfit);
+void pushParty(lua_State* L, Party* party);
+void pushItemType(lua_State* L, const ItemType* itemType);
+void pushNetworkMessage(lua_State* L, NetworkMessage* msg);
 
 //
 int protectedCall(lua_State* L, int nargs, int nresults);

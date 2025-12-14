@@ -1,14 +1,14 @@
 function Player:onBrowseField(position)
-	if hasEvent.onBrowseField then
-		return Event.onBrowseField(self, position)
+	if hasEvent.onPlayerBrowseField then
+		return Event.onPlayerBrowseField(self, position)
 	end
 	return true
 end
 
 function Player:onLook(thing, position, distance)
 	local description = ""
-	if hasEvent.onLook then
-		description = Event.onLook(self, thing, position, distance, description)
+	if hasEvent.onPlayerLook then
+		description = Event.onPlayerLook(self, thing, position, distance, description)
 	end
 
 	if description ~= "" then
@@ -18,8 +18,8 @@ end
 
 function Player:onLookInBattleList(creature, distance)
 	local description = ""
-	if hasEvent.onLookInBattleList then
-		description = Event.onLookInBattleList(self, creature, distance, description)
+	if hasEvent.onPlayerLookInBattleList then
+		description = Event.onPlayerLookInBattleList(self, creature, distance, description)
 	end
 
 	if description ~= "" then
@@ -29,8 +29,8 @@ end
 
 function Player:onLookInTrade(partner, item, distance)
 	local description = "You see " .. item:getDescription(distance)
-	if hasEvent.onLookInTrade then
-		description = Event.onLookInTrade(self, partner, item, distance, description)
+	if hasEvent.onPlayerLookInTrade then
+		description = Event.onPlayerLookInTrade(self, partner, item, distance, description)
 	end
 
 	if description ~= "" then
@@ -40,8 +40,8 @@ end
 
 function Player:onLookInShop(itemType, count)
 	local description = "You see "
-	if hasEvent.onLookInShop then
-		description = Event.onLookInShop(self, itemType, count, description)
+	if hasEvent.onPlayerLookInShop then
+		description = Event.onPlayerLookInShop(self, itemType, count, description)
 	end
 
 	if description ~= "" then
@@ -50,76 +50,75 @@ function Player:onLookInShop(itemType, count)
 end
 
 function Player:onLookInMarket(itemType)
-	if hasEvent.onLookInMarket then
-		Event.onLookInMarket(self, itemType)
+	if hasEvent.onPlayerLookInMarket then
+		Event.onPlayerLookInMarket(self, itemType)
 	end
 end
 
 function Player:onMoveItem(item, count, fromPosition, toPosition, fromThing, toThing)
-	if hasEvent.onMoveItem then
-		return Event.onMoveItem(self, item, count, fromPosition, toPosition, fromThing, toThing)
+	if hasEvent.onPlayerMoveItem then
+		return Event.onPlayerMoveItem(self, item, count, fromPosition, toPosition, fromThing, toThing)
 	end
 	return RETURNVALUE_NOERROR
 end
 
 function Player:onItemMoved(item, count, fromPosition, toPosition, fromThing, toThing)
-	if hasEvent.onItemMoved then
-		Event.onItemMoved(self, item, count, fromPosition, toPosition, fromThing, toThing)
+	if hasEvent.onPlayerItemMoved then
+		Event.onPlayerItemMoved(self, item, count, fromPosition, toPosition, fromThing, toThing)
 	end
 end
 
 function Player:onMoveCreature(creature, fromPosition, toPosition)
-	if hasEvent.onMoveCreature then
-		return Event.onMoveCreature(self, creature, fromPosition, toPosition)
+	if hasEvent.onPlayerMoveCreature then
+		return Event.onPlayerMoveCreature(self, creature, fromPosition, toPosition)
 	end
 	return true
 end
 
 function Player:onReportRuleViolation(targetName, reportType, reportReason, comment, translation)
-	if hasEvent.onReportRuleViolation then
-		Event.onReportRuleViolation(self, targetName, reportType, reportReason, comment, translation)
+	if hasEvent.onPlayerReportRuleViolation then
+		Event.onPlayerReportRuleViolation(self, targetName, reportType, reportReason, comment, translation)
 	end
 end
 
 function Player:onReportBug(message, position)
-	if hasEvent.onReportBug then
-		return Event.onReportBug(self, message, position)
+	if hasEvent.onPlayerReportBug then
+		return Event.onPlayerReportBug(self, message, position)
 	end
 	return true
 end
 
 function Player:onRotateItem(item)
-	local onRotateItem = EventCallback.onRotateItem
-	if onRotateItem then
-		return onRotateItem(self, item)
+	if hasEvent.onPlayerRotateItem then
+		return Event.onPlayerRotateItem(self, item)
 	end
 	return true
 end
 
 function Player:onTurn(direction)
-	if hasEvent.onTurn then
-		return Event.onTurn(self, direction)
+	if hasEvent.onPlayerTurn then
+		return Event.onPlayerTurn(self, direction)
 	end
 	return true
 end
 
 function Player:onTradeRequest(target, item)
-	if hasEvent.onTradeRequest then
-		return Event.onTradeRequest(self, target, item)
+	if hasEvent.onPlayerTradeRequest then
+		return Event.onPlayerTradeRequest(self, target, item)
 	end
 	return true
 end
 
 function Player:onTradeAccept(target, item, targetItem)
-	if hasEvent.onTradeAccept then
-		return Event.onTradeAccept(self, target, item, targetItem)
+	if hasEvent.onPlayerTradeAccept then
+		return Event.onPlayerTradeAccept(self, target, item, targetItem)
 	end
 	return true
 end
 
 function Player:onTradeCompleted(target, item, targetItem, isSuccess)
-	if hasEvent.onTradeCompleted then
-		Event.onTradeCompleted(self, target, item, targetItem, isSuccess)
+	if hasEvent.onPlayerTradeCompleted then
+		Event.onPlayerTradeCompleted(self, target, item, targetItem, isSuccess)
 	end
 end
 
@@ -212,24 +211,24 @@ function Player:onPodiumEdit(item, outfit, direction, isVisible)
 end
 
 function Player:onGainExperience(source, exp, rawExp, sendText)
-	return hasEvent.onGainExperience and Event.onGainExperience(self, source, exp, rawExp, sendText) or exp
+	return hasEvent.onPlayerGainExperience and Event.onPlayerGainExperience(self, source, exp, rawExp, sendText) or exp
 end
 
 function Player:onLoseExperience(exp)
-	return hasEvent.onLoseExperience and Event.onLoseExperience(self, exp) or exp
+	return hasEvent.onPlayerLoseExperience and Event.onPlayerLoseExperience(self, exp) or exp
 end
 
 function Player:onGainSkillTries(skill, tries)
 	if not APPLY_SKILL_MULTIPLIER then
-		return hasEvent.onGainSkillTries and Event.onGainSkillTries(self, skill, tries) or tries
+		return hasEvent.onPlayerGainSkillTries and Event.onPlayerGainSkillTries(self, skill, tries) or tries
 	end
 
 	if skill == SKILL_MAGLEVEL then
 		tries = tries * configManager.getNumber(configKeys.RATE_MAGIC)
-		return hasEvent.onGainSkillTries and Event.onGainSkillTries(self, skill, tries) or tries
+		return hasEvent.onPlayerGainSkillTries and Event.onPlayerGainSkillTries(self, skill, tries) or tries
 	end
 	tries = tries * configManager.getNumber(configKeys.RATE_SKILL)
-	return hasEvent.onGainSkillTries and Event.onGainSkillTries(self, skill, tries) or tries
+	return hasEvent.onPlayerGainSkillTries and Event.onPlayerGainSkillTries(self, skill, tries) or tries
 end
 
 function Player:onWrapItem(item)
@@ -259,7 +258,7 @@ function Player:onWrapItem(item)
 		return
 	end
 
-	if not hasEvent.onWrapItem or Event.onWrapItem(self, item) then
+	if not hasEvent.onPlayerWrapItem or Event.onPlayerWrapItem(self, item) then
 		local oldId = item:getId()
 		item:remove(1)
 		local item = tile:addItem(wrapId)
@@ -270,8 +269,8 @@ function Player:onWrapItem(item)
 end
 
 function Player:onInventoryUpdate(item, slot, equip)
-	if hasEvent.onInventoryUpdate then
-		Event.onInventoryUpdate(self, item, slot, equip)
+	if hasEvent.onPlayerInventoryUpdate then
+		Event.onPlayerInventoryUpdate(self, item, slot, equip)
 	end
 end
 
@@ -286,8 +285,60 @@ function Player:onNetworkMessage(recvByte, msg)
 end
 
 function Player:onSpellCheck(spell)
-	if hasEvent.onSpellCheck then
-		return Event.onSpellCheck(self, spell)
+	if hasEvent.onPlayerSpellCheck then
+		return Event.onPlayerSpellCheck(self, spell)
 	end
 	return true
+end
+
+function Player:onLogin()
+	if hasEvent.onPlayerLogin then
+		return Event.onPlayerLogin(self)
+	end
+	return true
+end
+
+function Player:onJoin()
+	if hasEvent.onPlayerJoin then
+		Event.onPlayerJoin(self)
+	end
+end
+
+function Player:onLogout()
+	if hasEvent.onPlayerLogout then
+		return Event.onPlayerLogout(self)
+	end
+	return true
+end
+
+function Player:onReconnect()
+	if hasEvent.onPlayerReconnect then
+		Event.onPlayerReconnect(self)
+	end
+end
+
+function Player:onAdvance(skill, oldLevel, newLevel)
+	if hasEvent.onPlayerAdvance then
+		return Event.onPlayerAdvance(self, skill, oldLevel, newLevel)
+	end
+	return true
+end
+
+function Player:onModalWindow()
+	if hasEvent.onPlayerModalWindow then
+		Event.onPlayerModalWindow(self, modalWindowId, buttonId, choiceId)
+	end
+end
+
+function Player:onTextEdit(item, text, windowTextId)
+	if hasEvent.onPlayerTextEdit then
+		return Event.onPlayerTextEdit(self, item, text, windowTextId)
+	end
+	return true
+end
+
+function Player:onExtendedOpcode(opcode, buffer)
+	if hasEvent.onPlayerExtendedOpcode then
+		Event.onPlayerExtendedOpcode(self, opcode, buffer)
+	end
 end

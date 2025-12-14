@@ -1,6 +1,6 @@
 local event = Event()
 
-event.onReportBug = function(self, message, position)
+event.onPlayerReportBug = function(self, message, position)
 	if self:getAccountType() == ACCOUNT_TYPE_NORMAL then
 		return false
 	end

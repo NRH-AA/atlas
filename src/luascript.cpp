@@ -19,9 +19,11 @@
 #include "iomapserialize.h"
 #include "iomarket.h"
 #include "item.h"
+#include "items.h"
 #include "luavariant.h"
-#include "matrixarea.h"
+#include "monster.h"
 #include "movement.h"
+#include "networkmessage.h"
 #include "outfit.h"
 #include "party.h"
 #include "player.h"
@@ -41,7 +43,6 @@ extern Vocations g_vocations;
 extern Spells* g_spells;
 extern Actions* g_actions;
 extern TalkActions* g_talkActions;
-extern CreatureEvents* g_creatureEvents;
 extern MoveEvents* g_moveEvents;
 extern GlobalEvents* g_globalEvents;
 extern Scripts* g_scripts;
@@ -736,21 +737,62 @@ void tfs::lua::pushThing(lua_State* L, const std::shared_ptr<Thing>& thing)
 	}
 
 	if (const auto& item = thing->asItem()) {
-		pushSharedPtr(L, item);
-		setItemMetatable(L, -1, item);
+		tfs::lua::pushSharedPtr(L, item);
+		tfs::lua::setItemMetatable(L, -1, item);
 	} else if (const auto& creature = thing->asCreature()) {
-		pushSharedPtr(L, creature);
-		setCreatureMetatable(L, -1, creature);
+		tfs::lua::pushSharedPtr(L, creature);
+		tfs::lua::setCreatureMetatable(L, -1, creature);
 	} else if (const auto& tile = thing->getTile()) {
-		pushSharedPtr(L, tile);
-		setMetatable(L, -1, "Tile");
+		tfs::lua::pushSharedPtr(L, tile);
+		tfs::lua::setMetatable(L, -1, "Tile");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
+	}
+}
+
+void tfs::lua::pushMonster(lua_State* L, const std::shared_ptr<Monster>& monster)
+{
+	if (monster) {
+		tfs::lua::pushSharedPtr(L, monster);
+		tfs::lua::setMetatable(L, -1, "Monster");
+	} else {
+		tfs::lua::pushNil(L);
+	}
+}
+
+void tfs::lua::pushNpc(lua_State* L, const std::shared_ptr<Npc>& npc)
+{
+	if (npc) {
+		tfs::lua::pushSharedPtr(L, npc);
+		tfs::lua::setMetatable(L, -1, "Npc");
+	} else {
+		tfs::lua::pushNil(L);
+	}
+}
+
+void tfs::lua::pushPlayer(lua_State* L, const std::shared_ptr<Player>& player)
+{
+	if (player) {
+		tfs::lua::pushSharedPtr(L, player);
+		tfs::lua::setMetatable(L, -1, "Player");
+	} else {
+		tfs::lua::pushNil(L);
+	}
+}
+
+void tfs::lua::pushContainer(lua_State* L, const std::shared_ptr<Container>& container)
+{
+	if (container) {
+		tfs::lua::pushSharedPtr(L, container);
+		tfs::lua::setMetatable(L, -1, "Container");
+	} else {
+		tfs::lua::pushNil(L);
 	}
 }
 
 void tfs::lua::pushString(lua_State* L, std::string_view value) { lua_pushlstring(L, value.data(), value.size()); }
 void tfs::lua::pushCallback(lua_State* L, int32_t callback) { lua_rawgeti(L, LUA_REGISTRYINDEX, callback); }
+void tfs::lua::pushNil(lua_State* L) { lua_pushnil(L); }
 
 std::string tfs::lua::popString(lua_State* L)
 {
@@ -1067,6 +1109,24 @@ void tfs::lua::pushOutfit(lua_State* L, const Outfit* outfit)
 	setField(L, "premium", outfit->premium);
 	setField(L, "unlocked", outfit->unlocked);
 	setMetatable(L, -1, "Outfit");
+}
+
+void tfs::lua::pushParty(lua_State* L, Party* party)
+{
+	tfs::lua::pushUserdata(L, party);
+	tfs::lua::setMetatable(L, -1, "Party");
+}
+
+void tfs::lua::pushItemType(lua_State* L, const ItemType* itemType)
+{
+	tfs::lua::pushUserdata(L, itemType);
+	tfs::lua::setMetatable(L, -1, "ItemType");
+}
+
+void tfs::lua::pushNetworkMessage(lua_State* L, NetworkMessage* msg)
+{
+	tfs::lua::pushUserdata(L, msg);
+	tfs::lua::setMetatable(L, -1, "NetworkMessage");
 }
 
 static void pushLoot(lua_State* L, const std::vector<LootBlock>& lootList)
@@ -1597,21 +1657,6 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(L, CONST_SLOT_RING);
 	registerEnum(L, CONST_SLOT_AMMO);
 
-	registerEnum(L, CREATURE_EVENT_NONE);
-	registerEnum(L, CREATURE_EVENT_LOGIN);
-	registerEnum(L, CREATURE_EVENT_LOGOUT);
-	registerEnum(L, CREATURE_EVENT_RECONNECT);
-	registerEnum(L, CREATURE_EVENT_THINK);
-	registerEnum(L, CREATURE_EVENT_PREPAREDEATH);
-	registerEnum(L, CREATURE_EVENT_DEATH);
-	registerEnum(L, CREATURE_EVENT_KILL);
-	registerEnum(L, CREATURE_EVENT_ADVANCE);
-	registerEnum(L, CREATURE_EVENT_MODALWINDOW);
-	registerEnum(L, CREATURE_EVENT_TEXTEDIT);
-	registerEnum(L, CREATURE_EVENT_HEALTHCHANGE);
-	registerEnum(L, CREATURE_EVENT_MANACHANGE);
-	registerEnum(L, CREATURE_EVENT_EXTENDED_OPCODE);
-
 	registerEnum(L, CREATURE_ID_MIN);
 	registerEnum(L, CREATURE_ID_MAX);
 
@@ -2114,7 +2159,6 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(L, RELOAD_TYPE_ACTIONS);
 	registerEnum(L, RELOAD_TYPE_CHAT);
 	registerEnum(L, RELOAD_TYPE_CONFIG);
-	registerEnum(L, RELOAD_TYPE_CREATURESCRIPTS);
 	registerEnum(L, RELOAD_TYPE_EVENTS);
 	registerEnum(L, RELOAD_TYPE_GLOBAL);
 	registerEnum(L, RELOAD_TYPE_GLOBALEVENTS);
@@ -2577,10 +2621,6 @@ void LuaScriptInterface::registerFunctions()
 	// Creature
 	registerClass(L, "Creature", "", LuaScriptInterface::luaCreatureCreate);
 	registerMetaMethod(L, "Creature", "__eq", LuaScriptInterface::luaUserdataCompare);
-
-	registerMethod(L, "Creature", "getEvents", LuaScriptInterface::luaCreatureGetEvents);
-	registerMethod(L, "Creature", "registerEvent", LuaScriptInterface::luaCreatureRegisterEvent);
-	registerMethod(L, "Creature", "unregisterEvent", LuaScriptInterface::luaCreatureUnregisterEvent);
 
 	registerMethod(L, "Creature", "isRemoved", LuaScriptInterface::luaCreatureIsRemoved);
 	registerMethod(L, "Creature", "isCreature", LuaScriptInterface::luaCreatureIsCreature);
@@ -3203,9 +3243,6 @@ void LuaScriptInterface::registerFunctions()
 	registerMethod(L, "MonsterType", "getLoot", LuaScriptInterface::luaMonsterTypeGetLoot);
 	registerMethod(L, "MonsterType", "addLoot", LuaScriptInterface::luaMonsterTypeAddLoot);
 
-	registerMethod(L, "MonsterType", "getCreatureEvents", LuaScriptInterface::luaMonsterTypeGetCreatureEvents);
-	registerMethod(L, "MonsterType", "registerEvent", LuaScriptInterface::luaMonsterTypeRegisterEvent);
-
 	registerMethod(L, "MonsterType", "eventType", LuaScriptInterface::luaMonsterTypeEventType);
 	registerMethod(L, "MonsterType", "onThink", LuaScriptInterface::luaMonsterTypeEventOnCallback);
 	registerMethod(L, "MonsterType", "onAppear", LuaScriptInterface::luaMonsterTypeEventOnCallback);
@@ -3371,24 +3408,6 @@ void LuaScriptInterface::registerFunctions()
 	registerMethod(L, "TalkAction", "separator", LuaScriptInterface::luaTalkactionSeparator);
 	registerMethod(L, "TalkAction", "access", LuaScriptInterface::luaTalkactionAccess);
 	registerMethod(L, "TalkAction", "accountType", LuaScriptInterface::luaTalkactionAccountType);
-
-	// CreatureEvent
-	registerClass(L, "CreatureEvent", "", LuaScriptInterface::luaCreateCreatureEvent);
-	registerMethod(L, "CreatureEvent", "type", LuaScriptInterface::luaCreatureEventType);
-	registerMethod(L, "CreatureEvent", "register", LuaScriptInterface::luaCreatureEventRegister);
-	registerMethod(L, "CreatureEvent", "onLogin", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onLogout", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onReconnect", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onThink", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onPrepareDeath", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onDeath", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onKill", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onAdvance", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onModalWindow", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onTextEdit", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onHealthChange", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onManaChange", LuaScriptInterface::luaCreatureEventOnCallback);
-	registerMethod(L, "CreatureEvent", "onExtendedOpcode", LuaScriptInterface::luaCreatureEventOnCallback);
 
 	// MoveEvent
 	registerClass(L, "MoveEvent", "", LuaScriptInterface::luaCreateMoveEvent);
@@ -3619,7 +3638,7 @@ int LuaScriptInterface::luaGetSubTypeName(lua_State* L)
 	if (subType > 0) {
 		tfs::lua::pushString(L, Item::items[subType].name);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -4400,7 +4419,7 @@ int LuaScriptInterface::luaDBInsertCreate(lua_State* L)
 		tfs::lua::pushUserdata(L, new DBInsert(tfs::lua::getString(L, 2)));
 		tfs::lua::setMetatable(L, -1, "DBInsert");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -4412,7 +4431,7 @@ int LuaScriptInterface::luaDBInsertAddRow(lua_State* L)
 	if (insert) {
 		tfs::lua::pushBoolean(L, insert->addRow(tfs::lua::getString(L, 2)));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -4424,7 +4443,7 @@ int LuaScriptInterface::luaDBInsertExecute(lua_State* L)
 	if (insert) {
 		tfs::lua::pushBoolean(L, insert->execute());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -4455,7 +4474,7 @@ int LuaScriptInterface::luaDBTransactionBegin(lua_State* L)
 	if (transaction) {
 		tfs::lua::pushBoolean(L, transaction->begin());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -4467,7 +4486,7 @@ int LuaScriptInterface::luaDBTransactionCommit(lua_State* L)
 	if (transaction) {
 		tfs::lua::pushBoolean(L, transaction->commit());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -4517,8 +4536,7 @@ int LuaScriptInterface::luaGameGetPlayers(lua_State* L)
 
 	int index = 0;
 	for (auto&& player : players) {
-		tfs::lua::pushSharedPtr(L, player);
-		tfs::lua::setMetatable(L, -1, "Player");
+		tfs::lua::pushPlayer(L, player);
 		lua_rawseti(L, -2, ++index);
 	}
 	return 1;
@@ -4532,8 +4550,7 @@ int LuaScriptInterface::luaGameGetNpcs(lua_State* L)
 
 	int index = 0;
 	for (auto&& npc : npcs) {
-		tfs::lua::pushSharedPtr(L, npc);
-		tfs::lua::setMetatable(L, -1, "Npc");
+		tfs::lua::pushNpc(L, npc);
 		lua_rawseti(L, -2, ++index);
 	}
 	return 1;
@@ -4547,8 +4564,7 @@ int LuaScriptInterface::luaGameGetMonsters(lua_State* L)
 
 	int index = 0;
 	for (auto&& monster : monsters) {
-		tfs::lua::pushSharedPtr(L, monster);
-		tfs::lua::setMetatable(L, -1, "Monster");
+		tfs::lua::pushMonster(L, monster);
 		lua_rawseti(L, -2, ++index);
 	}
 	return 1;
@@ -4672,7 +4688,7 @@ int LuaScriptInterface::luaGameGetItemTypeByClientId(lua_State* L)
 		tfs::lua::pushUserdata(L, &itemType);
 		tfs::lua::setMetatable(L, -1, "ItemType");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 
 	return 1;
@@ -4689,7 +4705,7 @@ int LuaScriptInterface::luaGameGetMountIdByLookType(lua_State* L)
 	if (mount) {
 		tfs::lua::pushNumber(L, mount->id);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -4727,13 +4743,13 @@ int LuaScriptInterface::luaGameGetOutfits(lua_State* L)
 {
 	// Game.getOutfits(playerSex)
 	if (!isNumber(L, 1)) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	PlayerSex_t playerSex = tfs::lua::getNumber<PlayerSex_t>(L, 1);
 	if (playerSex > PLAYERSEX_LAST) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -4878,7 +4894,7 @@ int LuaScriptInterface::luaGameCreateItem(lua_State* L)
 	} else {
 		id = Item::items.getItemIdByName(tfs::lua::getString(L, 1));
 		if (id == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -4890,7 +4906,7 @@ int LuaScriptInterface::luaGameCreateItem(lua_State* L)
 
 	const auto& item = Item::CreateItem(id, count);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -4898,7 +4914,7 @@ int LuaScriptInterface::luaGameCreateItem(lua_State* L)
 		const Position& position = tfs::lua::getPosition(L, 3);
 		const auto& tile = g_game.map.getTile(position);
 		if (!tile) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -4920,14 +4936,14 @@ int LuaScriptInterface::luaGameCreateContainer(lua_State* L)
 	} else {
 		id = Item::items.getItemIdByName(tfs::lua::getString(L, 1));
 		if (id == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
 
 	const auto& container = Item::CreateItemAsContainer(id, size);
 	if (!container) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -4935,7 +4951,7 @@ int LuaScriptInterface::luaGameCreateContainer(lua_State* L)
 		const Position& position = tfs::lua::getPosition(L, 3);
 		const auto& tile = g_game.map.getTile(position);
 		if (!tile) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -4952,7 +4968,7 @@ int LuaScriptInterface::luaGameCreateMonster(lua_State* L)
 	// Game.createMonster(monsterName, position[, extended = false[, force = false[, magicEffect = CONST_ME_TELEPORT]]])
 	const auto& monster = Monster::createMonster(tfs::lua::getString(L, 1));
 	if (!monster) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -4962,13 +4978,12 @@ int LuaScriptInterface::luaGameCreateMonster(lua_State* L)
 	MagicEffectClasses magicEffect = tfs::lua::getNumber<MagicEffectClasses>(L, 5, CONST_ME_TELEPORT);
 	if (tfs::events::monster::onSpawn(monster, position, false, true) || force) {
 		if (g_game.placeCreature(monster, position, extended, force, magicEffect)) {
-			tfs::lua::pushSharedPtr(L, monster);
-			tfs::lua::setMetatable(L, -1, "Monster");
+			tfs::lua::pushMonster(L, monster);
 		} else {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -4978,7 +4993,7 @@ int LuaScriptInterface::luaGameCreateNpc(lua_State* L)
 	// Game.createNpc(npcName, position[, extended = false[, force = false[, magicEffect = CONST_ME_TELEPORT]]])
 	const auto& npc = Npc::createNpc(tfs::lua::getString(L, 1));
 	if (!npc) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -4987,10 +5002,9 @@ int LuaScriptInterface::luaGameCreateNpc(lua_State* L)
 	bool force = tfs::lua::getBoolean(L, 4, false);
 	MagicEffectClasses magicEffect = tfs::lua::getNumber<MagicEffectClasses>(L, 5, CONST_ME_TELEPORT);
 	if (g_game.placeCreature(npc, position, extended, force, magicEffect)) {
-		tfs::lua::pushSharedPtr(L, npc);
-		tfs::lua::setMetatable(L, -1, "Npc");
+		tfs::lua::pushNpc(L, npc);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5032,13 +5046,13 @@ int LuaScriptInterface::luaGameCreateMonsterType(lua_State* L)
 	// Game.createMonsterType(name)
 	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
 		reportErrorFunc(L, "MonsterTypes can only be registered in the Scripts interface.");
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const std::string& name = tfs::lua::getString(L, 1);
 	if (name.length() == 0) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5051,7 +5065,6 @@ int LuaScriptInterface::luaGameCreateMonsterType(lua_State* L)
 		monsterType->info.lootItems.clear();
 		monsterType->info.attackSpells.clear();
 		monsterType->info.defenseSpells.clear();
-		monsterType->info.scripts.clear();
 		monsterType->info.thinkEvent = -1;
 		monsterType->info.creatureAppearEvent = -1;
 		monsterType->info.creatureDisappearEvent = -1;
@@ -5073,7 +5086,7 @@ int LuaScriptInterface::luaGameStartEvent(lua_State* L)
 	if (auto it = eventMap.find(eventName); it != eventMap.end()) {
 		tfs::lua::pushBoolean(L, it->second.executeEvent());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5266,7 +5279,7 @@ int LuaScriptInterface::luaTileCreate(lua_State* L)
 		tfs::lua::pushSharedPtr(L, tile);
 		tfs::lua::setMetatable(L, -1, "Tile");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5276,7 +5289,7 @@ int LuaScriptInterface::luaTileRemove(lua_State* L)
 	// tile:remove()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5295,7 +5308,7 @@ int LuaScriptInterface::luaTileGetPosition(lua_State* L)
 	if (const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1)) {
 		tfs::lua::pushPosition(L, tile->getPosition());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5308,7 +5321,7 @@ int LuaScriptInterface::luaTileGetGround(lua_State* L)
 		tfs::lua::pushSharedPtr(L, tile->getGround());
 		tfs::lua::setItemMetatable(L, -1, tile->getGround());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5319,13 +5332,13 @@ int LuaScriptInterface::luaTileGetThing(lua_State* L)
 	int32_t index = tfs::lua::getNumber<int32_t>(L, 2);
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& thing = tile->getThing(index);
 	if (!thing) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5336,7 +5349,7 @@ int LuaScriptInterface::luaTileGetThing(lua_State* L)
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5347,7 +5360,7 @@ int LuaScriptInterface::luaTileGetThingCount(lua_State* L)
 	if (const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1)) {
 		tfs::lua::pushNumber(L, tile->getThingCount());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5358,13 +5371,13 @@ int LuaScriptInterface::luaTileGetTopVisibleThing(lua_State* L)
 	const auto& creature = tfs::lua::getCreature(L, 2);
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& thing = tile->getTopVisibleThing(creature);
 	if (!thing) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5375,7 +5388,7 @@ int LuaScriptInterface::luaTileGetTopVisibleThing(lua_State* L)
 		tfs::lua::pushSharedPtr(L, visibleItem);
 		tfs::lua::setItemMetatable(L, -1, visibleItem);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5385,7 +5398,7 @@ int LuaScriptInterface::luaTileGetTopTopItem(lua_State* L)
 	// tile:getTopTopItem()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5393,7 +5406,7 @@ int LuaScriptInterface::luaTileGetTopTopItem(lua_State* L)
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5403,7 +5416,7 @@ int LuaScriptInterface::luaTileGetTopDownItem(lua_State* L)
 	// tile:getTopDownItem()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5411,7 +5424,7 @@ int LuaScriptInterface::luaTileGetTopDownItem(lua_State* L)
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5421,7 +5434,7 @@ int LuaScriptInterface::luaTileGetFieldItem(lua_State* L)
 	// tile:getFieldItem()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5429,7 +5442,7 @@ int LuaScriptInterface::luaTileGetFieldItem(lua_State* L)
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5439,7 +5452,7 @@ int LuaScriptInterface::luaTileGetItemById(lua_State* L)
 	// tile:getItemById(itemId[, subType = -1])
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5449,7 +5462,7 @@ int LuaScriptInterface::luaTileGetItemById(lua_State* L)
 	} else {
 		itemId = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 		if (itemId == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -5459,7 +5472,7 @@ int LuaScriptInterface::luaTileGetItemById(lua_State* L)
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5469,7 +5482,7 @@ int LuaScriptInterface::luaTileGetItemByType(lua_State* L)
 	// tile:getItemByType(itemType)
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5501,7 +5514,7 @@ int LuaScriptInterface::luaTileGetItemByType(lua_State* L)
 	}
 
 	if (!found) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5525,7 +5538,7 @@ int LuaScriptInterface::luaTileGetItemByType(lua_State* L)
 		}
 	}
 
-	lua_pushnil(L);
+	tfs::lua::pushNil(L);
 	return 1;
 }
 
@@ -5534,7 +5547,7 @@ int LuaScriptInterface::luaTileGetItemByTopOrder(lua_State* L)
 	// tile:getItemByTopOrder(topOrder)
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5542,7 +5555,7 @@ int LuaScriptInterface::luaTileGetItemByTopOrder(lua_State* L)
 
 	const auto& item = tile->getItemByTopOrder(topOrder);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5556,7 +5569,7 @@ int LuaScriptInterface::luaTileGetItemCountById(lua_State* L)
 	// tile:getItemCountById(itemId[, subType = -1])
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5568,7 +5581,7 @@ int LuaScriptInterface::luaTileGetItemCountById(lua_State* L)
 	} else {
 		itemId = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 		if (itemId == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -5582,13 +5595,13 @@ int LuaScriptInterface::luaTileGetBottomCreature(lua_State* L)
 	// tile:getBottomCreature()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& creature = tile->getBottomCreature();
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5602,13 +5615,13 @@ int LuaScriptInterface::luaTileGetTopCreature(lua_State* L)
 	// tile:getTopCreature()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& creature = tile->getTopCreature();
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5622,13 +5635,13 @@ int LuaScriptInterface::luaTileGetBottomVisibleCreature(lua_State* L)
 	// tile:getBottomVisibleCreature(creature)
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& creature = tfs::lua::getCreature(L, 2);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5636,7 +5649,7 @@ int LuaScriptInterface::luaTileGetBottomVisibleCreature(lua_State* L)
 		tfs::lua::pushSharedPtr(L, visibleCreature);
 		tfs::lua::setCreatureMetatable(L, -1, visibleCreature);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5646,13 +5659,13 @@ int LuaScriptInterface::luaTileGetTopVisibleCreature(lua_State* L)
 	// tile:getTopVisibleCreature(creature)
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& creature = tfs::lua::getCreature(L, 2);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5660,7 +5673,7 @@ int LuaScriptInterface::luaTileGetTopVisibleCreature(lua_State* L)
 		tfs::lua::pushSharedPtr(L, visibleCreature);
 		tfs::lua::setCreatureMetatable(L, -1, visibleCreature);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5670,13 +5683,13 @@ int LuaScriptInterface::luaTileGetItems(lua_State* L)
 	// tile:getItems()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	TileItemVector* itemVector = tile->getItemList();
 	if (!itemVector) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5696,7 +5709,7 @@ int LuaScriptInterface::luaTileGetItemCount(lua_State* L)
 	// tile:getItemCount()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5710,7 +5723,7 @@ int LuaScriptInterface::luaTileGetDownItemCount(lua_State* L)
 	if (const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1)) {
 		tfs::lua::pushNumber(L, tile->getDownItemCount());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5720,7 +5733,7 @@ int LuaScriptInterface::luaTileGetTopItemCount(lua_State* L)
 	// tile:getTopItemCount()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5733,13 +5746,13 @@ int LuaScriptInterface::luaTileGetCreatures(lua_State* L)
 	// tile:getCreatures()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	CreatureVector* creatureVector = tile->getCreatures();
 	if (!creatureVector) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5759,7 +5772,7 @@ int LuaScriptInterface::luaTileGetCreatureCount(lua_State* L)
 	// tile:getCreatureCount()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5772,7 +5785,7 @@ int LuaScriptInterface::luaTileHasProperty(lua_State* L)
 	// tile:hasProperty(property[, item])
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5795,14 +5808,14 @@ int LuaScriptInterface::luaTileGetThingIndex(lua_State* L)
 	// tile:getThingIndex(thing)
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	if (const auto& thing = tfs::lua::getThing(L, 2)) {
 		tfs::lua::pushNumber(L, tile->getThingIndex(thing));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5814,7 +5827,7 @@ int LuaScriptInterface::luaTileHasFlag(lua_State* L)
 		tileflags_t flag = tfs::lua::getNumber<tileflags_t>(L, 2);
 		tfs::lua::pushBoolean(L, tile->hasFlag(flag));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5824,7 +5837,7 @@ int LuaScriptInterface::luaTileQueryAdd(lua_State* L)
 	// tile:queryAdd(thing[, flags])
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5832,7 +5845,7 @@ int LuaScriptInterface::luaTileQueryAdd(lua_State* L)
 		uint32_t flags = tfs::lua::getNumber<uint32_t>(L, 3, 0);
 		tfs::lua::pushNumber(L, tile->queryAdd(0, thing, 1, flags));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5842,7 +5855,7 @@ int LuaScriptInterface::luaTileAddItem(lua_State* L)
 	// tile:addItem(itemId[, count/subType = 1[, flags = 0]])
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5852,7 +5865,7 @@ int LuaScriptInterface::luaTileAddItem(lua_State* L)
 	} else {
 		itemId = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 		if (itemId == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -5877,7 +5890,7 @@ int LuaScriptInterface::luaTileAddItem(lua_State* L)
 	if (hasTable) {
 		lua_newtable(L);
 	} else if (itemCount == 0) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5889,7 +5902,7 @@ int LuaScriptInterface::luaTileAddItem(lua_State* L)
 		if (!item) {
 			reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_ITEM_NOT_FOUND));
 			if (!hasTable) {
-				lua_pushnil(L);
+				tfs::lua::pushNil(L);
 			}
 			return 1;
 		}
@@ -5901,7 +5914,7 @@ int LuaScriptInterface::luaTileAddItem(lua_State* L)
 		ReturnValue ret = g_game.internalAddItem(tile, item, INDEX_WHEREEVER, flags);
 		if (ret != RETURNVALUE_NOERROR) {
 			if (!hasTable) {
-				lua_pushnil(L);
+				tfs::lua::pushNil(L);
 			}
 			return 1;
 		}
@@ -5924,19 +5937,19 @@ int LuaScriptInterface::luaTileAddItemEx(lua_State* L)
 	// tile:addItemEx(item[, flags = 0])
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 2);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	if (item->hasParent()) {
 		reportErrorFunc(L, "Item already has a parent");
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5950,7 +5963,7 @@ int LuaScriptInterface::luaTileGetHouse(lua_State* L)
 	// tile:getHouse()
 	const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 1);
 	if (!tile) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -5958,7 +5971,7 @@ int LuaScriptInterface::luaTileGetHouse(lua_State* L)
 		tfs::lua::pushUserdata(L, houseTile->getHouse());
 		tfs::lua::setMetatable(L, -1, "House");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -5989,7 +6002,7 @@ int LuaScriptInterface::luaNetworkMessageGetByte(lua_State* L)
 	if (message) {
 		tfs::lua::pushNumber(L, message->getByte());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6001,7 +6014,7 @@ int LuaScriptInterface::luaNetworkMessageGetU16(lua_State* L)
 	if (message) {
 		tfs::lua::pushNumber(L, message->get<uint16_t>());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6013,7 +6026,7 @@ int LuaScriptInterface::luaNetworkMessageGetU32(lua_State* L)
 	if (message) {
 		tfs::lua::pushNumber(L, message->get<uint32_t>());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6025,7 +6038,7 @@ int LuaScriptInterface::luaNetworkMessageGetU64(lua_State* L)
 	if (message) {
 		tfs::lua::pushNumber(L, message->get<uint64_t>());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6037,7 +6050,7 @@ int LuaScriptInterface::luaNetworkMessageGetString(lua_State* L)
 	if (message) {
 		tfs::lua::pushString(L, message->getString());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6049,7 +6062,7 @@ int LuaScriptInterface::luaNetworkMessageGetPosition(lua_State* L)
 	if (message) {
 		tfs::lua::pushPosition(L, message->getPosition());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6063,7 +6076,7 @@ int LuaScriptInterface::luaNetworkMessageAddByte(lua_State* L)
 		message->addByte(number);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6077,7 +6090,7 @@ int LuaScriptInterface::luaNetworkMessageAddU16(lua_State* L)
 		message->add<uint16_t>(number);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6091,7 +6104,7 @@ int LuaScriptInterface::luaNetworkMessageAddU32(lua_State* L)
 		message->add<uint32_t>(number);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6105,7 +6118,7 @@ int LuaScriptInterface::luaNetworkMessageAddU64(lua_State* L)
 		message->add<uint64_t>(number);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6119,7 +6132,7 @@ int LuaScriptInterface::luaNetworkMessageAddString(lua_State* L)
 		message->addString(string);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6133,7 +6146,7 @@ int LuaScriptInterface::luaNetworkMessageAddPosition(lua_State* L)
 		message->addPosition(position);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6147,7 +6160,7 @@ int LuaScriptInterface::luaNetworkMessageAddDouble(lua_State* L)
 		message->addDouble(number);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6158,7 +6171,7 @@ int LuaScriptInterface::luaNetworkMessageAddItem(lua_State* L)
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 2);
 	if (!item) {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_ITEM_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6167,7 +6180,7 @@ int LuaScriptInterface::luaNetworkMessageAddItem(lua_State* L)
 		message->addItem(item);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6177,7 +6190,7 @@ int LuaScriptInterface::luaNetworkMessageAddItemId(lua_State* L)
 	// networkMessage:addItemId(itemId)
 	NetworkMessage* message = tfs::lua::getUserdata<NetworkMessage>(L, 1);
 	if (!message) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6187,7 +6200,7 @@ int LuaScriptInterface::luaNetworkMessageAddItemId(lua_State* L)
 	} else {
 		itemId = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 		if (itemId == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -6205,7 +6218,7 @@ int LuaScriptInterface::luaNetworkMessageReset(lua_State* L)
 		message->reset();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6217,7 +6230,7 @@ int LuaScriptInterface::luaNetworkMessageLength(lua_State* L)
 	if (message) {
 		tfs::lua::pushNumber(L, message->getLength());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6231,7 +6244,7 @@ int LuaScriptInterface::luaNetworkMessageSkipBytes(lua_State* L)
 		message->skipBytes(number);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6241,7 +6254,7 @@ int LuaScriptInterface::luaNetworkMessageSendToPlayer(lua_State* L)
 	// networkMessage:sendToPlayer(player)
 	NetworkMessage* message = tfs::lua::getUserdata<NetworkMessage>(L, 1);
 	if (!message) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6250,7 +6263,7 @@ int LuaScriptInterface::luaNetworkMessageSendToPlayer(lua_State* L)
 		tfs::lua::pushBoolean(L, true);
 	} else {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_PLAYER_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6285,7 +6298,7 @@ int LuaScriptInterface::luaModalWindowGetId(lua_State* L)
 	if (window) {
 		tfs::lua::pushNumber(L, window->id);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6297,7 +6310,7 @@ int LuaScriptInterface::luaModalWindowGetTitle(lua_State* L)
 	if (window) {
 		tfs::lua::pushString(L, window->title);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6309,7 +6322,7 @@ int LuaScriptInterface::luaModalWindowGetMessage(lua_State* L)
 	if (window) {
 		tfs::lua::pushString(L, window->message);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6323,7 +6336,7 @@ int LuaScriptInterface::luaModalWindowSetTitle(lua_State* L)
 		window->title = text;
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6337,7 +6350,7 @@ int LuaScriptInterface::luaModalWindowSetMessage(lua_State* L)
 		window->message = text;
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6349,7 +6362,7 @@ int LuaScriptInterface::luaModalWindowGetButtonCount(lua_State* L)
 	if (window) {
 		tfs::lua::pushNumber(L, window->buttons.size());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6361,7 +6374,7 @@ int LuaScriptInterface::luaModalWindowGetChoiceCount(lua_State* L)
 	if (window) {
 		tfs::lua::pushNumber(L, window->choices.size());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6376,7 +6389,7 @@ int LuaScriptInterface::luaModalWindowAddButton(lua_State* L)
 		window->buttons.emplace_back(text, id);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6391,7 +6404,7 @@ int LuaScriptInterface::luaModalWindowAddChoice(lua_State* L)
 		window->choices.emplace_back(text, id);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6403,7 +6416,7 @@ int LuaScriptInterface::luaModalWindowGetDefaultEnterButton(lua_State* L)
 	if (window) {
 		tfs::lua::pushNumber(L, window->defaultEnterButton);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6416,7 +6429,7 @@ int LuaScriptInterface::luaModalWindowSetDefaultEnterButton(lua_State* L)
 		window->defaultEnterButton = tfs::lua::getNumber<uint8_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6428,7 +6441,7 @@ int LuaScriptInterface::luaModalWindowGetDefaultEscapeButton(lua_State* L)
 	if (window) {
 		tfs::lua::pushNumber(L, window->defaultEscapeButton);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6441,7 +6454,7 @@ int LuaScriptInterface::luaModalWindowSetDefaultEscapeButton(lua_State* L)
 		window->defaultEscapeButton = tfs::lua::getNumber<uint8_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6453,7 +6466,7 @@ int LuaScriptInterface::luaModalWindowHasPriority(lua_State* L)
 	if (window) {
 		tfs::lua::pushBoolean(L, window->priority);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6466,7 +6479,7 @@ int LuaScriptInterface::luaModalWindowSetPriority(lua_State* L)
 		window->priority = tfs::lua::getBoolean(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6476,7 +6489,7 @@ int LuaScriptInterface::luaModalWindowSendToPlayer(lua_State* L)
 	// modalWindow:sendToPlayer(player)
 	const auto& player = tfs::lua::getPlayer(L, 2);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6487,7 +6500,7 @@ int LuaScriptInterface::luaModalWindowSendToPlayer(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6502,7 +6515,7 @@ int LuaScriptInterface::luaItemCreate(lua_State* L)
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6513,7 +6526,7 @@ int LuaScriptInterface::luaItemIsItem(lua_State* L)
 	if (const auto& thing = tfs::lua::getThing(L, 1)) {
 		tfs::lua::pushBoolean(L, thing->asItem() != nullptr);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6523,7 +6536,7 @@ int LuaScriptInterface::luaItemHasParent(lua_State* L)
 	// item:hasParent()
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6536,13 +6549,13 @@ int LuaScriptInterface::luaItemGetParent(lua_State* L)
 	// item:getParent()
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& parent = item->getParent();
 	if (!parent) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6555,13 +6568,13 @@ int LuaScriptInterface::luaItemGetTopParent(lua_State* L)
 	// item:getTopParent()
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& topParent = item->getTopParent();
 	if (!topParent) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6575,7 +6588,7 @@ int LuaScriptInterface::luaItemGetId(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushNumber(L, item->getID());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6585,13 +6598,13 @@ int LuaScriptInterface::luaItemClone(lua_State* L)
 	// item:clone()
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& clone = item->clone();
 	if (!clone) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6605,13 +6618,13 @@ int LuaScriptInterface::luaItemSplit(lua_State* L)
 	// item:split([count = 1])
 	auto* itemPtr = tfs::lua::getRawSharedPtr<Item>(L, 1);
 	if (!itemPtr) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& item = *itemPtr;
 	if (!item || !item->isStackable()) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6620,7 +6633,7 @@ int LuaScriptInterface::luaItemSplit(lua_State* L)
 
 	const auto& splitItem = item->clone();
 	if (!splitItem) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6652,7 +6665,7 @@ int LuaScriptInterface::luaItemRemove(lua_State* L)
 		int32_t count = tfs::lua::getNumber<int32_t>(L, 2, -1);
 		tfs::lua::pushBoolean(L, g_game.internalRemoveItem(item, count) == RETURNVALUE_NOERROR);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6667,7 +6680,7 @@ int LuaScriptInterface::luaItemGetUniqueId(lua_State* L)
 		}
 		tfs::lua::pushNumber(L, uniqueId);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6678,7 +6691,7 @@ int LuaScriptInterface::luaItemGetActionId(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushNumber(L, item->getActionId());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6691,7 +6704,7 @@ int LuaScriptInterface::luaItemSetActionId(lua_State* L)
 		item->setActionId(actionId);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6702,7 +6715,7 @@ int LuaScriptInterface::luaItemGetCount(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushNumber(L, item->getItemCount());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6713,7 +6726,7 @@ int LuaScriptInterface::luaItemGetCharges(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushNumber(L, item->getCharges());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6724,7 +6737,7 @@ int LuaScriptInterface::luaItemGetFluidType(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushNumber(L, item->getFluidType());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6735,7 +6748,7 @@ int LuaScriptInterface::luaItemGetWeight(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushNumber(L, item->getWeight());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6746,7 +6759,7 @@ int LuaScriptInterface::luaItemGetWorth(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushNumber(L, item->getWorth());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6757,7 +6770,7 @@ int LuaScriptInterface::luaItemGetSubType(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushNumber(L, item->getSubType());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6768,7 +6781,7 @@ int LuaScriptInterface::luaItemGetName(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushString(L, item->getName());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6779,7 +6792,7 @@ int LuaScriptInterface::luaItemGetPluralName(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushString(L, item->getPluralName());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6790,7 +6803,7 @@ int LuaScriptInterface::luaItemGetArticle(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushString(L, item->getArticle());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6801,7 +6814,7 @@ int LuaScriptInterface::luaItemGetPosition(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushPosition(L, item->getPosition());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6811,7 +6824,7 @@ int LuaScriptInterface::luaItemGetTile(lua_State* L)
 	// item:getTile()
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6819,7 +6832,7 @@ int LuaScriptInterface::luaItemGetTile(lua_State* L)
 		tfs::lua::pushSharedPtr(L, tile);
 		tfs::lua::setMetatable(L, -1, "Tile");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6829,7 +6842,7 @@ int LuaScriptInterface::luaItemHasAttribute(lua_State* L)
 	// item:hasAttribute(key)
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6851,7 +6864,7 @@ int LuaScriptInterface::luaItemGetAttribute(lua_State* L)
 	// item:getAttribute(key)
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6869,7 +6882,7 @@ int LuaScriptInterface::luaItemGetAttribute(lua_State* L)
 	} else if (ItemAttributes::isStrAttrType(attribute)) {
 		tfs::lua::pushString(L, item->getStrAttr(attribute));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6879,7 +6892,7 @@ int LuaScriptInterface::luaItemSetAttribute(lua_State* L)
 	// item:setAttribute(key, value)
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6903,7 +6916,7 @@ int LuaScriptInterface::luaItemSetAttribute(lua_State* L)
 		item->setStrAttr(attribute, tfs::lua::getString(L, 3));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6913,7 +6926,7 @@ int LuaScriptInterface::luaItemRemoveAttribute(lua_State* L)
 	// item:removeAttribute(key)
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6939,7 +6952,7 @@ int LuaScriptInterface::luaItemGetCustomAttribute(lua_State* L)
 	// item:getCustomAttribute(key)
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6949,14 +6962,14 @@ int LuaScriptInterface::luaItemGetCustomAttribute(lua_State* L)
 	} else if (lua_isstring(L, 2)) {
 		attr = item->getCustomAttribute(tfs::lua::getString(L, 2));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	if (attr) {
 		attr->pushToLua(L);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -6966,7 +6979,7 @@ int LuaScriptInterface::luaItemSetCustomAttribute(lua_State* L)
 	// item:setCustomAttribute(key, value)
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6976,7 +6989,7 @@ int LuaScriptInterface::luaItemSetCustomAttribute(lua_State* L)
 	} else if (lua_isstring(L, 2)) {
 		key = tfs::lua::getString(L, 2);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -6993,7 +7006,7 @@ int LuaScriptInterface::luaItemSetCustomAttribute(lua_State* L)
 	} else if (lua_isboolean(L, 3)) {
 		val = tfs::lua::getBoolean(L, 3);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7007,7 +7020,7 @@ int LuaScriptInterface::luaItemRemoveCustomAttribute(lua_State* L)
 	// item:removeCustomAttribute(key)
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7016,7 +7029,7 @@ int LuaScriptInterface::luaItemRemoveCustomAttribute(lua_State* L)
 	} else if (lua_isstring(L, 2)) {
 		tfs::lua::pushBoolean(L, item->removeCustomAttribute(tfs::lua::getString(L, 2)));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7026,13 +7039,13 @@ int LuaScriptInterface::luaItemMoveTo(lua_State* L)
 	// item:moveTo(position or thing[, flags])
 	auto* itemPtr = tfs::lua::getRawSharedPtr<Item>(L, 1);
 	if (!itemPtr) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& item = *itemPtr;
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7057,7 +7070,7 @@ int LuaScriptInterface::luaItemMoveTo(lua_State* L)
 	}
 
 	if (!toThing) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7088,13 +7101,13 @@ int LuaScriptInterface::luaItemTransform(lua_State* L)
 	// item:transform(itemId[, count/subType = -1])
 	auto* itemPtr = tfs::lua::getRawSharedPtr<Item>(L, 1);
 	if (!itemPtr) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& item = *itemPtr;
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7104,7 +7117,7 @@ int LuaScriptInterface::luaItemTransform(lua_State* L)
 	} else {
 		itemId = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 		if (itemId == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -7148,7 +7161,7 @@ int LuaScriptInterface::luaItemDecay(lua_State* L)
 		g_game.startDecay(item);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7159,7 +7172,7 @@ int LuaScriptInterface::luaItemGetSpecialDescription(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushString(L, item->getSpecialDescription());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7171,7 +7184,7 @@ int LuaScriptInterface::luaItemHasProperty(lua_State* L)
 		ITEMPROPERTY property = tfs::lua::getNumber<ITEMPROPERTY>(L, 2);
 		tfs::lua::pushBoolean(L, item->hasProperty(property));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7182,7 +7195,7 @@ int LuaScriptInterface::luaItemIsLoadedFromMap(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushBoolean(L, item->isLoadedFromMap());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7192,7 +7205,7 @@ int LuaScriptInterface::luaItemSetStoreItem(lua_State* L)
 	// item:setStoreItem(storeItem)
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7206,7 +7219,7 @@ int LuaScriptInterface::luaItemIsStoreItem(lua_State* L)
 	if (const auto& item = tfs::lua::getSharedPtr<Item>(L, 1)) {
 		tfs::lua::pushBoolean(L, item->isStoreItem());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7216,7 +7229,7 @@ int LuaScriptInterface::luaItemSetReflect(lua_State* L)
 	// item:setReflect(combatType, reflect)
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7242,7 +7255,7 @@ int LuaScriptInterface::luaItemGetReflect(lua_State* L)
 		setField(L, "percent", reflect.percent);
 		setField(L, "chance", reflect.chance);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7252,7 +7265,7 @@ int LuaScriptInterface::luaItemSetBoostPercent(lua_State* L)
 	// item:setBoostPercent(combatType, percent)
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 1);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7268,7 +7281,7 @@ int LuaScriptInterface::luaItemGetBoostPercent(lua_State* L)
 		tfs::lua::pushNumber(
 		    L, item->getBoostPercent(tfs::lua::getNumber<CombatType_t>(L, 2), tfs::lua::getBoolean(L, 3, true)));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7283,7 +7296,7 @@ int LuaScriptInterface::luaContainerCreate(lua_State* L)
 		tfs::lua::pushSharedPtr(L, container);
 		tfs::lua::setMetatable(L, -1, "Container");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7294,7 +7307,7 @@ int LuaScriptInterface::luaContainerGetSize(lua_State* L)
 	if (const auto& container = tfs::lua::getSharedPtr<Container>(L, 1)) {
 		tfs::lua::pushNumber(L, container->size());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7305,7 +7318,7 @@ int LuaScriptInterface::luaContainerGetCapacity(lua_State* L)
 	if (const auto& container = tfs::lua::getSharedPtr<Container>(L, 1)) {
 		tfs::lua::pushNumber(L, container->capacity());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7315,7 +7328,7 @@ int LuaScriptInterface::luaContainerGetEmptySlots(lua_State* L)
 	// container:getEmptySlots([recursive = false])
 	const auto& container = tfs::lua::getSharedPtr<Container>(L, 1);
 	if (!container) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7338,7 +7351,7 @@ int LuaScriptInterface::luaContainerGetItemHoldingCount(lua_State* L)
 	if (const auto& container = tfs::lua::getSharedPtr<Container>(L, 1)) {
 		tfs::lua::pushNumber(L, container->getItemHoldingCount());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7348,7 +7361,7 @@ int LuaScriptInterface::luaContainerGetItem(lua_State* L)
 	// container:getItem(index)
 	const auto& container = tfs::lua::getSharedPtr<Container>(L, 1);
 	if (!container) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7357,7 +7370,7 @@ int LuaScriptInterface::luaContainerGetItem(lua_State* L)
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7369,7 +7382,7 @@ int LuaScriptInterface::luaContainerHasItem(lua_State* L)
 	if (const auto& container = tfs::lua::getSharedPtr<Container>(L, 1)) {
 		tfs::lua::pushBoolean(L, container->isHoldingItem(item));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7379,7 +7392,7 @@ int LuaScriptInterface::luaContainerAddItem(lua_State* L)
 	// container:addItem(itemId[, count/subType = 1[, index = INDEX_WHEREEVER[, flags = 0]]])
 	const auto& container = tfs::lua::getSharedPtr<Container>(L, 1);
 	if (!container) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7389,7 +7402,7 @@ int LuaScriptInterface::luaContainerAddItem(lua_State* L)
 	} else {
 		itemId = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 		if (itemId == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -7414,7 +7427,7 @@ int LuaScriptInterface::luaContainerAddItem(lua_State* L)
 	if (hasTable) {
 		lua_newtable(L);
 	} else if (itemCount == 0) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7427,7 +7440,7 @@ int LuaScriptInterface::luaContainerAddItem(lua_State* L)
 		if (!item) {
 			reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_ITEM_NOT_FOUND));
 			if (!hasTable) {
-				lua_pushnil(L);
+				tfs::lua::pushNil(L);
 			}
 			return 1;
 		}
@@ -7439,7 +7452,7 @@ int LuaScriptInterface::luaContainerAddItem(lua_State* L)
 		ReturnValue ret = g_game.internalAddItem(container, item, index, flags);
 		if (ret != RETURNVALUE_NOERROR) {
 			if (!hasTable) {
-				lua_pushnil(L);
+				tfs::lua::pushNil(L);
 			}
 			return 1;
 		}
@@ -7462,19 +7475,19 @@ int LuaScriptInterface::luaContainerAddItemEx(lua_State* L)
 	// container:addItemEx(item[, index = INDEX_WHEREEVER[, flags = 0]])
 	const auto& item = tfs::lua::getSharedPtr<Item>(L, 2);
 	if (!item) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& container = tfs::lua::getSharedPtr<Container>(L, 1);
 	if (!container) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	if (item->hasParent()) {
 		reportErrorFunc(L, "Item already has a parent");
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7490,7 +7503,7 @@ int LuaScriptInterface::luaContainerGetCorpseOwner(lua_State* L)
 	if (const auto& container = tfs::lua::getSharedPtr<Container>(L, 1)) {
 		tfs::lua::pushNumber(L, container->getCorpseOwner());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7500,7 +7513,7 @@ int LuaScriptInterface::luaContainerGetItemCountById(lua_State* L)
 	// container:getItemCountById(itemId[, subType = -1])
 	const auto& container = tfs::lua::getSharedPtr<Container>(L, 1);
 	if (!container) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7510,7 +7523,7 @@ int LuaScriptInterface::luaContainerGetItemCountById(lua_State* L)
 	} else {
 		itemId = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 		if (itemId == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -7525,7 +7538,7 @@ int LuaScriptInterface::luaContainerGetItems(lua_State* L)
 	// container:getItems([recursive = false])
 	const auto& container = tfs::lua::getSharedPtr<Container>(L, 1);
 	if (!container) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7554,7 +7567,7 @@ int LuaScriptInterface::luaTeleportCreate(lua_State* L)
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setMetatable(L, -1, "Teleport");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7565,7 +7578,7 @@ int LuaScriptInterface::luaTeleportGetDestination(lua_State* L)
 	if (const auto& teleport = tfs::lua::getSharedPtr<Teleport>(L, 1)) {
 		tfs::lua::pushPosition(L, teleport->getDestPos());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7577,7 +7590,7 @@ int LuaScriptInterface::luaTeleportSetDestination(lua_State* L)
 		teleport->setDestPos(tfs::lua::getPosition(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7593,7 +7606,7 @@ int LuaScriptInterface::luaPodiumCreate(lua_State* L)
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setMetatable(L, -1, "Podium");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7604,7 +7617,7 @@ int LuaScriptInterface::luaPodiumGetOutfit(lua_State* L)
 	if (const auto& podium = tfs::lua::getSharedPtr<const Podium>(L, 1)) {
 		tfs::lua::pushOutfit(L, podium->getOutfit());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7617,7 +7630,7 @@ int LuaScriptInterface::luaPodiumSetOutfit(lua_State* L)
 		g_game.updatePodium(podium);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7629,7 +7642,7 @@ int LuaScriptInterface::luaPodiumHasFlag(lua_State* L)
 		PodiumFlags flag = tfs::lua::getNumber<PodiumFlags>(L, 2);
 		tfs::lua::pushBoolean(L, podium->hasFlag(flag));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7646,7 +7659,7 @@ int LuaScriptInterface::luaPodiumSetFlag(lua_State* L)
 		g_game.updatePodium(podium);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7657,7 +7670,7 @@ int LuaScriptInterface::luaPodiumGetDirection(lua_State* L)
 	if (const auto& podium = tfs::lua::getSharedPtr<const Podium>(L, 1)) {
 		tfs::lua::pushNumber(L, podium->getDirection());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7670,7 +7683,7 @@ int LuaScriptInterface::luaPodiumSetDirection(lua_State* L)
 		g_game.updatePodium(podium);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7687,7 +7700,7 @@ int LuaScriptInterface::luaCreatureCreate(lua_State* L)
 	} else if (lua_isuserdata(L, 2)) {
 		LuaDataType type = getUserdataType(L, 2);
 		if (type != LuaData_Player && type != LuaData_Monster && type != LuaData_Npc) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 		creature = tfs::lua::getSharedPtr<Creature>(L, 2);
@@ -7697,52 +7710,7 @@ int LuaScriptInterface::luaCreatureCreate(lua_State* L)
 		tfs::lua::pushSharedPtr(L, creature);
 		tfs::lua::setCreatureMetatable(L, -1, creature);
 	} else {
-		lua_pushnil(L);
-	}
-	return 1;
-}
-
-int LuaScriptInterface::luaCreatureGetEvents(lua_State* L)
-{
-	// creature:getEvents(type)
-	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
-	if (!creature) {
-		lua_pushnil(L);
-		return 1;
-	}
-
-	CreatureEventType_t eventType = tfs::lua::getNumber<CreatureEventType_t>(L, 2);
-	const auto& eventList = creature->getCreatureEvents(eventType);
-	lua_createtable(L, eventList.size(), 0);
-
-	int index = 0;
-	for (CreatureEvent* event : eventList) {
-		tfs::lua::pushString(L, event->getName());
-		lua_rawseti(L, -2, ++index);
-	}
-	return 1;
-}
-
-int LuaScriptInterface::luaCreatureRegisterEvent(lua_State* L)
-{
-	// creature:registerEvent(name)
-	if (const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1)) {
-		const std::string& name = tfs::lua::getString(L, 2);
-		tfs::lua::pushBoolean(L, creature->registerCreatureEvent(name));
-	} else {
-		lua_pushnil(L);
-	}
-	return 1;
-}
-
-int LuaScriptInterface::luaCreatureUnregisterEvent(lua_State* L)
-{
-	// creature:unregisterEvent(name)
-	const std::string& name = tfs::lua::getString(L, 2);
-	if (const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1)) {
-		tfs::lua::pushBoolean(L, creature->unregisterCreatureEvent(name));
-	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7753,7 +7721,7 @@ int LuaScriptInterface::luaCreatureIsRemoved(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushBoolean(L, creature->isRemoved());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7771,7 +7739,7 @@ int LuaScriptInterface::luaCreatureIsInGhostMode(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushBoolean(L, creature->isInGhostMode());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7782,7 +7750,7 @@ int LuaScriptInterface::luaCreatureIsHealthHidden(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushBoolean(L, creature->isHealthHidden());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7793,7 +7761,7 @@ int LuaScriptInterface::luaCreatureIsMovementBlocked(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushBoolean(L, creature->isMovementBlocked());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7805,7 +7773,7 @@ int LuaScriptInterface::luaCreatureCanSee(lua_State* L)
 		const Position& position = tfs::lua::getPosition(L, 2);
 		tfs::lua::pushBoolean(L, creature->canSee(position));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7823,7 +7791,7 @@ int LuaScriptInterface::luaCreatureCanSeeCreature(lua_State* L)
 
 		tfs::lua::pushBoolean(L, creature->canSeeCreature(otherCreature));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7841,7 +7809,7 @@ int LuaScriptInterface::luaCreatureCanSeeGhostMode(lua_State* L)
 
 		tfs::lua::pushBoolean(L, creature->canSeeGhostMode(otherCreature));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7852,7 +7820,7 @@ int LuaScriptInterface::luaCreatureCanSeeInvisibility(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushBoolean(L, creature->canSeeInvisibility());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7862,7 +7830,7 @@ int LuaScriptInterface::luaCreatureHasParent(lua_State* L)
 	// creature:hasParent()
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7875,13 +7843,13 @@ int LuaScriptInterface::luaCreatureGetParent(lua_State* L)
 	// creature:getParent()
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& parent = creature->getParent();
 	if (!parent) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7895,7 +7863,7 @@ int LuaScriptInterface::luaCreatureGetId(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushNumber(L, creature->getID());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7906,7 +7874,7 @@ int LuaScriptInterface::luaCreatureGetName(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushString(L, creature->getName());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7916,7 +7884,7 @@ int LuaScriptInterface::luaCreatureGetTarget(lua_State* L)
 	// creature:getTarget()
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7924,7 +7892,7 @@ int LuaScriptInterface::luaCreatureGetTarget(lua_State* L)
 		tfs::lua::pushSharedPtr(L, target);
 		tfs::lua::setCreatureMetatable(L, -1, target);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7934,7 +7902,7 @@ int LuaScriptInterface::luaCreatureSetTarget(lua_State* L)
 	// creature:setTarget(target)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7953,7 +7921,7 @@ int LuaScriptInterface::luaCreatureGetFollowCreature(lua_State* L)
 	// creature:getFollowCreature()
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7961,7 +7929,7 @@ int LuaScriptInterface::luaCreatureGetFollowCreature(lua_State* L)
 		tfs::lua::pushSharedPtr(L, followCreature);
 		tfs::lua::setCreatureMetatable(L, -1, followCreature);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -7971,7 +7939,7 @@ int LuaScriptInterface::luaCreatureSetFollowCreature(lua_State* L)
 	// creature:setFollowCreature(followedCreature)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -7990,13 +7958,13 @@ int LuaScriptInterface::luaCreatureGetMaster(lua_State* L)
 	// creature:getMaster()
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& master = creature->getMaster();
 	if (!master) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8010,7 +7978,7 @@ int LuaScriptInterface::luaCreatureSetMaster(lua_State* L)
 	// creature:setMaster(master)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8026,7 +7994,7 @@ int LuaScriptInterface::luaCreatureGetLight(lua_State* L)
 	// creature:getLight()
 	const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8041,7 +8009,7 @@ int LuaScriptInterface::luaCreatureSetLight(lua_State* L)
 	// creature:setLight(color, level)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8060,7 +8028,7 @@ int LuaScriptInterface::luaCreatureGetSpeed(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushNumber(L, creature->getSpeed());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8071,7 +8039,7 @@ int LuaScriptInterface::luaCreatureGetBaseSpeed(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushNumber(L, creature->getBaseSpeed());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8099,7 +8067,7 @@ int LuaScriptInterface::luaCreatureSetDropLoot(lua_State* L)
 		creature->setDropLoot(tfs::lua::getBoolean(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8111,7 +8079,7 @@ int LuaScriptInterface::luaCreatureSetSkillLoss(lua_State* L)
 		creature->setSkillLoss(tfs::lua::getBoolean(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8122,7 +8090,7 @@ int LuaScriptInterface::luaCreatureGetPosition(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushPosition(L, creature->getPosition());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8132,7 +8100,7 @@ int LuaScriptInterface::luaCreatureGetTile(lua_State* L)
 	// creature:getTile()
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8140,7 +8108,7 @@ int LuaScriptInterface::luaCreatureGetTile(lua_State* L)
 		tfs::lua::pushSharedPtr(L, tile);
 		tfs::lua::setMetatable(L, -1, "Tile");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8151,7 +8119,7 @@ int LuaScriptInterface::luaCreatureGetDirection(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushNumber(L, creature->getDirection());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8162,7 +8130,7 @@ int LuaScriptInterface::luaCreatureSetDirection(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1)) {
 		tfs::lua::pushBoolean(L, g_game.internalCreatureTurn(creature, tfs::lua::getNumber<Direction>(L, 2)));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8173,7 +8141,7 @@ int LuaScriptInterface::luaCreatureGetHealth(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushNumber(L, creature->getHealth());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8183,7 +8151,7 @@ int LuaScriptInterface::luaCreatureSetHealth(lua_State* L)
 	// creature:setHealth(health)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8202,7 +8170,7 @@ int LuaScriptInterface::luaCreatureAddHealth(lua_State* L)
 	// creature:addHealth(healthChange)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8223,7 +8191,7 @@ int LuaScriptInterface::luaCreatureGetMaxHealth(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushNumber(L, creature->getMaxHealth());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8233,7 +8201,7 @@ int LuaScriptInterface::luaCreatureSetMaxHealth(lua_State* L)
 	// creature:setMaxHealth(maxHealth)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8256,7 +8224,7 @@ int LuaScriptInterface::luaCreatureSetHiddenHealth(lua_State* L)
 		g_game.addCreatureHealth(creature);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8268,7 +8236,7 @@ int LuaScriptInterface::luaCreatureSetMovementBlocked(lua_State* L)
 		creature->setMovementBlocked(tfs::lua::getBoolean(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8279,7 +8247,7 @@ int LuaScriptInterface::luaCreatureGetSkull(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1)) {
 		tfs::lua::pushNumber(L, creature->getSkull());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8292,7 +8260,7 @@ int LuaScriptInterface::luaCreatureSetSkull(lua_State* L)
 		g_game.updateCreatureSkull(creature);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8303,7 +8271,7 @@ int LuaScriptInterface::luaCreatureGetOutfit(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1)) {
 		tfs::lua::pushOutfit(L, creature->getCurrentOutfit());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8316,7 +8284,7 @@ int LuaScriptInterface::luaCreatureSetOutfit(lua_State* L)
 		g_game.internalCreatureChangeOutfit(creature, creature->getDefaultOutfit());
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8326,7 +8294,7 @@ int LuaScriptInterface::luaCreatureGetCondition(lua_State* L)
 	// creature:getCondition(conditionType[, conditionId = CONDITIONID_COMBAT[, subId = 0]])
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8339,7 +8307,7 @@ int LuaScriptInterface::luaCreatureGetCondition(lua_State* L)
 		tfs::lua::pushUserdata(L, condition);
 		setWeakMetatable(L, -1, "Condition");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8353,7 +8321,7 @@ int LuaScriptInterface::luaCreatureAddCondition(lua_State* L)
 		bool force = tfs::lua::getBoolean(L, 3, false);
 		tfs::lua::pushBoolean(L, creature->addCondition(condition->clone(), force));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8364,7 +8332,7 @@ int LuaScriptInterface::luaCreatureRemoveCondition(lua_State* L)
 	// creature:removeCondition(condition[, force = false])
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8390,7 +8358,7 @@ int LuaScriptInterface::luaCreatureRemoveCondition(lua_State* L)
 		creature->removeCondition(creatureCondition, force);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8400,7 +8368,7 @@ int LuaScriptInterface::luaCreatureHasCondition(lua_State* L)
 	// creature:hasCondition(conditionType[, subId = 0])
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8415,7 +8383,7 @@ int LuaScriptInterface::luaCreatureIsImmune(lua_State* L)
 	// creature:isImmune(condition or conditionType)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8424,7 +8392,7 @@ int LuaScriptInterface::luaCreatureIsImmune(lua_State* L)
 	} else if (Condition* condition = tfs::lua::getUserdata<Condition>(L, 2)) {
 		tfs::lua::pushBoolean(L, creature->isImmune(condition->getType()));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8434,13 +8402,13 @@ int LuaScriptInterface::luaCreatureRemove(lua_State* L)
 	// creature:remove()
 	auto* creaturePtr = tfs::lua::getRawSharedPtr<Creature>(L, 1);
 	if (!creaturePtr) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& creature = *creaturePtr;
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8463,7 +8431,7 @@ int LuaScriptInterface::luaCreatureTeleportTo(lua_State* L)
 	const Position& position = tfs::lua::getPosition(L, 2);
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8516,7 +8484,7 @@ int LuaScriptInterface::luaCreatureSay(lua_State* L)
 	const std::string& text = tfs::lua::getString(L, 2);
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8541,7 +8509,7 @@ int LuaScriptInterface::luaCreatureGetDamageMap(lua_State* L)
 	// creature:getDamageMap()
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8561,7 +8529,7 @@ int LuaScriptInterface::luaCreatureGetSummons(lua_State* L)
 	// creature:getSummons()
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8584,7 +8552,7 @@ int LuaScriptInterface::luaCreatureGetDescription(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1)) {
 		tfs::lua::pushString(L, creature->getDescription(distance));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8595,7 +8563,7 @@ int LuaScriptInterface::luaCreatureGetPathTo(lua_State* L)
 	// maxSearchDist = 0]]]]])
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8629,21 +8597,21 @@ int LuaScriptInterface::luaCreatureMove(lua_State* L)
 	// creature:move(tile[, flags = 0])
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	if (isNumber(L, 2)) {
 		Direction direction = tfs::lua::getNumber<Direction>(L, 2);
 		if (direction > DIRECTION_LAST) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 		tfs::lua::pushNumber(L, g_game.internalMoveCreature(creature, direction, FLAG_NOLIMIT));
 	} else {
 		const auto& tile = tfs::lua::getSharedPtr<Tile>(L, 2);
 		if (!tile) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 		tfs::lua::pushNumber(L, g_game.internalMoveCreature(creature, tile, tfs::lua::getNumber<uint32_t>(L, 3)));
@@ -8657,7 +8625,7 @@ int LuaScriptInterface::luaCreatureGetZone(lua_State* L)
 	if (const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1)) {
 		tfs::lua::pushNumber(L, creature->getZone());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8669,7 +8637,7 @@ int LuaScriptInterface::luaCreatureHasIcon(lua_State* L)
 		auto iconId = tfs::lua::getNumber<CreatureIcon_t>(L, 2);
 		tfs::lua::pushBoolean(L, creature->getIcons().contains(iconId));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8679,7 +8647,7 @@ int LuaScriptInterface::luaCreatureSetIcon(lua_State* L)
 	// creature:setIcon(iconId, value)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8701,7 +8669,7 @@ int LuaScriptInterface::luaCreatureGetIcon(lua_State* L)
 	// creature:getIcon(iconId)
 	const auto& creature = tfs::lua::getSharedPtr<const Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8721,7 +8689,7 @@ int LuaScriptInterface::luaCreatureRemoveIcon(lua_State* L)
 	// creature:removeIcon(iconId)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8744,7 +8712,7 @@ int LuaScriptInterface::luaCreatureGetStorageValue(lua_State* L)
 	// creature:getStorageValue(key)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8752,7 +8720,7 @@ int LuaScriptInterface::luaCreatureGetStorageValue(lua_State* L)
 	if (auto storage = creature->getStorageValue(key)) {
 		tfs::lua::pushNumber(L, storage.value());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8762,7 +8730,7 @@ int LuaScriptInterface::luaCreatureSetStorageValue(lua_State* L)
 	// creature:setStorageValue(key, value)
 	const auto& creature = tfs::lua::getSharedPtr<Creature>(L, 1);
 	if (!creature) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8799,24 +8767,19 @@ int LuaScriptInterface::luaPlayerCreate(lua_State* L)
 	} else if (lua_isstring(L, 2)) {
 		ReturnValue ret = g_game.getPlayerByNameWildcard(tfs::lua::getString(L, 2), player);
 		if (ret != RETURNVALUE_NOERROR) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			tfs::lua::pushNumber(L, ret);
 			return 2;
 		}
 	} else if (lua_isuserdata(L, 2)) {
 		if (getUserdataType(L, 2) != LuaData_Player) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 		player = tfs::lua::getSharedPtr<Player>(L, 2);
 	}
 
-	if (player) {
-		tfs::lua::pushSharedPtr(L, player);
-		tfs::lua::setMetatable(L, -1, "Player");
-	} else {
-		lua_pushnil(L);
-	}
+	tfs::lua::pushPlayer(L, player);
 	return 1;
 }
 
@@ -8826,7 +8789,7 @@ int LuaScriptInterface::luaPlayerIsPlayer(lua_State* L)
 	if (const auto& creature = tfs::lua::getCreature(L, 1)) {
 		tfs::lua::pushBoolean(L, creature->getPlayer() != nullptr);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8837,7 +8800,7 @@ int LuaScriptInterface::luaPlayerGetGuid(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getGUID());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8848,7 +8811,7 @@ int LuaScriptInterface::luaPlayerGetIp(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushString(L, player->getIP().to_string());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8859,7 +8822,7 @@ int LuaScriptInterface::luaPlayerGetAccountId(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getAccount());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8870,7 +8833,7 @@ int LuaScriptInterface::luaPlayerGetLastLoginSaved(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getLastLoginSaved());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8881,7 +8844,7 @@ int LuaScriptInterface::luaPlayerGetLastLogout(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getLastLogout());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8892,7 +8855,7 @@ int LuaScriptInterface::luaPlayerGetAccountType(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getAccountType());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8905,7 +8868,7 @@ int LuaScriptInterface::luaPlayerSetAccountType(lua_State* L)
 		IOLoginData::setAccountType(player->getAccount(), player->getAccountType());
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8916,7 +8879,7 @@ int LuaScriptInterface::luaPlayerGetCapacity(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getCapacity());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8929,7 +8892,7 @@ int LuaScriptInterface::luaPlayerSetCapacity(lua_State* L)
 		player->sendStats();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8940,7 +8903,7 @@ int LuaScriptInterface::luaPlayerGetFreeCapacity(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getFreeCapacity());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -8950,7 +8913,7 @@ int LuaScriptInterface::luaPlayerGetDepotChest(lua_State* L)
 	// player:getDepotChest(depotId[, autoCreate = false])
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8970,7 +8933,7 @@ int LuaScriptInterface::luaPlayerGetInbox(lua_State* L)
 	// player:getInbox()
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -8989,7 +8952,7 @@ int LuaScriptInterface::luaPlayerGetSkullTime(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getSkullTicks());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9001,7 +8964,7 @@ int LuaScriptInterface::luaPlayerSetSkullTime(lua_State* L)
 		player->setSkullTicks(tfs::lua::getNumber<int64_t>(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9012,7 +8975,7 @@ int LuaScriptInterface::luaPlayerGetDeathPenalty(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getLossPercent() * 100);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9023,7 +8986,7 @@ int LuaScriptInterface::luaPlayerGetExperience(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getExperience());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9037,7 +9000,7 @@ int LuaScriptInterface::luaPlayerAddExperience(lua_State* L)
 		player->addExperience(nullptr, experience, sendText);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9051,7 +9014,7 @@ int LuaScriptInterface::luaPlayerRemoveExperience(lua_State* L)
 		player->removeExperience(experience, sendText);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9062,7 +9025,7 @@ int LuaScriptInterface::luaPlayerGetLevel(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getLevel());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9073,7 +9036,7 @@ int LuaScriptInterface::luaPlayerGetLevelPercent(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getLevelPercent());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9084,7 +9047,7 @@ int LuaScriptInterface::luaPlayerGetMagicLevel(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getMagicLevel());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9095,7 +9058,7 @@ int LuaScriptInterface::luaPlayerGetMagicLevelPercent(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getMagicLevelPercent());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9106,7 +9069,7 @@ int LuaScriptInterface::luaPlayerGetBaseMagicLevel(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getBaseMagicLevel());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9117,7 +9080,7 @@ int LuaScriptInterface::luaPlayerGetMana(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<const Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getMana());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9127,7 +9090,7 @@ int LuaScriptInterface::luaPlayerAddMana(lua_State* L)
 	// player:addMana(manaChange[, animationOnLoss = false])
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9151,7 +9114,7 @@ int LuaScriptInterface::luaPlayerGetMaxMana(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<const Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getMaxMana());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9165,7 +9128,7 @@ int LuaScriptInterface::luaPlayerSetMaxMana(lua_State* L)
 		player->sendStats();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9179,7 +9142,7 @@ int LuaScriptInterface::luaPlayerSetManaShieldBar(lua_State* L)
 		player->sendStats();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9190,7 +9153,7 @@ int LuaScriptInterface::luaPlayerGetManaSpent(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getSpentMana());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9202,7 +9165,7 @@ int LuaScriptInterface::luaPlayerAddManaSpent(lua_State* L)
 		player->addManaSpent(tfs::lua::getNumber<uint64_t>(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9214,7 +9177,7 @@ int LuaScriptInterface::luaPlayerRemoveManaSpent(lua_State* L)
 		player->removeManaSpent(tfs::lua::getNumber<uint64_t>(L, 2), tfs::lua::getBoolean(L, 3, true));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9225,7 +9188,7 @@ int LuaScriptInterface::luaPlayerGetBaseMaxHealth(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getMaxHealth());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9236,7 +9199,7 @@ int LuaScriptInterface::luaPlayerGetBaseMaxMana(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getMaxMana());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9249,7 +9212,7 @@ int LuaScriptInterface::luaPlayerGetSkillLevel(lua_State* L)
 	if (player && skillType <= SKILL_LAST) {
 		tfs::lua::pushNumber(L, player->getSkillLevel(skillType));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9262,7 +9225,7 @@ int LuaScriptInterface::luaPlayerGetEffectiveSkillLevel(lua_State* L)
 	if (player && skillType <= SKILL_LAST) {
 		tfs::lua::pushNumber(L, player->getSkillLevel(skillType));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9275,7 +9238,7 @@ int LuaScriptInterface::luaPlayerGetSkillPercent(lua_State* L)
 	if (player && skillType <= SKILL_LAST) {
 		tfs::lua::pushNumber(L, player->getSkillPercent(skillType));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9288,7 +9251,7 @@ int LuaScriptInterface::luaPlayerGetSkillTries(lua_State* L)
 	if (player && skillType <= SKILL_LAST) {
 		tfs::lua::pushNumber(L, player->getSkillTries(skillType));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9302,7 +9265,7 @@ int LuaScriptInterface::luaPlayerAddSkillTries(lua_State* L)
 		player->addSkillAdvance(skillType, tries);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9316,7 +9279,7 @@ int LuaScriptInterface::luaPlayerRemoveSkillTries(lua_State* L)
 		player->removeSkillTries(skillType, tries, tfs::lua::getBoolean(L, 4, true));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9329,7 +9292,7 @@ int LuaScriptInterface::luaPlayerGetSpecialSkill(lua_State* L)
 	if (player && specialSkillType <= SPECIALSKILL_LAST) {
 		tfs::lua::pushNumber(L, player->getSpecialSkill(specialSkillType));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9339,13 +9302,13 @@ int LuaScriptInterface::luaPlayerAddSpecialSkill(lua_State* L)
 	// player:addSpecialSkill(specialSkillType, value)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	SpecialSkills_t specialSkillType = tfs::lua::getNumber<SpecialSkills_t>(L, 2);
 	if (specialSkillType > SPECIALSKILL_LAST) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9364,7 +9327,7 @@ int LuaScriptInterface::luaPlayerAddOfflineTrainingTime(lua_State* L)
 		player->sendStats();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9375,7 +9338,7 @@ int LuaScriptInterface::luaPlayerGetOfflineTrainingTime(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getOfflineTrainingTime());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9389,7 +9352,7 @@ int LuaScriptInterface::luaPlayerRemoveOfflineTrainingTime(lua_State* L)
 		player->sendStats();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9402,7 +9365,7 @@ int LuaScriptInterface::luaPlayerAddOfflineTrainingTries(lua_State* L)
 		uint64_t tries = tfs::lua::getNumber<uint64_t>(L, 3);
 		tfs::lua::pushBoolean(L, player->addOfflineTrainingTries(skillType, tries));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9413,7 +9376,7 @@ int LuaScriptInterface::luaPlayerGetOfflineTrainingSkill(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getOfflineTrainingSkill());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9426,7 +9389,7 @@ int LuaScriptInterface::luaPlayerSetOfflineTrainingSkill(lua_State* L)
 		player->setOfflineTrainingSkill(skillId);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9436,7 +9399,7 @@ int LuaScriptInterface::luaPlayerGetItemCount(lua_State* L)
 	// player:getItemCount(itemId[, subType = -1])
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9446,7 +9409,7 @@ int LuaScriptInterface::luaPlayerGetItemCount(lua_State* L)
 	} else {
 		itemId = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 		if (itemId == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -9461,7 +9424,7 @@ int LuaScriptInterface::luaPlayerGetItemById(lua_State* L)
 	// player:getItemById(itemId, deepSearch[, subType = -1])
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9471,7 +9434,7 @@ int LuaScriptInterface::luaPlayerGetItemById(lua_State* L)
 	} else {
 		itemId = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 		if (itemId == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -9482,7 +9445,7 @@ int LuaScriptInterface::luaPlayerGetItemById(lua_State* L)
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9494,7 +9457,7 @@ int LuaScriptInterface::luaPlayerGetVocation(lua_State* L)
 		tfs::lua::pushUserdata(L, player->getVocation());
 		tfs::lua::setMetatable(L, -1, "Vocation");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9504,7 +9467,7 @@ int LuaScriptInterface::luaPlayerSetVocation(lua_State* L)
 	// player:setVocation(id or name or userdata)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9533,7 +9496,7 @@ int LuaScriptInterface::luaPlayerGetSex(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getSex());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9546,7 +9509,7 @@ int LuaScriptInterface::luaPlayerSetSex(lua_State* L)
 		player->setSex(newSex);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9557,7 +9520,7 @@ int LuaScriptInterface::luaPlayerGetTown(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		pushTown(L, *player->getTown());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9581,7 +9544,7 @@ int LuaScriptInterface::luaPlayerSetTown(lua_State* L)
 		player->setTown(town);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9591,7 +9554,7 @@ int LuaScriptInterface::luaPlayerGetGuild(lua_State* L)
 	// player:getGuild()
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9599,7 +9562,7 @@ int LuaScriptInterface::luaPlayerGetGuild(lua_State* L)
 		tfs::lua::pushSharedPtr(L, guild);
 		tfs::lua::setMetatable(L, -1, "Guild");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9609,7 +9572,7 @@ int LuaScriptInterface::luaPlayerSetGuild(lua_State* L)
 	// player:setGuild(guild)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9625,7 +9588,7 @@ int LuaScriptInterface::luaPlayerGetGuildLevel(lua_State* L)
 	if (player && player->getGuild()) {
 		tfs::lua::pushNumber(L, player->getGuildRank()->level);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9635,13 +9598,13 @@ int LuaScriptInterface::luaPlayerSetGuildLevel(lua_State* L)
 	// player:setGuildLevel(level)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& guild = player->getGuild();
 	if (!guild) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9650,7 +9613,7 @@ int LuaScriptInterface::luaPlayerSetGuildLevel(lua_State* L)
 		player->setGuildRank(rank);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9661,7 +9624,7 @@ int LuaScriptInterface::luaPlayerGetGuildNick(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushString(L, player->getGuildNick());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9674,7 +9637,7 @@ int LuaScriptInterface::luaPlayerSetGuildNick(lua_State* L)
 		player->setGuildNick(nick);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9686,7 +9649,7 @@ int LuaScriptInterface::luaPlayerGetGroup(lua_State* L)
 		tfs::lua::pushUserdata(L, player->getGroup());
 		tfs::lua::setMetatable(L, -1, "Group");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9704,7 +9667,7 @@ int LuaScriptInterface::luaPlayerSetGroup(lua_State* L)
 		player->setGroup(group);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9715,7 +9678,7 @@ int LuaScriptInterface::luaPlayerGetStamina(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getStaminaMinutes());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9729,7 +9692,7 @@ int LuaScriptInterface::luaPlayerSetStamina(lua_State* L)
 		player->sendStats();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9740,7 +9703,7 @@ int LuaScriptInterface::luaPlayerGetSoul(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getSoul());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9753,7 +9716,7 @@ int LuaScriptInterface::luaPlayerAddSoul(lua_State* L)
 		player->changeSoul(soulChange);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9768,7 +9731,7 @@ int LuaScriptInterface::luaPlayerGetMaxSoul(lua_State* L)
 		}
 	}
 
-	lua_pushnil(L);
+	tfs::lua::pushNil(L);
 	return 1;
 }
 
@@ -9778,7 +9741,7 @@ int LuaScriptInterface::luaPlayerGetBankBalance(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getBankBalance());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9788,14 +9751,14 @@ int LuaScriptInterface::luaPlayerSetBankBalance(lua_State* L)
 	// player:setBankBalance(bankBalance)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	int64_t balance = tfs::lua::getNumber<int64_t>(L, 2);
 	if (balance < 0) {
 		reportErrorFunc(L, "Invalid bank balance value.");
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9819,7 +9782,7 @@ int LuaScriptInterface::luaPlayerAddItem(lua_State* L)
 	} else {
 		itemId = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 		if (itemId == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -9847,7 +9810,7 @@ int LuaScriptInterface::luaPlayerAddItem(lua_State* L)
 	if (hasTable) {
 		lua_newtable(L);
 	} else if (itemCount == 0) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9863,7 +9826,7 @@ int LuaScriptInterface::luaPlayerAddItem(lua_State* L)
 		const auto& item = Item::CreateItem(itemId, stackCount);
 		if (!item) {
 			if (!hasTable) {
-				lua_pushnil(L);
+				tfs::lua::pushNil(L);
 			}
 			return 1;
 		}
@@ -9871,7 +9834,7 @@ int LuaScriptInterface::luaPlayerAddItem(lua_State* L)
 		ReturnValue ret = g_game.internalPlayerAddItem(player, item, canDropOnMap, slot);
 		if (ret != RETURNVALUE_NOERROR) {
 			if (!hasTable) {
-				lua_pushnil(L);
+				tfs::lua::pushNil(L);
 			}
 			return 1;
 		}
@@ -9902,7 +9865,7 @@ int LuaScriptInterface::luaPlayerAddItemEx(lua_State* L)
 
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9929,7 +9892,7 @@ int LuaScriptInterface::luaPlayerRemoveItem(lua_State* L)
 	// player:removeItem(itemId, count[, subType = -1[, ignoreEquipped = false]])
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -9939,7 +9902,7 @@ int LuaScriptInterface::luaPlayerRemoveItem(lua_State* L)
 	} else {
 		itemId = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 		if (itemId == 0) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 	}
@@ -9979,7 +9942,7 @@ int LuaScriptInterface::luaPlayerGetMoney(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getMoney());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -9992,7 +9955,7 @@ int LuaScriptInterface::luaPlayerAddMoney(lua_State* L)
 		g_game.addMoney(player, money);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10004,7 +9967,7 @@ int LuaScriptInterface::luaPlayerRemoveMoney(lua_State* L)
 		uint64_t money = tfs::lua::getNumber<uint64_t>(L, 2);
 		tfs::lua::pushBoolean(L, g_game.removeMoney(player, money));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10014,7 +9977,7 @@ int LuaScriptInterface::luaPlayerShowTextDialog(lua_State* L)
 	// player:showTextDialog(id or name or userdata[, text[, canWrite[, length]]])
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10069,7 +10032,7 @@ int LuaScriptInterface::luaPlayerSendTextMessage(lua_State* L)
 
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10108,7 +10071,7 @@ int LuaScriptInterface::luaPlayerSendChannelMessage(lua_State* L)
 	// player:sendChannelMessage(author, text, type, channelId)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10126,7 +10089,7 @@ int LuaScriptInterface::luaPlayerSendPrivateMessage(lua_State* L)
 	// player:sendPrivateMessage(speaker, text[, type])
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10143,7 +10106,7 @@ int LuaScriptInterface::luaPlayerChannelSay(lua_State* L)
 	// player:channelSay(speaker, type, text, channelId)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10164,7 +10127,7 @@ int LuaScriptInterface::luaPlayerOpenChannel(lua_State* L)
 		g_game.playerOpenChannel(player->getID(), channelId);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10177,7 +10140,7 @@ int LuaScriptInterface::luaPlayerLeaveChannel(lua_State* L)
 		g_game.playerCloseChannel(player->getID(), channelId);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10187,14 +10150,14 @@ int LuaScriptInterface::luaPlayerGetSlotItem(lua_State* L)
 	// player:getSlotItem(slot)
 	const auto& player = tfs::lua::getSharedPtr<const Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	uint32_t slot = tfs::lua::getNumber<uint32_t>(L, 2);
 	const auto& thing = player->getThing(slot);
 	if (!thing) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10202,7 +10165,7 @@ int LuaScriptInterface::luaPlayerGetSlotItem(lua_State* L)
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10212,7 +10175,7 @@ int LuaScriptInterface::luaPlayerGetParty(lua_State* L)
 	// player:getParty()
 	const auto& player = tfs::lua::getSharedPtr<const Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10221,7 +10184,7 @@ int LuaScriptInterface::luaPlayerGetParty(lua_State* L)
 		tfs::lua::pushUserdata(L, party);
 		tfs::lua::setMetatable(L, -1, "Party");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10233,7 +10196,7 @@ int LuaScriptInterface::luaPlayerAddOutfit(lua_State* L)
 		player->addOutfit(tfs::lua::getNumber<uint16_t>(L, 2), 0);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10247,7 +10210,7 @@ int LuaScriptInterface::luaPlayerAddOutfitAddon(lua_State* L)
 		player->addOutfit(lookType, addon);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10259,7 +10222,7 @@ int LuaScriptInterface::luaPlayerRemoveOutfit(lua_State* L)
 		uint16_t lookType = tfs::lua::getNumber<uint16_t>(L, 2);
 		tfs::lua::pushBoolean(L, player->removeOutfit(lookType));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10272,7 +10235,7 @@ int LuaScriptInterface::luaPlayerRemoveOutfitAddon(lua_State* L)
 		uint8_t addon = tfs::lua::getNumber<uint8_t>(L, 3);
 		tfs::lua::pushBoolean(L, player->removeOutfitAddon(lookType, addon));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10285,7 +10248,7 @@ int LuaScriptInterface::luaPlayerHasOutfit(lua_State* L)
 		uint8_t addon = tfs::lua::getNumber<uint8_t>(L, 3, 0);
 		tfs::lua::pushBoolean(L, player->hasOutfit(lookType, addon));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10298,7 +10261,7 @@ int LuaScriptInterface::luaPlayerCanWearOutfit(lua_State* L)
 		uint8_t addon = tfs::lua::getNumber<uint8_t>(L, 3, 0);
 		tfs::lua::pushBoolean(L, player->canWear(lookType, addon));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10310,7 +10273,7 @@ int LuaScriptInterface::luaPlayerSendOutfitWindow(lua_State* L)
 		player->sendOutfitWindow();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10324,7 +10287,7 @@ int LuaScriptInterface::luaPlayerSendEditPodium(lua_State* L)
 		player->sendPodiumWindow(item);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10334,7 +10297,7 @@ int LuaScriptInterface::luaPlayerAddMount(lua_State* L)
 	// player:addMount(mountId or mountName)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10344,7 +10307,7 @@ int LuaScriptInterface::luaPlayerAddMount(lua_State* L)
 	} else {
 		Mount* mount = g_game.mounts.getMountByName(tfs::lua::getString(L, 2));
 		if (!mount) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 		mountId = mount->id;
@@ -10358,7 +10321,7 @@ int LuaScriptInterface::luaPlayerRemoveMount(lua_State* L)
 	// player:removeMount(mountId or mountName)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10368,7 +10331,7 @@ int LuaScriptInterface::luaPlayerRemoveMount(lua_State* L)
 	} else {
 		Mount* mount = g_game.mounts.getMountByName(tfs::lua::getString(L, 2));
 		if (!mount) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 		mountId = mount->id;
@@ -10382,7 +10345,7 @@ int LuaScriptInterface::luaPlayerHasMount(lua_State* L)
 	// player:hasMount(mountId or mountName)
 	const auto& player = tfs::lua::getSharedPtr<const Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10396,7 +10359,7 @@ int LuaScriptInterface::luaPlayerHasMount(lua_State* L)
 	if (mount) {
 		tfs::lua::pushBoolean(L, player->hasMount(mount));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10406,7 +10369,7 @@ int LuaScriptInterface::luaPlayerToggleMount(lua_State* L)
 	// player:toggleMount(mount)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10421,7 +10384,7 @@ int LuaScriptInterface::luaPlayerGetPremiumEndsAt(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getPremiumEndsAt());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10431,7 +10394,7 @@ int LuaScriptInterface::luaPlayerSetPremiumEndsAt(lua_State* L)
 	// player:setPremiumEndsAt(timestamp)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10450,7 +10413,7 @@ int LuaScriptInterface::luaPlayerHasBlessing(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushBoolean(L, player->hasBlessing(blessing));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10460,7 +10423,7 @@ int LuaScriptInterface::luaPlayerAddBlessing(lua_State* L)
 	// player:addBlessing(blessing)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10480,7 +10443,7 @@ int LuaScriptInterface::luaPlayerRemoveBlessing(lua_State* L)
 	// player:removeBlessing(blessing)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10500,7 +10463,7 @@ int LuaScriptInterface::luaPlayerCanLearnSpell(lua_State* L)
 	// player:canLearnSpell(spellName)
 	const auto& player = tfs::lua::getSharedPtr<const Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10537,7 +10500,7 @@ int LuaScriptInterface::luaPlayerLearnSpell(lua_State* L)
 		player->learnInstantSpell(spellName);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10550,7 +10513,7 @@ int LuaScriptInterface::luaPlayerForgetSpell(lua_State* L)
 		player->forgetInstantSpell(spellName);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10562,7 +10525,7 @@ int LuaScriptInterface::luaPlayerHasLearnedSpell(lua_State* L)
 		const std::string& spellName = tfs::lua::getString(L, 2);
 		tfs::lua::pushBoolean(L, player->hasLearnedInstantSpell(spellName));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10575,7 +10538,7 @@ int LuaScriptInterface::luaPlayerSendTutorial(lua_State* L)
 		player->sendTutorial(tutorialId);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10590,7 +10553,7 @@ int LuaScriptInterface::luaPlayerAddMapMark(lua_State* L)
 		player->sendAddMarker(position, type, description);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10602,7 +10565,7 @@ int LuaScriptInterface::luaPlayerSave(lua_State* L)
 		player->setLoginPosition(player->getPosition());
 		tfs::lua::pushBoolean(L, IOLoginData::savePlayer(player));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10615,7 +10578,7 @@ int LuaScriptInterface::luaPlayerPopupFYI(lua_State* L)
 		player->sendFYIBox(message);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10626,7 +10589,7 @@ int LuaScriptInterface::luaPlayerIsPzLocked(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushBoolean(L, player->isPzLocked());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10639,7 +10602,7 @@ int LuaScriptInterface::luaPlayerGetClient(lua_State* L)
 		setField(L, "version", player->getProtocolVersion());
 		setField(L, "os", player->getOperatingSystem());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10649,7 +10612,7 @@ int LuaScriptInterface::luaPlayerGetHouse(lua_State* L)
 	// player:getHouse()
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10658,7 +10621,7 @@ int LuaScriptInterface::luaPlayerGetHouse(lua_State* L)
 		tfs::lua::pushUserdata(L, house);
 		tfs::lua::setMetatable(L, -1, "House");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10668,13 +10631,13 @@ int LuaScriptInterface::luaPlayerSendHouseWindow(lua_State* L)
 	// player:sendHouseWindow(house, listId)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	House* house = tfs::lua::getUserdata<House>(L, 2);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10689,13 +10652,13 @@ int LuaScriptInterface::luaPlayerSetEditHouse(lua_State* L)
 	// player:setEditHouse(house, listId)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	House* house = tfs::lua::getUserdata<House>(L, 2);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10710,7 +10673,7 @@ int LuaScriptInterface::luaPlayerSetGhostMode(lua_State* L)
 	// player:setGhostMode(enabled[, magicEffect = CONST_ME_TELEPORT])
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10774,14 +10737,14 @@ int LuaScriptInterface::luaPlayerGetContainerId(lua_State* L)
 	// player:getContainerId(container)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	if (const auto& container = tfs::lua::getSharedPtr<Container>(L, 2)) {
 		tfs::lua::pushNumber(L, player->getContainerID(container));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10791,7 +10754,7 @@ int LuaScriptInterface::luaPlayerGetContainerById(lua_State* L)
 	// player:getContainerById(id)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10799,7 +10762,7 @@ int LuaScriptInterface::luaPlayerGetContainerById(lua_State* L)
 		tfs::lua::pushSharedPtr(L, container);
 		tfs::lua::setMetatable(L, -1, "Container");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10810,7 +10773,7 @@ int LuaScriptInterface::luaPlayerGetContainerIndex(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getContainerIndex(tfs::lua::getNumber<uint8_t>(L, 2)));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10820,7 +10783,7 @@ int LuaScriptInterface::luaPlayerGetRuneSpells(lua_State* L)
 	// player:getRuneSpells()
 	Player* player = tfs::lua::getUserdata<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10850,7 +10813,7 @@ int LuaScriptInterface::luaPlayerGetInstantSpells(lua_State* L)
 	// player:getInstantSpells()
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10889,7 +10852,7 @@ int LuaScriptInterface::luaPlayerCanCast(lua_State* L)
 	if (player && spell) {
 		tfs::lua::pushBoolean(L, spell->canCast(player));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10900,7 +10863,7 @@ int LuaScriptInterface::luaPlayerHasChaseMode(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushBoolean(L, player->getChaseMode());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10911,7 +10874,7 @@ int LuaScriptInterface::luaPlayerHasSecureMode(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushBoolean(L, player->getSecureMode());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10922,7 +10885,7 @@ int LuaScriptInterface::luaPlayerGetFightMode(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getFightMode());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -10932,13 +10895,13 @@ int LuaScriptInterface::luaPlayerGetStoreInbox(lua_State* L)
 	// player:getStoreInbox()
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const auto& storeInbox = player->getStoreInbox();
 	if (!storeInbox) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10952,7 +10915,7 @@ int LuaScriptInterface::luaPlayerIsNearDepotBox(lua_State* L)
 	// player:isNearDepotBox()
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10965,7 +10928,7 @@ int LuaScriptInterface::luaPlayerGetIdleTime(lua_State* L)
 	// player:getIdleTime()
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10978,7 +10941,7 @@ int LuaScriptInterface::luaPlayerResetIdleTime(lua_State* L)
 	// player:resetIdleTime()
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -10992,7 +10955,7 @@ int LuaScriptInterface::luaPlayerSendCreatureSquare(lua_State* L)
 	// player:sendCreatureSquare(creature, color)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 1);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11014,7 +10977,7 @@ int LuaScriptInterface::luaPlayerGetClientExpDisplay(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getClientExpDisplay());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11027,7 +10990,7 @@ int LuaScriptInterface::luaPlayerSetClientExpDisplay(lua_State* L)
 		player->sendStats();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11038,7 +11001,7 @@ int LuaScriptInterface::luaPlayerGetClientStaminaBonusDisplay(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getClientStaminaBonusDisplay());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11051,7 +11014,7 @@ int LuaScriptInterface::luaPlayerSetClientStaminaBonusDisplay(lua_State* L)
 		player->sendStats();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11062,7 +11025,7 @@ int LuaScriptInterface::luaPlayerGetClientLowLevelBonusDisplay(lua_State* L)
 	if (const auto& player = tfs::lua::getSharedPtr<Player>(L, 1)) {
 		tfs::lua::pushNumber(L, player->getClientLowLevelBonusDisplay());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11075,7 +11038,7 @@ int LuaScriptInterface::luaPlayerSetClientLowLevelBonusDisplay(lua_State* L)
 		player->sendStats();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11089,7 +11052,7 @@ int LuaScriptInterface::luaPlayerSendResourceBalance(lua_State* L)
 		player->sendResourceBalance(resourceType, amount);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11101,7 +11064,7 @@ int LuaScriptInterface::luaPlayerSendEnterMarket(lua_State* L)
 		player->sendMarketEnter();
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11115,18 +11078,13 @@ int LuaScriptInterface::luaMonsterCreate(lua_State* L)
 		monster = g_game.getMonsterByID(tfs::lua::getNumber<uint32_t>(L, 2));
 	} else if (lua_isuserdata(L, 2)) {
 		if (getUserdataType(L, 2) != LuaData_Monster) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 		monster = tfs::lua::getSharedPtr<Monster>(L, 2);
 	}
 
-	if (monster) {
-		tfs::lua::pushSharedPtr(L, monster);
-		tfs::lua::setMetatable(L, -1, "Monster");
-	} else {
-		lua_pushnil(L);
-	}
+	tfs::lua::pushMonster(L, monster);
 	return 1;
 }
 
@@ -11136,7 +11094,7 @@ int LuaScriptInterface::luaMonsterIsMonster(lua_State* L)
 	if (const auto& creature = tfs::lua::getCreature(L, 1)) {
 		tfs::lua::pushBoolean(L, creature->getMonster() != nullptr);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11152,7 +11110,7 @@ int LuaScriptInterface::luaMonsterGetId(lua_State* L)
 
 		tfs::lua::pushNumber(L, monster->getID());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11164,7 +11122,7 @@ int LuaScriptInterface::luaMonsterGetType(lua_State* L)
 		tfs::lua::pushUserdata(L, monster->mType);
 		tfs::lua::setMetatable(L, -1, "MonsterType");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11174,7 +11132,7 @@ int LuaScriptInterface::luaMonsterRename(lua_State* L)
 	// monster:rename(name[, nameDescription])
 	const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1);
 	if (!monster) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11193,7 +11151,7 @@ int LuaScriptInterface::luaMonsterGetSpawnPosition(lua_State* L)
 	if (const auto& monster = tfs::lua::getSharedPtr<const Monster>(L, 1)) {
 		tfs::lua::pushPosition(L, monster->getMasterPos());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11205,7 +11163,7 @@ int LuaScriptInterface::luaMonsterIsInSpawnRange(lua_State* L)
 		tfs::lua::pushBoolean(
 		    L, monster->isInSpawnRange(lua_gettop(L) >= 2 ? tfs::lua::getPosition(L, 2) : monster->getPosition()));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11216,7 +11174,7 @@ int LuaScriptInterface::luaMonsterIsIdle(lua_State* L)
 	if (const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1)) {
 		tfs::lua::pushBoolean(L, monster->getIdleStatus());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11226,7 +11184,7 @@ int LuaScriptInterface::luaMonsterSetIdle(lua_State* L)
 	// monster:setIdle(idle)
 	const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1);
 	if (!monster) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11248,7 +11206,7 @@ int LuaScriptInterface::luaMonsterIsTarget(lua_State* L)
 
 		tfs::lua::pushBoolean(L, monster->isTarget(creature));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11266,7 +11224,7 @@ int LuaScriptInterface::luaMonsterIsOpponent(lua_State* L)
 
 		tfs::lua::pushBoolean(L, monster->isOpponent(creature));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11284,7 +11242,7 @@ int LuaScriptInterface::luaMonsterIsFriend(lua_State* L)
 
 		tfs::lua::pushBoolean(L, monster->isFriend(creature));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11303,7 +11261,7 @@ int LuaScriptInterface::luaMonsterAddFriend(lua_State* L)
 		monster->addFriend(creature);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11322,7 +11280,7 @@ int LuaScriptInterface::luaMonsterRemoveFriend(lua_State* L)
 		monster->removeFriend(creature);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11332,7 +11290,7 @@ int LuaScriptInterface::luaMonsterGetFriendList(lua_State* L)
 	// monster:getFriendList()
 	const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1);
 	if (!monster) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11354,7 +11312,7 @@ int LuaScriptInterface::luaMonsterGetFriendCount(lua_State* L)
 	if (const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1)) {
 		tfs::lua::pushNumber(L, monster->getFriendList().size());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11364,7 +11322,7 @@ int LuaScriptInterface::luaMonsterAddTarget(lua_State* L)
 	// monster:addTarget(creature[, pushFront = false])
 	const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1);
 	if (!monster) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11386,7 +11344,7 @@ int LuaScriptInterface::luaMonsterRemoveTarget(lua_State* L)
 	// monster:removeTarget(creature)
 	const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1);
 	if (!monster) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11407,7 +11365,7 @@ int LuaScriptInterface::luaMonsterGetTargetList(lua_State* L)
 	// monster:getTargetList()
 	const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1);
 	if (!monster) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11428,7 +11386,7 @@ int LuaScriptInterface::luaMonsterGetTargetCount(lua_State* L)
 	if (const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1)) {
 		tfs::lua::pushNumber(L, monster->getTargetList().size());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11446,7 +11404,7 @@ int LuaScriptInterface::luaMonsterSelectTarget(lua_State* L)
 
 		tfs::lua::pushBoolean(L, monster->selectTarget(creature));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11458,7 +11416,7 @@ int LuaScriptInterface::luaMonsterSearchTarget(lua_State* L)
 		TargetSearchType_t searchType = tfs::lua::getNumber<TargetSearchType_t>(L, 2, TARGETSEARCH_DEFAULT);
 		tfs::lua::pushBoolean(L, monster->searchTarget(searchType));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11469,7 +11427,7 @@ int LuaScriptInterface::luaMonsterIsWalkingToSpawn(lua_State* L)
 	if (const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1)) {
 		tfs::lua::pushBoolean(L, monster->isWalkingToSpawn());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11480,7 +11438,7 @@ int LuaScriptInterface::luaMonsterWalkToSpawn(lua_State* L)
 	if (const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1)) {
 		tfs::lua::pushBoolean(L, monster->walkToSpawn());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11492,7 +11450,7 @@ int LuaScriptInterface::luaMonsterHasIcon(lua_State* L)
 		auto iconId = tfs::lua::getNumber<MonsterIcon_t>(L, 2);
 		tfs::lua::pushBoolean(L, monster->getSpecialIcons().contains(iconId));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11502,7 +11460,7 @@ int LuaScriptInterface::luaMonsterSetIcon(lua_State* L)
 	// monster:setSpecialIcon(iconId, value)
 	const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1);
 	if (!monster) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11524,7 +11482,7 @@ int LuaScriptInterface::luaMonsterGetIcon(lua_State* L)
 	// monster:getSpecialIcon(iconId)
 	const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1);
 	if (!monster) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11544,7 +11502,7 @@ int LuaScriptInterface::luaMonsterRemoveIcon(lua_State* L)
 	// monster:removeSpecialIcon(iconId)
 	const auto& monster = tfs::lua::getSharedPtr<Monster>(L, 1);
 	if (!monster) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11573,7 +11531,7 @@ int LuaScriptInterface::luaNpcCreate(lua_State* L)
 			npc = g_game.getNpcByName(tfs::lua::getString(L, 2));
 		} else if (lua_isuserdata(L, 2)) {
 			if (getUserdataType(L, 2) != LuaData_Npc) {
-				lua_pushnil(L);
+				tfs::lua::pushNil(L);
 				return 1;
 			}
 			npc = tfs::lua::getSharedPtr<Npc>(L, 2);
@@ -11582,12 +11540,7 @@ int LuaScriptInterface::luaNpcCreate(lua_State* L)
 		npc = tfs::lua::getScriptEnv()->getNpc();
 	}
 
-	if (npc) {
-		tfs::lua::pushSharedPtr(L, npc);
-		tfs::lua::setMetatable(L, -1, "Npc");
-	} else {
-		lua_pushnil(L);
-	}
+	tfs::lua::pushNpc(L, npc);
 	return 1;
 }
 
@@ -11597,7 +11550,7 @@ int LuaScriptInterface::luaNpcIsNpc(lua_State* L)
 	if (const auto& creature = tfs::lua::getCreature(L, 1)) {
 		tfs::lua::pushBoolean(L, creature->getNpc() != nullptr);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11607,7 +11560,7 @@ int LuaScriptInterface::luaNpcSetMasterPos(lua_State* L)
 	// npc:setMasterPos(pos[, radius])
 	const auto& npc = tfs::lua::getSharedPtr<Npc>(L, 1);
 	if (!npc) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11624,7 +11577,7 @@ int LuaScriptInterface::luaNpcGetSpeechBubble(lua_State* L)
 	if (const auto& npc = tfs::lua::getSharedPtr<Npc>(L, 1)) {
 		tfs::lua::pushNumber(L, npc->getSpeechBubble());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11634,18 +11587,18 @@ int LuaScriptInterface::luaNpcSetSpeechBubble(lua_State* L)
 	// npc:setSpeechBubble(speechBubble)
 	const auto& npc = tfs::lua::getSharedPtr<Npc>(L, 1);
 	if (!npc) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	if (!isNumber(L, 2)) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	uint8_t speechBubble = tfs::lua::getNumber<uint8_t>(L, 2);
 	if (speechBubble > SPEECHBUBBLE_LAST) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	} else {
 		npc->setSpeechBubble(speechBubble);
 
@@ -11661,7 +11614,7 @@ int LuaScriptInterface::luaNpcGetSpectators(lua_State* L)
 	// npc:getSpectators()
 	const auto& npc = tfs::lua::getSharedPtr<Npc>(L, 1);
 	if (!npc) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11670,8 +11623,7 @@ int LuaScriptInterface::luaNpcGetSpectators(lua_State* L)
 
 	int index = 0;
 	for (const auto& spectatorPlayer : npc->getSpectators()) {
-		tfs::lua::pushSharedPtr(L, spectatorPlayer);
-		tfs::lua::setMetatable(L, -1, "Player");
+		tfs::lua::pushPlayer(L, spectatorPlayer);
 		lua_rawseti(L, -2, ++index);
 	}
 	return 1;
@@ -11687,7 +11639,7 @@ int LuaScriptInterface::luaGuildCreate(lua_State* L)
 		tfs::lua::pushSharedPtr(L, guild);
 		tfs::lua::setMetatable(L, -1, "Guild");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11698,7 +11650,7 @@ int LuaScriptInterface::luaGuildGetId(lua_State* L)
 	if (const auto& guild = tfs::lua::getSharedPtr<Guild>(L, 1)) {
 		tfs::lua::pushNumber(L, guild->getId());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11709,7 +11661,7 @@ int LuaScriptInterface::luaGuildGetName(lua_State* L)
 	if (const auto& guild = tfs::lua::getSharedPtr<Guild>(L, 1)) {
 		tfs::lua::pushString(L, guild->getName());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11719,7 +11671,7 @@ int LuaScriptInterface::luaGuildGetMembersOnline(lua_State* L)
 	// guild:getMembersOnline()
 	const auto& guild = tfs::lua::getSharedPtr<const Guild>(L, 1);
 	if (!guild) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11728,8 +11680,7 @@ int LuaScriptInterface::luaGuildGetMembersOnline(lua_State* L)
 
 	int index = 0;
 	for (const auto& player : members) {
-		tfs::lua::pushSharedPtr(L, player);
-		tfs::lua::setMetatable(L, -1, "Player");
+		tfs::lua::pushPlayer(L, player);
 		lua_rawseti(L, -2, ++index);
 	}
 	return 1;
@@ -11745,7 +11696,7 @@ int LuaScriptInterface::luaGuildAddRank(lua_State* L)
 		guild->addRank(id, name, level);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11755,7 +11706,7 @@ int LuaScriptInterface::luaGuildGetRankById(lua_State* L)
 	// guild:getRankById(id)
 	const auto& guild = tfs::lua::getSharedPtr<Guild>(L, 1);
 	if (!guild) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11766,7 +11717,7 @@ int LuaScriptInterface::luaGuildGetRankById(lua_State* L)
 		setField(L, "name", rank->name);
 		setField(L, "level", rank->level);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11776,7 +11727,7 @@ int LuaScriptInterface::luaGuildGetRankByLevel(lua_State* L)
 	// guild:getRankByLevel(level)
 	const auto& guild = tfs::lua::getSharedPtr<const Guild>(L, 1);
 	if (!guild) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -11787,7 +11738,7 @@ int LuaScriptInterface::luaGuildGetRankByLevel(lua_State* L)
 		setField(L, "name", rank->name);
 		setField(L, "level", rank->level);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11798,7 +11749,7 @@ int LuaScriptInterface::luaGuildGetMotd(lua_State* L)
 	if (const auto& guild = tfs::lua::getSharedPtr<Guild>(L, 1)) {
 		tfs::lua::pushString(L, guild->getMotd());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11811,7 +11762,7 @@ int LuaScriptInterface::luaGuildSetMotd(lua_State* L)
 		guild->setMotd(motd);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11827,7 +11778,7 @@ int LuaScriptInterface::luaGroupCreate(lua_State* L)
 		tfs::lua::pushUserdata(L, group);
 		tfs::lua::setMetatable(L, -1, "Group");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11839,7 +11790,7 @@ int LuaScriptInterface::luaGroupGetId(lua_State* L)
 	if (group) {
 		tfs::lua::pushNumber(L, group->id);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11851,7 +11802,7 @@ int LuaScriptInterface::luaGroupGetName(lua_State* L)
 	if (group) {
 		tfs::lua::pushString(L, group->name);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11863,7 +11814,7 @@ int LuaScriptInterface::luaGroupGetFlags(lua_State* L)
 	if (group) {
 		tfs::lua::pushNumber(L, group->flags);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11875,7 +11826,7 @@ int LuaScriptInterface::luaGroupGetAccess(lua_State* L)
 	if (group) {
 		tfs::lua::pushBoolean(L, group->access);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11887,7 +11838,7 @@ int LuaScriptInterface::luaGroupGetMaxDepotItems(lua_State* L)
 	if (group) {
 		tfs::lua::pushNumber(L, group->maxDepotItems);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11899,7 +11850,7 @@ int LuaScriptInterface::luaGroupGetMaxVipEntries(lua_State* L)
 	if (group) {
 		tfs::lua::pushNumber(L, group->maxVipEntries);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11912,7 +11863,7 @@ int LuaScriptInterface::luaGroupHasFlag(lua_State* L)
 		PlayerFlags flag = tfs::lua::getNumber<PlayerFlags>(L, 2);
 		tfs::lua::pushBoolean(L, (group->flags & flag) != 0);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11933,7 +11884,7 @@ int LuaScriptInterface::luaVocationCreate(lua_State* L)
 		tfs::lua::pushUserdata(L, vocation);
 		tfs::lua::setMetatable(L, -1, "Vocation");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11945,7 +11896,7 @@ int LuaScriptInterface::luaVocationGetId(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getId());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11957,7 +11908,7 @@ int LuaScriptInterface::luaVocationGetClientId(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getClientId());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11969,7 +11920,7 @@ int LuaScriptInterface::luaVocationGetName(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushString(L, vocation->getVocName());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11981,7 +11932,7 @@ int LuaScriptInterface::luaVocationGetDescription(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushString(L, vocation->getVocDescription());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -11995,7 +11946,7 @@ int LuaScriptInterface::luaVocationGetRequiredSkillTries(lua_State* L)
 		uint16_t skillLevel = tfs::lua::getNumber<uint16_t>(L, 3);
 		tfs::lua::pushNumber(L, vocation->getReqSkillTries(skillType, skillLevel));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12008,7 +11959,7 @@ int LuaScriptInterface::luaVocationGetRequiredManaSpent(lua_State* L)
 		uint32_t magicLevel = tfs::lua::getNumber<uint32_t>(L, 2);
 		tfs::lua::pushNumber(L, vocation->getReqMana(magicLevel));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12020,7 +11971,7 @@ int LuaScriptInterface::luaVocationGetCapacityGain(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getCapGain());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12032,7 +11983,7 @@ int LuaScriptInterface::luaVocationGetHealthGain(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getHPGain());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12044,7 +11995,7 @@ int LuaScriptInterface::luaVocationGetHealthGainTicks(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getHealthGainTicks());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12056,7 +12007,7 @@ int LuaScriptInterface::luaVocationGetHealthGainAmount(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getHealthGainAmount());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12068,7 +12019,7 @@ int LuaScriptInterface::luaVocationGetManaGain(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getManaGain());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12080,7 +12031,7 @@ int LuaScriptInterface::luaVocationGetManaGainTicks(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getManaGainTicks());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12092,7 +12043,7 @@ int LuaScriptInterface::luaVocationGetManaGainAmount(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getManaGainAmount());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12104,7 +12055,7 @@ int LuaScriptInterface::luaVocationGetMaxSoul(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getSoulMax());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12116,7 +12067,7 @@ int LuaScriptInterface::luaVocationGetSoulGainTicks(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getSoulGainTicks());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12128,7 +12079,7 @@ int LuaScriptInterface::luaVocationGetAttackSpeed(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getAttackSpeed());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12140,7 +12091,7 @@ int LuaScriptInterface::luaVocationGetBaseSpeed(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushNumber(L, vocation->getBaseSpeed());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12150,13 +12101,13 @@ int LuaScriptInterface::luaVocationGetDemotion(lua_State* L)
 	// vocation:getDemotion()
 	Vocation* vocation = tfs::lua::getUserdata<Vocation>(L, 1);
 	if (!vocation) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	uint16_t fromId = vocation->getFromVocation();
 	if (fromId == VOCATION_NONE) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12165,7 +12116,7 @@ int LuaScriptInterface::luaVocationGetDemotion(lua_State* L)
 		tfs::lua::pushUserdata(L, demotedVocation);
 		tfs::lua::setMetatable(L, -1, "Vocation");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12175,13 +12126,13 @@ int LuaScriptInterface::luaVocationGetPromotion(lua_State* L)
 	// vocation:getPromotion()
 	Vocation* vocation = tfs::lua::getUserdata<Vocation>(L, 1);
 	if (!vocation) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	uint16_t promotedId = g_vocations.getPromotedVocation(vocation->getId());
 	if (promotedId == VOCATION_NONE) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12190,7 +12141,7 @@ int LuaScriptInterface::luaVocationGetPromotion(lua_State* L)
 		tfs::lua::pushUserdata(L, promotedVocation);
 		tfs::lua::setMetatable(L, -1, "Vocation");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12202,7 +12153,7 @@ int LuaScriptInterface::luaVocationAllowsPvp(lua_State* L)
 	if (vocation) {
 		tfs::lua::pushBoolean(L, vocation->allowsPvp());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12216,7 +12167,7 @@ int LuaScriptInterface::luaHouseCreate(lua_State* L)
 		tfs::lua::pushUserdata(L, house);
 		tfs::lua::setMetatable(L, -1, "House");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12228,7 +12179,7 @@ int LuaScriptInterface::luaHouseGetId(lua_State* L)
 	if (house) {
 		tfs::lua::pushNumber(L, house->getId());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12240,7 +12191,7 @@ int LuaScriptInterface::luaHouseGetName(lua_State* L)
 	if (house) {
 		tfs::lua::pushString(L, house->getName());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12250,7 +12201,7 @@ int LuaScriptInterface::luaHouseGetTown(lua_State* L)
 	// house:getTown()
 	House* house = tfs::lua::getUserdata<House>(L, 1);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12258,7 +12209,7 @@ int LuaScriptInterface::luaHouseGetTown(lua_State* L)
 	if (town) {
 		pushTown(L, *town);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12270,7 +12221,7 @@ int LuaScriptInterface::luaHouseGetExitPosition(lua_State* L)
 	if (house) {
 		tfs::lua::pushPosition(L, house->getEntryPosition());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12282,7 +12233,7 @@ int LuaScriptInterface::luaHouseGetRent(lua_State* L)
 	if (house) {
 		tfs::lua::pushNumber(L, house->getRent());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12296,7 +12247,7 @@ int LuaScriptInterface::luaHouseSetRent(lua_State* L)
 		house->setRent(rent);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12308,7 +12259,7 @@ int LuaScriptInterface::luaHouseGetPaidUntil(lua_State* L)
 	if (house) {
 		tfs::lua::pushNumber(L, house->getPaidUntil());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12322,7 +12273,7 @@ int LuaScriptInterface::luaHouseSetPaidUntil(lua_State* L)
 		house->setPaidUntil(timestamp);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12334,7 +12285,7 @@ int LuaScriptInterface::luaHouseGetPayRentWarnings(lua_State* L)
 	if (house) {
 		tfs::lua::pushNumber(L, house->getPayRentWarnings());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12348,7 +12299,7 @@ int LuaScriptInterface::luaHouseSetPayRentWarnings(lua_State* L)
 		house->setPayRentWarnings(warnings);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12360,7 +12311,7 @@ int LuaScriptInterface::luaHouseGetOwnerName(lua_State* L)
 	if (house) {
 		tfs::lua::pushString(L, house->getOwnerName());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12372,7 +12323,7 @@ int LuaScriptInterface::luaHouseGetOwnerGuid(lua_State* L)
 	if (house) {
 		tfs::lua::pushNumber(L, house->getOwner());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12387,7 +12338,7 @@ int LuaScriptInterface::luaHouseSetOwnerGuid(lua_State* L)
 		house->setOwner(guid, updateDatabase);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12400,7 +12351,7 @@ int LuaScriptInterface::luaHouseStartTrade(lua_State* L)
 	const auto& tradePartner = tfs::lua::getSharedPtr<Player>(L, 3);
 
 	if (!player || !tradePartner || !house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12444,7 +12395,7 @@ int LuaScriptInterface::luaHouseGetBeds(lua_State* L)
 	// house:getBeds()
 	House* house = tfs::lua::getUserdata<House>(L, 1);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12467,7 +12418,7 @@ int LuaScriptInterface::luaHouseGetBedCount(lua_State* L)
 	if (house) {
 		tfs::lua::pushNumber(L, house->getBedCount());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12477,7 +12428,7 @@ int LuaScriptInterface::luaHouseGetDoors(lua_State* L)
 	// house:getDoors()
 	House* house = tfs::lua::getUserdata<House>(L, 1);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12500,7 +12451,7 @@ int LuaScriptInterface::luaHouseGetDoorCount(lua_State* L)
 	if (house) {
 		tfs::lua::pushNumber(L, house->getDoors().size());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12510,14 +12461,14 @@ int LuaScriptInterface::luaHouseGetDoorIdByPosition(lua_State* L)
 	// house:getDoorIdByPosition(position)
 	House* house = tfs::lua::getUserdata<House>(L, 1);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	if (const auto& door = house->getDoorByPosition(tfs::lua::getPosition(L, 2))) {
 		tfs::lua::pushNumber(L, door->getDoorId());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12527,7 +12478,7 @@ int LuaScriptInterface::luaHouseGetTiles(lua_State* L)
 	// house:getTiles()
 	House* house = tfs::lua::getUserdata<House>(L, 1);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12548,7 +12499,7 @@ int LuaScriptInterface::luaHouseGetItems(lua_State* L)
 	// house:getItems()
 	House* house = tfs::lua::getUserdata<House>(L, 1);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12575,7 +12526,7 @@ int LuaScriptInterface::luaHouseGetTileCount(lua_State* L)
 	if (house) {
 		tfs::lua::pushNumber(L, house->getTiles().size());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12585,7 +12536,7 @@ int LuaScriptInterface::luaHouseCanEditAccessList(lua_State* L)
 	// house:canEditAccessList(listId, player)
 	House* house = tfs::lua::getUserdata<House>(L, 1);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12601,7 +12552,7 @@ int LuaScriptInterface::luaHouseGetAccessList(lua_State* L)
 	// house:getAccessList(listId)
 	House* house = tfs::lua::getUserdata<House>(L, 1);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12620,7 +12571,7 @@ int LuaScriptInterface::luaHouseSetAccessList(lua_State* L)
 	// house:setAccessList(listId, list)
 	House* house = tfs::lua::getUserdata<House>(L, 1);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12636,7 +12587,7 @@ int LuaScriptInterface::luaHouseKickPlayer(lua_State* L)
 	// house:kickPlayer(player, targetPlayer)
 	House* house = tfs::lua::getUserdata<House>(L, 1);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12649,7 +12600,7 @@ int LuaScriptInterface::luaHouseSave(lua_State* L)
 	// house:save()
 	House* house = tfs::lua::getUserdata<House>(L, 1);
 	if (!house) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12667,7 +12618,7 @@ int LuaScriptInterface::luaItemTypeCreate(lua_State* L)
 	} else if (lua_isstring(L, 2)) {
 		id = Item::items.getItemIdByName(tfs::lua::getString(L, 2));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -12684,7 +12635,7 @@ int LuaScriptInterface::luaItemTypeIsCorpse(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->corpseType != RACE_NONE);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12696,7 +12647,7 @@ int LuaScriptInterface::luaItemTypeIsDoor(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->isDoor());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12708,7 +12659,7 @@ int LuaScriptInterface::luaItemTypeIsContainer(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->isContainer());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12720,7 +12671,7 @@ int LuaScriptInterface::luaItemTypeIsFluidContainer(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->isFluidContainer());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12732,7 +12683,7 @@ int LuaScriptInterface::luaItemTypeIsMovable(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->moveable);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12744,7 +12695,7 @@ int LuaScriptInterface::luaItemTypeIsRune(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->isRune());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12756,7 +12707,7 @@ int LuaScriptInterface::luaItemTypeIsStackable(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->stackable);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12768,7 +12719,7 @@ int LuaScriptInterface::luaItemTypeIsReadable(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->canReadText);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12780,7 +12731,7 @@ int LuaScriptInterface::luaItemTypeIsWritable(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->canWriteText);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12792,7 +12743,7 @@ int LuaScriptInterface::luaItemTypeIsBlocking(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->blockProjectile || itemType->blockSolid);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12804,7 +12755,7 @@ int LuaScriptInterface::luaItemTypeIsGroundTile(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->isGroundTile());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12816,7 +12767,7 @@ int LuaScriptInterface::luaItemTypeIsMagicField(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->isMagicField());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12828,7 +12779,7 @@ int LuaScriptInterface::luaItemTypeIsUseable(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->isUseable());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12840,7 +12791,7 @@ int LuaScriptInterface::luaItemTypeIsPickupable(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->isPickupable());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12852,7 +12803,7 @@ int LuaScriptInterface::luaItemTypeIsRotatable(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->rotatable);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12864,7 +12815,7 @@ int LuaScriptInterface::luaItemTypeGetType(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->type);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12876,7 +12827,7 @@ int LuaScriptInterface::luaItemTypeGetGroup(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->group);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12888,7 +12839,7 @@ int LuaScriptInterface::luaItemTypeGetId(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->id);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12900,7 +12851,7 @@ int LuaScriptInterface::luaItemTypeGetClientId(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->clientId);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12912,7 +12863,7 @@ int LuaScriptInterface::luaItemTypeGetName(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushString(L, itemType->name);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12924,7 +12875,7 @@ int LuaScriptInterface::luaItemTypeGetPluralName(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushString(L, itemType->getPluralName());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12936,7 +12887,7 @@ int LuaScriptInterface::luaItemTypeGetRotateTo(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->rotateTo);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12948,7 +12899,7 @@ int LuaScriptInterface::luaItemTypeGetArticle(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushString(L, itemType->article);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12960,7 +12911,7 @@ int LuaScriptInterface::luaItemTypeGetDescription(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushString(L, itemType->description);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12972,7 +12923,7 @@ int LuaScriptInterface::luaItemTypeGetSlotPosition(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->slotPosition);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12984,7 +12935,7 @@ int LuaScriptInterface::luaItemTypeGetCharges(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->charges);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -12996,7 +12947,7 @@ int LuaScriptInterface::luaItemTypeGetFluidSource(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->fluidSource);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13008,7 +12959,7 @@ int LuaScriptInterface::luaItemTypeGetCapacity(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->maxItems);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13020,7 +12971,7 @@ int LuaScriptInterface::luaItemTypeGetWeight(lua_State* L)
 
 	const ItemType* itemType = tfs::lua::getUserdata<const ItemType>(L, 1);
 	if (!itemType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13034,7 +12985,7 @@ int LuaScriptInterface::luaItemTypeGetWorth(lua_State* L)
 	// itemType:getWorth()
 	const ItemType* itemType = tfs::lua::getUserdata<const ItemType>(L, 1);
 	if (!itemType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13049,7 +13000,7 @@ int LuaScriptInterface::luaItemTypeGetHitChance(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->hitChance);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13061,7 +13012,7 @@ int LuaScriptInterface::luaItemTypeGetShootRange(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->shootRange);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13073,7 +13024,7 @@ int LuaScriptInterface::luaItemTypeGetAttack(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->attack);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13085,7 +13036,7 @@ int LuaScriptInterface::luaItemTypeGetAttackSpeed(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->attackSpeed);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13097,7 +13048,7 @@ int LuaScriptInterface::luaItemTypeGetDefense(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->defense);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13109,7 +13060,7 @@ int LuaScriptInterface::luaItemTypeGetExtraDefense(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->extraDefense);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13121,7 +13072,7 @@ int LuaScriptInterface::luaItemTypeGetArmor(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->armor);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13133,7 +13084,7 @@ int LuaScriptInterface::luaItemTypeGetWeaponType(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->weaponType);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13145,7 +13096,7 @@ int LuaScriptInterface::luaItemTypeGetAmmoType(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->ammoType);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13157,7 +13108,7 @@ int LuaScriptInterface::luaItemTypeGetCorpseType(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->corpseType);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13169,7 +13120,7 @@ int LuaScriptInterface::luaItemTypeGetClassification(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->classification);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13288,7 +13239,7 @@ int LuaScriptInterface::luaItemTypeHasShowAttributes(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->showAttributes);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13300,7 +13251,7 @@ int LuaScriptInterface::luaItemTypeHasShowCount(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->showCount);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13312,7 +13263,7 @@ int LuaScriptInterface::luaItemTypeHasShowCharges(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->showCharges);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13324,7 +13275,7 @@ int LuaScriptInterface::luaItemTypeHasShowDuration(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->showDuration);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13336,7 +13287,7 @@ int LuaScriptInterface::luaItemTypeHasAllowDistRead(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->allowDistRead);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13348,7 +13299,7 @@ int LuaScriptInterface::luaItemTypeGetWieldInfo(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->wieldInfo);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13360,7 +13311,7 @@ int LuaScriptInterface::luaItemTypeGetDurationMin(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->decayTimeMin);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13372,7 +13323,7 @@ int LuaScriptInterface::luaItemTypeGetDurationMax(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->decayTimeMax);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13384,7 +13335,7 @@ int LuaScriptInterface::luaItemTypeGetLevelDoor(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->levelDoor);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13396,7 +13347,7 @@ int LuaScriptInterface::luaItemTypeGetRuneSpellName(lua_State* L)
 	if (itemType && itemType->isRune()) {
 		tfs::lua::pushString(L, itemType->runeSpellName);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13408,7 +13359,7 @@ int LuaScriptInterface::luaItemTypeGetVocationString(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushString(L, itemType->vocationString);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13420,7 +13371,7 @@ int LuaScriptInterface::luaItemTypeGetMinReqLevel(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->minReqLevel);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13432,7 +13383,7 @@ int LuaScriptInterface::luaItemTypeGetMinReqMagicLevel(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->minReqMagicLevel);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13450,10 +13401,10 @@ int LuaScriptInterface::luaItemTypeGetMarketBuyStatistics(lua_State* L)
 			setField(L, "highestPrice", statistics->highestPrice);
 			setField(L, "lowestPrice", statistics->lowestPrice);
 		} else {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13471,10 +13422,10 @@ int LuaScriptInterface::luaItemTypeGetMarketSellStatistics(lua_State* L)
 			setField(L, "highestPrice", statistics->highestPrice);
 			setField(L, "lowestPrice", statistics->lowestPrice);
 		} else {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13484,7 +13435,7 @@ int LuaScriptInterface::luaItemTypeGetElementType(lua_State* L)
 	// itemType:getElementType()
 	const ItemType* itemType = tfs::lua::getUserdata<const ItemType>(L, 1);
 	if (!itemType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13492,7 +13443,7 @@ int LuaScriptInterface::luaItemTypeGetElementType(lua_State* L)
 	if (abilities) {
 		tfs::lua::pushNumber(L, abilities->elementType);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13502,7 +13453,7 @@ int LuaScriptInterface::luaItemTypeGetElementDamage(lua_State* L)
 	// itemType:getElementDamage()
 	const ItemType* itemType = tfs::lua::getUserdata<const ItemType>(L, 1);
 	if (!itemType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13510,7 +13461,7 @@ int LuaScriptInterface::luaItemTypeGetElementDamage(lua_State* L)
 	if (abilities) {
 		tfs::lua::pushNumber(L, abilities->elementDamage);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13522,7 +13473,7 @@ int LuaScriptInterface::luaItemTypeGetTransformEquipId(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->transformEquipTo);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13534,7 +13485,7 @@ int LuaScriptInterface::luaItemTypeGetTransformDeEquipId(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->transformDeEquipTo);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13546,7 +13497,7 @@ int LuaScriptInterface::luaItemTypeGetDestroyId(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->destroyTo);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13558,7 +13509,7 @@ int LuaScriptInterface::luaItemTypeGetDecayId(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->decayTo);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13570,7 +13521,7 @@ int LuaScriptInterface::luaItemTypeGetRequiredLevel(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushNumber(L, itemType->minReqLevel);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13582,7 +13533,7 @@ int LuaScriptInterface::luaItemTypeHasSubType(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->hasSubType());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13594,7 +13545,7 @@ int LuaScriptInterface::luaItemTypeIsStoreItem(lua_State* L)
 	if (itemType) {
 		tfs::lua::pushBoolean(L, itemType->storeItem);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13624,7 +13575,7 @@ int LuaScriptInterface::luaCombatSetParameter(lua_State* L)
 	const Combat_ptr& combat = tfs::lua::getSharedPtr<Combat>(L, 1);
 	if (!combat) {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_COMBAT_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13646,13 +13597,13 @@ int LuaScriptInterface::luaCombatGetParameter(lua_State* L)
 	const Combat_ptr& combat = tfs::lua::getSharedPtr<Combat>(L, 1);
 	if (!combat) {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_COMBAT_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	int32_t value = combat->getParam(tfs::lua::getNumber<CombatParam_t>(L, 2));
 	if (value == std::numeric_limits<int32_t>().max()) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13666,7 +13617,7 @@ int LuaScriptInterface::luaCombatSetFormula(lua_State* L)
 	const Combat_ptr& combat = tfs::lua::getSharedPtr<Combat>(L, 1);
 	if (!combat) {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_COMBAT_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13685,21 +13636,21 @@ int LuaScriptInterface::luaCombatSetArea(lua_State* L)
 	// combat:setArea(area)
 	if (tfs::lua::getScriptEnv()->getScriptId() != EVENT_ID_LOADING) {
 		reportErrorFunc(L, "This function can only be used while loading the script.");
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const AreaCombat* area = g_luaEnvironment.getAreaObject(tfs::lua::getNumber<uint32_t>(L, 2));
 	if (!area) {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_AREA_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	const Combat_ptr& combat = tfs::lua::getSharedPtr<Combat>(L, 1);
 	if (!combat) {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_COMBAT_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13714,7 +13665,7 @@ int LuaScriptInterface::luaCombatAddCondition(lua_State* L)
 	const Combat_ptr& combat = tfs::lua::getSharedPtr<Combat>(L, 1);
 	if (!combat) {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_COMBAT_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13723,7 +13674,7 @@ int LuaScriptInterface::luaCombatAddCondition(lua_State* L)
 		combat->addCondition(condition->clone());
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13734,7 +13685,7 @@ int LuaScriptInterface::luaCombatClearConditions(lua_State* L)
 	const Combat_ptr& combat = tfs::lua::getSharedPtr<Combat>(L, 1);
 	if (!combat) {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_COMBAT_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13749,19 +13700,19 @@ int LuaScriptInterface::luaCombatSetCallback(lua_State* L)
 	const Combat_ptr& combat = tfs::lua::getSharedPtr<Combat>(L, 1);
 	if (!combat) {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_COMBAT_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	CallBackParam_t key = tfs::lua::getNumber<CallBackParam_t>(L, 2);
 	if (!combat->setCallback(key)) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	CallBack* callback = combat->getCallback(key);
 	if (!callback) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13776,7 +13727,7 @@ int LuaScriptInterface::luaCombatSetOrigin(lua_State* L)
 	const Combat_ptr& combat = tfs::lua::getSharedPtr<Combat>(L, 1);
 	if (!combat) {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_COMBAT_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13791,7 +13742,7 @@ int LuaScriptInterface::luaCombatExecute(lua_State* L)
 	const Combat_ptr& combat = tfs::lua::getSharedPtr<Combat>(L, 1);
 	if (!combat) {
 		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_COMBAT_NOT_FOUND));
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -13875,7 +13826,7 @@ int LuaScriptInterface::luaConditionCreate(lua_State* L)
 		tfs::lua::pushUserdata(L, condition);
 		tfs::lua::setMetatable(L, -1, "Condition");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13898,7 +13849,7 @@ int LuaScriptInterface::luaConditionGetId(lua_State* L)
 	if (condition) {
 		tfs::lua::pushNumber(L, condition->getId());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13910,7 +13861,7 @@ int LuaScriptInterface::luaConditionGetSubId(lua_State* L)
 	if (condition) {
 		tfs::lua::pushNumber(L, condition->getSubId());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13922,7 +13873,7 @@ int LuaScriptInterface::luaConditionGetType(lua_State* L)
 	if (condition) {
 		tfs::lua::pushNumber(L, condition->getType());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13934,7 +13885,7 @@ int LuaScriptInterface::luaConditionGetIcons(lua_State* L)
 	if (condition) {
 		tfs::lua::pushNumber(L, condition->getIcons());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13946,7 +13897,7 @@ int LuaScriptInterface::luaConditionGetEndTime(lua_State* L)
 	if (condition) {
 		tfs::lua::pushNumber(L, condition->getEndTime());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13959,7 +13910,7 @@ int LuaScriptInterface::luaConditionClone(lua_State* L)
 		tfs::lua::pushUserdata(L, condition->clone());
 		tfs::lua::setMetatable(L, -1, "Condition");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13971,7 +13922,7 @@ int LuaScriptInterface::luaConditionGetTicks(lua_State* L)
 	if (condition) {
 		tfs::lua::pushNumber(L, condition->getTicks());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13985,7 +13936,7 @@ int LuaScriptInterface::luaConditionSetTicks(lua_State* L)
 		condition->setTicks(ticks);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -13995,7 +13946,7 @@ int LuaScriptInterface::luaConditionSetParameter(lua_State* L)
 	// condition:setParameter(key, value)
 	Condition* condition = tfs::lua::getUserdata<Condition>(L, 1);
 	if (!condition) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -14016,13 +13967,13 @@ int LuaScriptInterface::luaConditionGetParameter(lua_State* L)
 	// condition:getParameter(key)
 	Condition* condition = tfs::lua::getUserdata<Condition>(L, 1);
 	if (!condition) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	int32_t value = condition->getParam(tfs::lua::getNumber<ConditionParam_t>(L, 2));
 	if (value == std::numeric_limits<int32_t>().max()) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -14042,7 +13993,7 @@ int LuaScriptInterface::luaConditionSetFormula(lua_State* L)
 		condition->setFormulaVars(mina, minb, maxa, maxb);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14070,7 +14021,7 @@ int LuaScriptInterface::luaConditionSetOutfit(lua_State* L)
 		condition->setOutfit(outfit);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14085,7 +14036,7 @@ int LuaScriptInterface::luaConditionAddDamage(lua_State* L)
 	if (condition) {
 		tfs::lua::pushBoolean(L, condition->addDamage(rounds, time, value));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14098,7 +14049,7 @@ int LuaScriptInterface::luaOutfitCreate(lua_State* L)
 	if (outfit) {
 		tfs::lua::pushOutfit(L, outfit);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14127,7 +14078,7 @@ int LuaScriptInterface::luaMonsterTypeCreate(lua_State* L)
 		tfs::lua::pushUserdata(L, monsterType);
 		tfs::lua::setMetatable(L, -1, "MonsterType");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14144,7 +14095,7 @@ int LuaScriptInterface::luaMonsterTypeIsAttackable(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14161,7 +14112,7 @@ int LuaScriptInterface::luaMonsterTypeIsChallengeable(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14178,7 +14129,7 @@ int LuaScriptInterface::luaMonsterTypeIsConvinceable(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14195,7 +14146,7 @@ int LuaScriptInterface::luaMonsterTypeIsSummonable(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14212,7 +14163,7 @@ int LuaScriptInterface::luaMonsterTypeIsIgnoringSpawnBlock(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14229,7 +14180,7 @@ int LuaScriptInterface::luaMonsterTypeIsIllusionable(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14246,7 +14197,7 @@ int LuaScriptInterface::luaMonsterTypeIsHostile(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14263,7 +14214,7 @@ int LuaScriptInterface::luaMonsterTypeIsPushable(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14280,7 +14231,7 @@ int LuaScriptInterface::luaMonsterTypeIsHealthHidden(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14297,7 +14248,7 @@ int LuaScriptInterface::luaMonsterTypeIsBoss(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14314,7 +14265,7 @@ int LuaScriptInterface::luaMonsterTypeCanPushItems(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14331,7 +14282,7 @@ int LuaScriptInterface::luaMonsterTypeCanPushCreatures(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14348,7 +14299,7 @@ int LuaScriptInterface::luaMonsterTypeCanWalkOnEnergy(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14365,7 +14316,7 @@ int LuaScriptInterface::luaMonsterTypeCanWalkOnFire(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14382,7 +14333,7 @@ int LuaScriptInterface::luaMonsterTypeCanWalkOnPoison(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14399,7 +14350,7 @@ int32_t LuaScriptInterface::luaMonsterTypeName(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14416,7 +14367,7 @@ int LuaScriptInterface::luaMonsterTypeNameDescription(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14433,7 +14384,7 @@ int LuaScriptInterface::luaMonsterTypeHealth(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14450,7 +14401,7 @@ int LuaScriptInterface::luaMonsterTypeMaxHealth(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14467,7 +14418,7 @@ int LuaScriptInterface::luaMonsterTypeRunHealth(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14484,7 +14435,7 @@ int LuaScriptInterface::luaMonsterTypeExperience(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14505,7 +14456,7 @@ int LuaScriptInterface::luaMonsterTypeSkull(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14552,11 +14503,11 @@ int LuaScriptInterface::luaMonsterTypeCombatImmunities(lua_State* L)
 			} else {
 				std::cout << "[Warning - Monsters::loadMonster] Unknown immunity name " << immunity
 				          << " for monster: " << monsterType->name << '\n';
-				lua_pushnil(L);
+				tfs::lua::pushNil(L);
 			}
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14612,11 +14563,11 @@ int LuaScriptInterface::luaMonsterTypeConditionImmunities(lua_State* L)
 			} else {
 				std::cout << "[Warning - Monsters::loadMonster] Unknown immunity name " << immunity
 				          << " for monster: " << monsterType->name << '\n';
-				lua_pushnil(L);
+				tfs::lua::pushNil(L);
 			}
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14626,7 +14577,7 @@ int LuaScriptInterface::luaMonsterTypeGetAttackList(lua_State* L)
 	// monsterType:getAttackList()
 	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
 	if (!monsterType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -14666,10 +14617,10 @@ int LuaScriptInterface::luaMonsterTypeAddAttack(lua_State* L)
 				std::cout << "[Warning - Monsters::loadMonster] Cant load spell. " << spell->name << '\n';
 			}
 		} else {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14679,7 +14630,7 @@ int LuaScriptInterface::luaMonsterTypeGetDefenseList(lua_State* L)
 	// monsterType:getDefenseList()
 	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
 	if (!monsterType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -14719,10 +14670,10 @@ int LuaScriptInterface::luaMonsterTypeAddDefense(lua_State* L)
 				std::cout << "[Warning - Monsters::loadMonster] Cant load spell. " << spell->name << '\n';
 			}
 		} else {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14732,7 +14683,7 @@ int LuaScriptInterface::luaMonsterTypeGetElementList(lua_State* L)
 	// monsterType:getElementList()
 	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
 	if (!monsterType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -14753,7 +14704,7 @@ int LuaScriptInterface::luaMonsterTypeAddElement(lua_State* L)
 		monsterType->info.elementMap[element] = tfs::lua::getNumber<int32_t>(L, 3);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14763,7 +14714,7 @@ int LuaScriptInterface::luaMonsterTypeGetVoices(lua_State* L)
 	// monsterType:getVoices()
 	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
 	if (!monsterType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -14791,7 +14742,7 @@ int LuaScriptInterface::luaMonsterTypeAddVoice(lua_State* L)
 		monsterType->info.voiceVector.push_back(voice);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14801,7 +14752,7 @@ int LuaScriptInterface::luaMonsterTypeGetLoot(lua_State* L)
 	// monsterType:getLoot()
 	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
 	if (!monsterType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -14819,41 +14770,10 @@ int LuaScriptInterface::luaMonsterTypeAddLoot(lua_State* L)
 			monsterType->loadLoot(monsterType, loot->lootBlock);
 			tfs::lua::pushBoolean(L, true);
 		} else {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 		}
 	} else {
-		lua_pushnil(L);
-	}
-	return 1;
-}
-
-int LuaScriptInterface::luaMonsterTypeGetCreatureEvents(lua_State* L)
-{
-	// monsterType:getCreatureEvents()
-	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
-	if (!monsterType) {
-		lua_pushnil(L);
-		return 1;
-	}
-
-	int index = 0;
-	lua_createtable(L, monsterType->info.scripts.size(), 0);
-	for (const std::string& creatureEvent : monsterType->info.scripts) {
-		tfs::lua::pushString(L, creatureEvent);
-		lua_rawseti(L, -2, ++index);
-	}
-	return 1;
-}
-
-int LuaScriptInterface::luaMonsterTypeRegisterEvent(lua_State* L)
-{
-	// monsterType:registerEvent(name)
-	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
-	if (monsterType) {
-		monsterType->info.scripts.push_back(tfs::lua::getString(L, 2));
-		tfs::lua::pushBoolean(L, true);
-	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14873,7 +14793,7 @@ int LuaScriptInterface::luaMonsterTypeEventOnCallback(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, false);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14886,7 +14806,7 @@ int LuaScriptInterface::luaMonsterTypeEventType(lua_State* L)
 		monsterType->info.eventType = tfs::lua::getNumber<MonstersEvent_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14896,7 +14816,7 @@ int LuaScriptInterface::luaMonsterTypeGetSummonList(lua_State* L)
 	// monsterType:getSummonList()
 	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
 	if (!monsterType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -14931,7 +14851,7 @@ int LuaScriptInterface::luaMonsterTypeAddSummon(lua_State* L)
 		monsterType->info.summons.push_back(summon);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14948,7 +14868,7 @@ int LuaScriptInterface::luaMonsterTypeMaxSummons(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14965,7 +14885,7 @@ int LuaScriptInterface::luaMonsterTypeArmor(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14982,7 +14902,7 @@ int LuaScriptInterface::luaMonsterTypeDefense(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -14999,7 +14919,7 @@ int LuaScriptInterface::luaMonsterTypeOutfit(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15025,13 +14945,13 @@ int LuaScriptInterface::luaMonsterTypeRace(lua_State* L)
 				monsterType->info.race = RACE_ENERGY;
 			} else {
 				std::cout << "[Warning - Monsters::loadMonster] Unknown race type " << race << ".\n";
-				lua_pushnil(L);
+				tfs::lua::pushNil(L);
 				return 1;
 			}
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15048,7 +14968,7 @@ int LuaScriptInterface::luaMonsterTypeCorpseId(lua_State* L)
 			lua_pushboolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15065,7 +14985,7 @@ int LuaScriptInterface::luaMonsterTypeManaCost(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15082,7 +15002,7 @@ int LuaScriptInterface::luaMonsterTypeBaseSpeed(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15092,7 +15012,7 @@ int LuaScriptInterface::luaMonsterTypeLight(lua_State* L)
 	// get: monsterType:light() set: monsterType:light(color, level)
 	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
 	if (!monsterType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 	if (lua_gettop(L) == 1) {
@@ -15119,7 +15039,7 @@ int LuaScriptInterface::luaMonsterTypeStaticAttackChance(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15136,7 +15056,7 @@ int LuaScriptInterface::luaMonsterTypeTargetDistance(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15153,7 +15073,7 @@ int LuaScriptInterface::luaMonsterTypeYellChance(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15170,7 +15090,7 @@ int LuaScriptInterface::luaMonsterTypeYellSpeedTicks(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15187,7 +15107,7 @@ int LuaScriptInterface::luaMonsterTypeChangeTargetChance(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15204,7 +15124,7 @@ int LuaScriptInterface::luaMonsterTypeChangeTargetSpeed(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15214,7 +15134,7 @@ int LuaScriptInterface::luaMonsterTypeBestiaryInfo(lua_State* L)
 	// get: monsterType:bestiaryInfo() set: monsterType:bestiaryInfo(info)
 	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
 	if (!monsterType) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -15258,7 +15178,7 @@ int LuaScriptInterface::luaMonsterTypeBestiaryInfo(lua_State* L)
 	}
 
 	std::cout << "[Warning - LuaScriptInterface::luaMonsterTypeBestiaryInfo] bestiaryInfo must be a table.\n";
-	lua_pushnil(L);
+	tfs::lua::pushNil(L);
 	return 1;
 }
 
@@ -15309,7 +15229,7 @@ int LuaScriptInterface::luaLootSetId(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15322,7 +15242,7 @@ int LuaScriptInterface::luaLootSetSubType(lua_State* L)
 		loot->lootBlock.subType = tfs::lua::getNumber<uint16_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15335,7 +15255,7 @@ int LuaScriptInterface::luaLootSetChance(lua_State* L)
 		loot->lootBlock.chance = tfs::lua::getNumber<uint32_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15348,7 +15268,7 @@ int LuaScriptInterface::luaLootSetMaxCount(lua_State* L)
 		loot->lootBlock.countmax = tfs::lua::getNumber<uint32_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15361,7 +15281,7 @@ int LuaScriptInterface::luaLootSetActionId(lua_State* L)
 		loot->lootBlock.actionId = tfs::lua::getNumber<uint32_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15374,7 +15294,7 @@ int LuaScriptInterface::luaLootSetDescription(lua_State* L)
 		loot->lootBlock.text = tfs::lua::getString(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15392,7 +15312,7 @@ int LuaScriptInterface::luaLootAddChildLoot(lua_State* L)
 			tfs::lua::pushBoolean(L, false);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15425,7 +15345,7 @@ int LuaScriptInterface::luaMonsterSpellSetType(lua_State* L)
 		spell->name = tfs::lua::getString(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15438,7 +15358,7 @@ int LuaScriptInterface::luaMonsterSpellSetScriptName(lua_State* L)
 		spell->scriptName = tfs::lua::getString(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15451,7 +15371,7 @@ int LuaScriptInterface::luaMonsterSpellSetChance(lua_State* L)
 		spell->chance = tfs::lua::getNumber<uint8_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15464,7 +15384,7 @@ int LuaScriptInterface::luaMonsterSpellSetInterval(lua_State* L)
 		spell->interval = tfs::lua::getNumber<uint16_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15477,7 +15397,7 @@ int LuaScriptInterface::luaMonsterSpellSetRange(lua_State* L)
 		spell->range = tfs::lua::getNumber<uint8_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15491,7 +15411,7 @@ int LuaScriptInterface::luaMonsterSpellSetCombatValue(lua_State* L)
 		spell->maxCombatValue = tfs::lua::getNumber<int32_t>(L, 3);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15504,7 +15424,7 @@ int LuaScriptInterface::luaMonsterSpellSetCombatType(lua_State* L)
 		spell->combatType = tfs::lua::getNumber<CombatType_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15518,7 +15438,7 @@ int LuaScriptInterface::luaMonsterSpellSetAttackValue(lua_State* L)
 		spell->skill = tfs::lua::getNumber<int32_t>(L, 3);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15531,7 +15451,7 @@ int LuaScriptInterface::luaMonsterSpellSetNeedTarget(lua_State* L)
 		spell->needTarget = tfs::lua::getBoolean(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15544,7 +15464,7 @@ int LuaScriptInterface::luaMonsterSpellSetNeedDirection(lua_State* L)
 		spell->needDirection = tfs::lua::getBoolean(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15557,7 +15477,7 @@ int LuaScriptInterface::luaMonsterSpellSetCombatLength(lua_State* L)
 		spell->length = tfs::lua::getNumber<int32_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15570,7 +15490,7 @@ int LuaScriptInterface::luaMonsterSpellSetCombatSpread(lua_State* L)
 		spell->spread = tfs::lua::getNumber<int32_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15583,7 +15503,7 @@ int LuaScriptInterface::luaMonsterSpellSetCombatRadius(lua_State* L)
 		spell->radius = tfs::lua::getNumber<int32_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15596,7 +15516,7 @@ int LuaScriptInterface::luaMonsterSpellSetCombatRing(lua_State* L)
 		spell->ring = tfs::lua::getNumber<int32_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15609,7 +15529,7 @@ int LuaScriptInterface::luaMonsterSpellSetConditionType(lua_State* L)
 		spell->conditionType = tfs::lua::getNumber<ConditionType_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15624,7 +15544,7 @@ int LuaScriptInterface::luaMonsterSpellSetConditionDamage(lua_State* L)
 		spell->conditionStartDamage = tfs::lua::getNumber<int32_t>(L, 4);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15638,7 +15558,7 @@ int LuaScriptInterface::luaMonsterSpellSetConditionSpeedChange(lua_State* L)
 		spell->maxSpeedChange = tfs::lua::getNumber<int32_t>(L, 3, 0);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15651,7 +15571,7 @@ int LuaScriptInterface::luaMonsterSpellSetConditionDuration(lua_State* L)
 		spell->duration = tfs::lua::getNumber<int32_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15664,7 +15584,7 @@ int LuaScriptInterface::luaMonsterSpellSetConditionDrunkenness(lua_State* L)
 		spell->drunkenness = tfs::lua::getNumber<uint8_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15677,7 +15597,7 @@ int LuaScriptInterface::luaMonsterSpellSetConditionTickInterval(lua_State* L)
 		spell->tickInterval = tfs::lua::getNumber<int32_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15690,7 +15610,7 @@ int LuaScriptInterface::luaMonsterSpellSetCombatShootEffect(lua_State* L)
 		spell->shoot = tfs::lua::getNumber<ShootType_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15703,7 +15623,7 @@ int LuaScriptInterface::luaMonsterSpellSetCombatEffect(lua_State* L)
 		spell->effect = tfs::lua::getNumber<MagicEffectClasses>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15725,7 +15645,7 @@ int LuaScriptInterface::luaMonsterSpellSetOutfit(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15736,7 +15656,7 @@ int32_t LuaScriptInterface::luaPartyCreate(lua_State* L)
 	// Party(userdata)
 	const auto& player = tfs::lua::getSharedPtr<Player>(L, 2);
 	if (!player) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -15748,7 +15668,7 @@ int32_t LuaScriptInterface::luaPartyCreate(lua_State* L)
 		tfs::lua::pushUserdata(L, party);
 		tfs::lua::setMetatable(L, -1, "Party");
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15763,7 +15683,7 @@ int LuaScriptInterface::luaPartyDisband(lua_State* L)
 		party = nullptr;
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15773,15 +15693,14 @@ int LuaScriptInterface::luaPartyGetLeader(lua_State* L)
 	// party:getLeader()
 	Party* party = tfs::lua::getUserdata<Party>(L, 1);
 	if (!party) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	if (const auto& leader = party->getLeader()) {
-		tfs::lua::pushSharedPtr(L, leader);
-		tfs::lua::setMetatable(L, -1, "Player");
+		tfs::lua::pushPlayer(L, leader);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15794,7 +15713,7 @@ int LuaScriptInterface::luaPartySetLeader(lua_State* L)
 	if (party && player) {
 		tfs::lua::pushBoolean(L, party->passPartyLeadership(player, true));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15804,7 +15723,7 @@ int LuaScriptInterface::luaPartyGetMembers(lua_State* L)
 	// party:getMembers()
 	Party* party = tfs::lua::getUserdata<Party>(L, 1);
 	if (!party) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -15813,8 +15732,7 @@ int LuaScriptInterface::luaPartyGetMembers(lua_State* L)
 
 	int index = 0;
 	for (const auto& player : members) {
-		tfs::lua::pushSharedPtr(L, player);
-		tfs::lua::setMetatable(L, -1, "Player");
+		tfs::lua::pushPlayer(L, player);
 		lua_rawseti(L, -2, ++index);
 	}
 	return 1;
@@ -15828,7 +15746,7 @@ int LuaScriptInterface::luaPartyGetMemberCount(lua_State* L)
 		tfs::lua::pushNumber(
 		    L, std::ranges::count_if(party->getMembers(), [](const auto& member) { return !member.expired(); }));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15838,7 +15756,7 @@ int LuaScriptInterface::luaPartyGetInvitees(lua_State* L)
 	// party:getInvitees()
 	Party* party = tfs::lua::getUserdata<Party>(L, 1);
 	if (!party) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -15847,8 +15765,7 @@ int LuaScriptInterface::luaPartyGetInvitees(lua_State* L)
 
 	int index = 0;
 	for (const auto& player : invitees) {
-		tfs::lua::pushSharedPtr(L, player);
-		tfs::lua::setMetatable(L, -1, "Player");
+		tfs::lua::pushPlayer(L, player);
 		lua_rawseti(L, -2, ++index);
 	}
 	return 1;
@@ -15862,7 +15779,7 @@ int LuaScriptInterface::luaPartyGetInviteeCount(lua_State* L)
 		tfs::lua::pushNumber(
 		    L, std::ranges::count_if(party->getInvitees(), [](const auto& invitee) { return !invitee.expired(); }));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15875,7 +15792,7 @@ int LuaScriptInterface::luaPartyAddInvite(lua_State* L)
 	if (party && player) {
 		tfs::lua::pushBoolean(L, party->invitePlayer(player));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15888,7 +15805,7 @@ int LuaScriptInterface::luaPartyRemoveInvite(lua_State* L)
 	if (party && player) {
 		tfs::lua::pushBoolean(L, party->removeInvite(player));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15901,7 +15818,7 @@ int LuaScriptInterface::luaPartyAddMember(lua_State* L)
 	if (party && player) {
 		tfs::lua::pushBoolean(L, party->joinParty(player));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15914,7 +15831,7 @@ int LuaScriptInterface::luaPartyRemoveMember(lua_State* L)
 	if (party && player) {
 		tfs::lua::pushBoolean(L, party->leaveParty(player));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15926,7 +15843,7 @@ int LuaScriptInterface::luaPartyIsSharedExperienceActive(lua_State* L)
 	if (party) {
 		tfs::lua::pushBoolean(L, party->isSharedExperienceActive());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15938,7 +15855,7 @@ int LuaScriptInterface::luaPartyIsSharedExperienceEnabled(lua_State* L)
 	if (party) {
 		tfs::lua::pushBoolean(L, party->isSharedExperienceEnabled());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15951,7 +15868,7 @@ int LuaScriptInterface::luaPartyIsMemberSharingExp(lua_State* L)
 	if (party && player) {
 		tfs::lua::pushBoolean(L, party->getMemberSharedExperienceStatus(player) == SHAREDEXP_OK);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15965,7 +15882,7 @@ int LuaScriptInterface::luaPartyShareExperience(lua_State* L)
 		party->shareExperience(experience);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15978,7 +15895,7 @@ int LuaScriptInterface::luaPartySetSharedExperience(lua_State* L)
 	if (party) {
 		tfs::lua::pushBoolean(L, party->setSharedExperience(party->getLeader(), active));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -15990,7 +15907,7 @@ int LuaScriptInterface::luaSpellCreate(lua_State* L)
 	// Spell(type) ex: Spell(SPELL_INSTANT) or Spell(SPELL_RUNE) to create a new spell
 	if (lua_gettop(L) == 1) {
 		std::cout << "[Error - Spell::luaSpellCreate] There is no parameter set!\n";
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -16052,7 +15969,7 @@ int LuaScriptInterface::luaSpellCreate(lua_State* L)
 		return 1;
 	}
 
-	lua_pushnil(L);
+	tfs::lua::pushNil(L);
 	return 1;
 }
 
@@ -16079,7 +15996,7 @@ int LuaScriptInterface::luaSpellOnCastSpell(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16113,7 +16030,7 @@ int LuaScriptInterface::luaSpellRegister(lua_State* L)
 			tfs::lua::pushBoolean(L, g_spells->registerRuneLuaEvent(rune));
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16130,7 +16047,7 @@ int LuaScriptInterface::luaSpellName(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16147,7 +16064,7 @@ int LuaScriptInterface::luaSpellId(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16215,7 +16132,7 @@ int LuaScriptInterface::luaSpellGroup(lua_State* L)
 			}
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16232,7 +16149,7 @@ int LuaScriptInterface::luaSpellCooldown(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16255,7 +16172,7 @@ int LuaScriptInterface::luaSpellGroupCooldown(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16272,7 +16189,7 @@ int LuaScriptInterface::luaSpellLevel(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16289,7 +16206,7 @@ int LuaScriptInterface::luaSpellMagicLevel(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16306,7 +16223,7 @@ int LuaScriptInterface::luaSpellMana(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16323,7 +16240,7 @@ int LuaScriptInterface::luaSpellManaPercent(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16340,7 +16257,7 @@ int LuaScriptInterface::luaSpellSoul(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16357,7 +16274,7 @@ int LuaScriptInterface::luaSpellRange(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16374,7 +16291,7 @@ int LuaScriptInterface::luaSpellPremium(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16391,7 +16308,7 @@ int LuaScriptInterface::luaSpellEnabled(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16408,7 +16325,7 @@ int LuaScriptInterface::luaSpellNeedTarget(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16425,7 +16342,7 @@ int LuaScriptInterface::luaSpellNeedWeapon(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16442,7 +16359,7 @@ int LuaScriptInterface::luaSpellNeedLearn(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16459,7 +16376,7 @@ int LuaScriptInterface::luaSpellSelfTarget(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16479,7 +16396,7 @@ int LuaScriptInterface::luaSpellBlocking(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16496,7 +16413,7 @@ int LuaScriptInterface::luaSpellAggressive(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16513,7 +16430,7 @@ int LuaScriptInterface::luaSpellPzLock(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16523,7 +16440,7 @@ int LuaScriptInterface::luaSpellVocation(lua_State* L)
 	// spell:vocation(vocation)
 	Spell* spell = tfs::lua::getUserdata<Spell>(L, 1);
 	if (!spell) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -16555,7 +16472,7 @@ int LuaScriptInterface::luaSpellWords(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_INSTANT, it means that this actually is no InstantSpell, so we return nil
 		if (spell->spellType != SPELL_INSTANT) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16573,7 +16490,7 @@ int LuaScriptInterface::luaSpellWords(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16586,7 +16503,7 @@ int LuaScriptInterface::luaSpellNeedDirection(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_INSTANT, it means that this actually is no InstantSpell, so we return nil
 		if (spell->spellType != SPELL_INSTANT) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16597,7 +16514,7 @@ int LuaScriptInterface::luaSpellNeedDirection(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16610,7 +16527,7 @@ int LuaScriptInterface::luaSpellHasParams(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_INSTANT, it means that this actually is no InstantSpell, so we return nil
 		if (spell->spellType != SPELL_INSTANT) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16621,7 +16538,7 @@ int LuaScriptInterface::luaSpellHasParams(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16634,7 +16551,7 @@ int LuaScriptInterface::luaSpellHasPlayerNameParam(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_INSTANT, it means that this actually is no InstantSpell, so we return nil
 		if (spell->spellType != SPELL_INSTANT) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16645,7 +16562,7 @@ int LuaScriptInterface::luaSpellHasPlayerNameParam(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16658,7 +16575,7 @@ int LuaScriptInterface::luaSpellNeedCasterTargetOrDirection(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_INSTANT, it means that this actually is no InstantSpell, so we return nil
 		if (spell->spellType != SPELL_INSTANT) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16669,7 +16586,7 @@ int LuaScriptInterface::luaSpellNeedCasterTargetOrDirection(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16682,7 +16599,7 @@ int LuaScriptInterface::luaSpellIsBlockingWalls(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_INSTANT, it means that this actually is no InstantSpell, so we return nil
 		if (spell->spellType != SPELL_INSTANT) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16693,7 +16610,7 @@ int LuaScriptInterface::luaSpellIsBlockingWalls(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16707,7 +16624,7 @@ int LuaScriptInterface::luaSpellRuneLevel(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_RUNE, it means that this actually is no RuneSpell, so we return nil
 		if (spell->spellType != SPELL_RUNE) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16718,7 +16635,7 @@ int LuaScriptInterface::luaSpellRuneLevel(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16732,7 +16649,7 @@ int LuaScriptInterface::luaSpellRuneMagicLevel(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_RUNE, it means that this actually is no RuneSpell, so we return nil
 		if (spell->spellType != SPELL_RUNE) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16743,7 +16660,7 @@ int LuaScriptInterface::luaSpellRuneMagicLevel(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16756,7 +16673,7 @@ int LuaScriptInterface::luaSpellRuneId(lua_State* L)
 	if (rune) {
 		// if spell != SPELL_RUNE, it means that this actually is no RuneSpell, so we return nil
 		if (rune->spellType != SPELL_RUNE) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16767,7 +16684,7 @@ int LuaScriptInterface::luaSpellRuneId(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16780,7 +16697,7 @@ int LuaScriptInterface::luaSpellCharges(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_RUNE, it means that this actually is no RuneSpell, so we return nil
 		if (spell->spellType != SPELL_RUNE) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16791,7 +16708,7 @@ int LuaScriptInterface::luaSpellCharges(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16804,7 +16721,7 @@ int LuaScriptInterface::luaSpellAllowFarUse(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_RUNE, it means that this actually is no RuneSpell, so we return nil
 		if (spell->spellType != SPELL_RUNE) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16815,7 +16732,7 @@ int LuaScriptInterface::luaSpellAllowFarUse(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16828,7 +16745,7 @@ int LuaScriptInterface::luaSpellBlockWalls(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_RUNE, it means that this actually is no RuneSpell, so we return nil
 		if (spell->spellType != SPELL_RUNE) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16839,7 +16756,7 @@ int LuaScriptInterface::luaSpellBlockWalls(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16852,7 +16769,7 @@ int LuaScriptInterface::luaSpellCheckFloor(lua_State* L)
 	if (spell) {
 		// if spell != SPELL_RUNE, it means that this actually is no RuneSpell, so we return nil
 		if (spell->spellType != SPELL_RUNE) {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 
@@ -16863,7 +16780,7 @@ int LuaScriptInterface::luaSpellCheckFloor(lua_State* L)
 			tfs::lua::pushBoolean(L, true);
 		}
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16873,7 +16790,7 @@ int LuaScriptInterface::luaCreateAction(lua_State* L)
 	// Action()
 	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
 		reportErrorFunc(L, "Actions can only be registered in the Scripts interface.");
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -16896,7 +16813,7 @@ int LuaScriptInterface::luaActionOnUse(lua_State* L)
 		action->scripted = true;
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16915,7 +16832,7 @@ int LuaScriptInterface::luaActionRegister(lua_State* L)
 		g_actions->clearUniqueIdRange(action);
 		g_actions->clearActionIdRange(action);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16935,7 +16852,7 @@ int LuaScriptInterface::luaActionItemId(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16955,7 +16872,7 @@ int LuaScriptInterface::luaActionActionId(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16975,7 +16892,7 @@ int LuaScriptInterface::luaActionUniqueId(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -16988,7 +16905,7 @@ int LuaScriptInterface::luaActionAllowFarUse(lua_State* L)
 		action->setAllowFarUse(tfs::lua::getBoolean(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17001,7 +16918,7 @@ int LuaScriptInterface::luaActionBlockWalls(lua_State* L)
 		action->setCheckLineOfSight(tfs::lua::getBoolean(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17014,7 +16931,7 @@ int LuaScriptInterface::luaActionCheckFloor(lua_State* L)
 		action->setCheckFloor(tfs::lua::getBoolean(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17024,7 +16941,7 @@ int LuaScriptInterface::luaCreateTalkaction(lua_State* L)
 	// TalkAction(words)
 	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
 		reportErrorFunc(L, "TalkActions can only be registered in the Scripts interface.");
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -17049,7 +16966,7 @@ int LuaScriptInterface::luaTalkactionOnSay(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17065,7 +16982,7 @@ int LuaScriptInterface::luaTalkactionRegister(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, g_talkActions->registerLuaEvent(talk));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17078,7 +16995,7 @@ int LuaScriptInterface::luaTalkactionSeparator(lua_State* L)
 		talk->setSeparator(tfs::lua::getString(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17091,7 +17008,7 @@ int LuaScriptInterface::luaTalkactionAccess(lua_State* L)
 		talk->setNeedAccess(tfs::lua::getBoolean(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17104,102 +17021,7 @@ int LuaScriptInterface::luaTalkactionAccountType(lua_State* L)
 		talk->setRequiredAccountType(tfs::lua::getNumber<AccountType_t>(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
-	}
-	return 1;
-}
-
-int LuaScriptInterface::luaCreateCreatureEvent(lua_State* L)
-{
-	// CreatureEvent(eventName)
-	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
-		reportErrorFunc(L, "CreatureEvents can only be registered in the Scripts interface.");
-		lua_pushnil(L);
-		return 1;
-	}
-
-	CreatureEvent* creatureEvent = new CreatureEvent(tfs::lua::getScriptEnv()->getScriptInterface());
-	creatureEvent->setName(tfs::lua::getString(L, 2));
-	creatureEvent->fromLua = true;
-	tfs::lua::pushUserdata(L, creatureEvent);
-	tfs::lua::setMetatable(L, -1, "CreatureEvent");
-	return 1;
-}
-
-int LuaScriptInterface::luaCreatureEventType(lua_State* L)
-{
-	// creatureevent:type(callback)
-	CreatureEvent* creature = tfs::lua::getUserdata<CreatureEvent>(L, 1);
-	if (creature) {
-		std::string typeName = tfs::lua::getString(L, 2);
-		std::string tmpStr = boost::algorithm::to_lower_copy(typeName);
-		if (tmpStr == "login") {
-			creature->setEventType(CREATURE_EVENT_LOGIN);
-		} else if (tmpStr == "logout") {
-			creature->setEventType(CREATURE_EVENT_LOGOUT);
-		} else if (tmpStr == "reconnect") {
-			creature->setEventType(CREATURE_EVENT_RECONNECT);
-		} else if (tmpStr == "think") {
-			creature->setEventType(CREATURE_EVENT_THINK);
-		} else if (tmpStr == "preparedeath") {
-			creature->setEventType(CREATURE_EVENT_PREPAREDEATH);
-		} else if (tmpStr == "death") {
-			creature->setEventType(CREATURE_EVENT_DEATH);
-		} else if (tmpStr == "kill") {
-			creature->setEventType(CREATURE_EVENT_KILL);
-		} else if (tmpStr == "advance") {
-			creature->setEventType(CREATURE_EVENT_ADVANCE);
-		} else if (tmpStr == "modalwindow") {
-			creature->setEventType(CREATURE_EVENT_MODALWINDOW);
-		} else if (tmpStr == "textedit") {
-			creature->setEventType(CREATURE_EVENT_TEXTEDIT);
-		} else if (tmpStr == "healthchange") {
-			creature->setEventType(CREATURE_EVENT_HEALTHCHANGE);
-		} else if (tmpStr == "manachange") {
-			creature->setEventType(CREATURE_EVENT_MANACHANGE);
-		} else if (tmpStr == "extendedopcode") {
-			creature->setEventType(CREATURE_EVENT_EXTENDED_OPCODE);
-		} else {
-			std::cout << "[Error - CreatureEvent::configureLuaEvent] Invalid type for creature event: " << typeName
-			          << '\n';
-			tfs::lua::pushBoolean(L, false);
-		}
-		creature->setLoaded(true);
-		tfs::lua::pushBoolean(L, true);
-	} else {
-		lua_pushnil(L);
-	}
-	return 1;
-}
-
-int LuaScriptInterface::luaCreatureEventRegister(lua_State* L)
-{
-	// creatureevent:register()
-	CreatureEvent* creature = tfs::lua::getUserdata<CreatureEvent>(L, 1);
-	if (creature) {
-		if (!creature->isScripted()) {
-			tfs::lua::pushBoolean(L, false);
-			return 1;
-		}
-		tfs::lua::pushBoolean(L, g_creatureEvents->registerLuaEvent(creature));
-	} else {
-		lua_pushnil(L);
-	}
-	return 1;
-}
-
-int LuaScriptInterface::luaCreatureEventOnCallback(lua_State* L)
-{
-	// creatureevent:onLogin / logout / etc. (callback)
-	CreatureEvent* creature = tfs::lua::getUserdata<CreatureEvent>(L, 1);
-	if (creature) {
-		if (!creature->loadCallback()) {
-			tfs::lua::pushBoolean(L, false);
-			return 1;
-		}
-		tfs::lua::pushBoolean(L, true);
-	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17209,7 +17031,7 @@ int LuaScriptInterface::luaCreateMoveEvent(lua_State* L)
 	// MoveEvent()
 	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
 		reportErrorFunc(L, "MoveEvents can only be registered in the Scripts interface.");
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -17251,7 +17073,7 @@ int LuaScriptInterface::luaMoveEventType(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17278,7 +17100,7 @@ int LuaScriptInterface::luaMoveEventRegister(lua_State* L)
 		g_moveEvents->clearUniqueIdRange(moveevent);
 		g_moveEvents->clearPosList(moveevent);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17294,7 +17116,7 @@ int LuaScriptInterface::luaMoveEventOnCallback(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17304,7 +17126,7 @@ int LuaScriptInterface::luaMoveEventSlot(lua_State* L)
 	// moveevent:slot(slot)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
 	if (!moveevent) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -17352,7 +17174,7 @@ int LuaScriptInterface::luaMoveEventLevel(lua_State* L)
 		moveevent->setWieldInfo(WIELDINFO_LEVEL);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17366,7 +17188,7 @@ int LuaScriptInterface::luaMoveEventMagLevel(lua_State* L)
 		moveevent->setWieldInfo(WIELDINFO_MAGLV);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17380,7 +17202,7 @@ int LuaScriptInterface::luaMoveEventPremium(lua_State* L)
 		moveevent->setWieldInfo(WIELDINFO_PREMIUM);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17420,7 +17242,7 @@ int LuaScriptInterface::luaMoveEventVocation(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17433,7 +17255,7 @@ int LuaScriptInterface::luaMoveEventTileItem(lua_State* L)
 		moveevent->setTileItem(tfs::lua::getBoolean(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17453,7 +17275,7 @@ int LuaScriptInterface::luaMoveEventItemId(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17473,7 +17295,7 @@ int LuaScriptInterface::luaMoveEventActionId(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17493,7 +17315,7 @@ int LuaScriptInterface::luaMoveEventUniqueId(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17513,7 +17335,7 @@ int LuaScriptInterface::luaMoveEventPosition(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17523,7 +17345,7 @@ int LuaScriptInterface::luaCreateGlobalEvent(lua_State* L)
 	// GlobalEvent(eventName)
 	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
 		reportErrorFunc(L, "GlobalEvents can only be registered in the Scripts interface.");
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -17554,13 +17376,13 @@ int LuaScriptInterface::luaGlobalEventType(lua_State* L)
 		} else if (tmpStr == "save") {
 			global->setEventType(GLOBALEVENT_SAVE);
 		} else {
-			std::cout << "[Error - CreatureEvent::configureLuaEvent] Invalid type for global event: " << typeName
+			std::cout << "[Error - LuaScriptInterface::luaGlobalEventType] Invalid type for global event: " << typeName
 			          << '\n';
 			tfs::lua::pushBoolean(L, false);
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17584,7 +17406,7 @@ int LuaScriptInterface::luaGlobalEventRegister(lua_State* L)
 
 		tfs::lua::pushBoolean(L, g_globalEvents->registerLuaEvent(globalevent));
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17600,7 +17422,7 @@ int LuaScriptInterface::luaGlobalEventOnCallback(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17660,7 +17482,7 @@ int LuaScriptInterface::luaGlobalEventTime(lua_State* L)
 		globalevent->setEventType(GLOBALEVENT_TIMER);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17674,7 +17496,7 @@ int LuaScriptInterface::luaGlobalEventInterval(lua_State* L)
 		globalevent->setNextExecution(OTSYS_TIME() + tfs::lua::getNumber<uint32_t>(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17685,7 +17507,7 @@ int LuaScriptInterface::luaCreateWeapon(lua_State* L)
 	// Weapon(type)
 	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
 		reportErrorFunc(L, "Weapons can only be registered in the Scripts interface.");
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -17719,7 +17541,7 @@ int LuaScriptInterface::luaCreateWeapon(lua_State* L)
 			break;
 		}
 		default: {
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			break;
 		}
 	}
@@ -17745,7 +17567,7 @@ int LuaScriptInterface::luaWeaponAction(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17755,7 +17577,7 @@ int LuaScriptInterface::luaWeaponRegister(lua_State* L)
 	// weapon:register()
 	Weapon** weaponPtr = tfs::lua::getRawUserdata<Weapon>(L, 1);
 	if (!weaponPtr) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -17783,7 +17605,7 @@ int LuaScriptInterface::luaWeaponRegister(lua_State* L)
 		tfs::lua::pushBoolean(L, g_weapons->registerLuaEvent(weapon));
 		*weaponPtr = nullptr; // Remove luascript reference
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17799,7 +17621,7 @@ int LuaScriptInterface::luaWeaponOnUseWeapon(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17812,7 +17634,7 @@ int LuaScriptInterface::luaWeaponUnproperly(lua_State* L)
 		weapon->setWieldUnproperly(tfs::lua::getBoolean(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17826,7 +17648,7 @@ int LuaScriptInterface::luaWeaponLevel(lua_State* L)
 		weapon->setWieldInfo(WIELDINFO_LEVEL);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17840,7 +17662,7 @@ int LuaScriptInterface::luaWeaponMagicLevel(lua_State* L)
 		weapon->setWieldInfo(WIELDINFO_MAGLV);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17853,7 +17675,7 @@ int LuaScriptInterface::luaWeaponMana(lua_State* L)
 		weapon->setMana(tfs::lua::getNumber<uint32_t>(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17866,7 +17688,7 @@ int LuaScriptInterface::luaWeaponManaPercent(lua_State* L)
 		weapon->setManaPercent(tfs::lua::getNumber<uint32_t>(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17879,7 +17701,7 @@ int LuaScriptInterface::luaWeaponHealth(lua_State* L)
 		weapon->setHealth(tfs::lua::getNumber<int32_t>(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17892,7 +17714,7 @@ int LuaScriptInterface::luaWeaponHealthPercent(lua_State* L)
 		weapon->setHealthPercent(tfs::lua::getNumber<uint32_t>(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17905,7 +17727,7 @@ int LuaScriptInterface::luaWeaponSoul(lua_State* L)
 		weapon->setSoul(tfs::lua::getNumber<uint32_t>(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17918,7 +17740,7 @@ int LuaScriptInterface::luaWeaponBreakChance(lua_State* L)
 		weapon->setBreakChance(tfs::lua::getNumber<uint32_t>(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17936,7 +17758,7 @@ int LuaScriptInterface::luaWeaponWandDamage(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17969,7 +17791,7 @@ int LuaScriptInterface::luaWeaponElement(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -17983,7 +17805,7 @@ int LuaScriptInterface::luaWeaponPremium(lua_State* L)
 		weapon->setWieldInfo(WIELDINFO_PREMIUM);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18018,7 +17840,7 @@ int LuaScriptInterface::luaWeaponVocation(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18031,7 +17853,7 @@ int LuaScriptInterface::luaWeaponId(lua_State* L)
 		weapon->setID(tfs::lua::getNumber<uint32_t>(L, 2));
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18046,7 +17868,7 @@ int LuaScriptInterface::luaWeaponAttack(lua_State* L)
 		it.attack = tfs::lua::getNumber<int32_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18064,7 +17886,7 @@ int LuaScriptInterface::luaWeaponDefense(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18079,7 +17901,7 @@ int LuaScriptInterface::luaWeaponRange(lua_State* L)
 		it.shootRange = tfs::lua::getNumber<uint8_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18097,7 +17919,7 @@ int LuaScriptInterface::luaWeaponCharges(lua_State* L)
 		it.showCharges = showCharges;
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18121,7 +17943,7 @@ int LuaScriptInterface::luaWeaponDuration(lua_State* L)
 		it.showDuration = showDuration;
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18138,7 +17960,7 @@ int LuaScriptInterface::luaWeaponDecayTo(lua_State* L)
 		it.decayTo = itemid;
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18153,7 +17975,7 @@ int LuaScriptInterface::luaWeaponTransformEquipTo(lua_State* L)
 		it.transformEquipTo = tfs::lua::getNumber<uint16_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18168,7 +17990,7 @@ int LuaScriptInterface::luaWeaponTransformDeEquipTo(lua_State* L)
 		it.transformDeEquipTo = tfs::lua::getNumber<uint16_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18183,7 +18005,7 @@ int LuaScriptInterface::luaWeaponShootType(lua_State* L)
 		it.shootType = tfs::lua::getNumber<ShootType_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18204,7 +18026,7 @@ int LuaScriptInterface::luaWeaponSlotType(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18224,12 +18046,12 @@ int LuaScriptInterface::luaWeaponAmmoType(lua_State* L)
 			it.ammoType = AMMO_BOLT;
 		} else {
 			std::cout << "[Warning - weapon:ammoType] Type \"" << type << "\" does not exist.\n";
-			lua_pushnil(L);
+			tfs::lua::pushNil(L);
 			return 1;
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18244,7 +18066,7 @@ int LuaScriptInterface::luaWeaponHitChance(lua_State* L)
 		it.hitChance = tfs::lua::getNumber<int8_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18259,7 +18081,7 @@ int LuaScriptInterface::luaWeaponMaxHitChance(lua_State* L)
 		it.maxHitChance = tfs::lua::getNumber<int32_t>(L, 2);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18296,7 +18118,7 @@ int LuaScriptInterface::luaWeaponExtraElement(lua_State* L)
 		}
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18307,7 +18129,7 @@ int LuaScriptInterface::luaCreateXmlDocument(lua_State* L)
 	// XMLDocument(filename)
 	std::string filename = tfs::lua::getString(L, 2);
 	if (filename.empty()) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -18317,7 +18139,7 @@ int LuaScriptInterface::luaCreateXmlDocument(lua_State* L)
 		tfs::lua::setMetatable(L, -1, "XMLDocument");
 	} else {
 		printXMLError("Error - LuaScriptInterface::luaCreateXmlDocument", filename, result);
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18338,13 +18160,13 @@ int LuaScriptInterface::luaXmlDocumentChild(lua_State* L)
 	// doc:child(name)
 	pugi::xml_document* document = tfs::lua::getUserdata<pugi::xml_document>(L, 1);
 	if (!document) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	std::string name = tfs::lua::getString(L, 2);
 	if (name.empty()) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -18370,13 +18192,13 @@ int LuaScriptInterface::luaXmlNodeAttribute(lua_State* L)
 	// node:attribute(name)
 	pugi::xml_node* node = tfs::lua::getUserdata<pugi::xml_node>(L, 1);
 	if (!node) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	std::string name = tfs::lua::getString(L, 2);
 	if (name.empty()) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -18384,7 +18206,7 @@ int LuaScriptInterface::luaXmlNodeAttribute(lua_State* L)
 	if (attribute) {
 		tfs::lua::pushString(L, attribute.value());
 	} else {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 	}
 	return 1;
 }
@@ -18394,7 +18216,7 @@ int LuaScriptInterface::luaXmlNodeName(lua_State* L)
 	// node:name()
 	pugi::xml_node* node = tfs::lua::getUserdata<pugi::xml_node>(L, 1);
 	if (!node) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -18407,13 +18229,13 @@ int LuaScriptInterface::luaXmlNodeFirstChild(lua_State* L)
 	// node:firstChild()
 	pugi::xml_node* node = tfs::lua::getUserdata<pugi::xml_node>(L, 1);
 	if (!node) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	auto firstChild = node->first_child();
 	if (!firstChild) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
@@ -18428,13 +18250,13 @@ int LuaScriptInterface::luaXmlNodeNextSibling(lua_State* L)
 	// node:nextSibling()
 	pugi::xml_node* node = tfs::lua::getUserdata<pugi::xml_node>(L, 1);
 	if (!node) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 
 	auto nextSibling = node->next_sibling();
 	if (!nextSibling) {
-		lua_pushnil(L);
+		tfs::lua::pushNil(L);
 		return 1;
 	}
 

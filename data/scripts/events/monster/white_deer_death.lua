@@ -3,12 +3,20 @@ local config = {
 	{chance = 100, monster = "Desperate White Deer", message = "The white deer desperately tries to escape!"}
 }
 
-local creatureevent = CreatureEvent("WhiteDeerDeath")
+local event = Event()
 
-function creatureevent.onDeath(creature, corpse, killer, mostDamageKiller, lastHitUnjustified, mostDamageUnjustified)
-	local targetMonster = creature:getMonster()
+event.onCreatureDeath = function(self, corpse, killer, mostDamageKiller, lastHitUnjustified, mostDamageUnjustified)
+	if not self:isMonster() then
+		return
+	end
+
+	if self:getName() ~= "White Deer" then
+		return
+	end
+
+	local targetMonster = self:getMonster()
 	if not targetMonster or targetMonster:getMaster() then
-		return true
+		return
 	end
 
 	local chance = math.random(100)
@@ -22,7 +30,6 @@ function creatureevent.onDeath(creature, corpse, killer, mostDamageKiller, lastH
 			break
 		end
 	end
-	return true
 end
 
-creatureevent:register()
+event:register()
