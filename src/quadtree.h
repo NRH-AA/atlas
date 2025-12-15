@@ -187,8 +187,7 @@ public:
 	 * This method does nothing, as leaf nodes
 	 * cannot have children.
 	 * @param {index} The index at which to set the child node (not used).
-	 * @param
-	 * {node} A pointer to the child node to be set (not used).
+	 * @param {node} A pointer to the child node to be set (not used).
 	 */
 	void set_child(uint8_t, Node*) override {}
 
