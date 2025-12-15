@@ -114,7 +114,7 @@ void create_leaf_in_root(uint16_t x, uint16_t y)
 } // namespace
 
 std::generator<std::weak_ptr<Creature>> tfs::map::quadtree::find_creature_in_range(uint16_t start_x, uint16_t start_y,
-                                                                                     uint16_t end_x, uint16_t end_y)
+                                                                                   uint16_t end_x, uint16_t end_y)
 {
 	int32_t start_x_aligned = start_x - (start_x % TILE_GRID_SIZE);
 	int32_t start_y_aligned = start_y - (start_y % TILE_GRID_SIZE);
