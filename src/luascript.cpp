@@ -394,6 +394,10 @@ static std::shared_ptr<DBResult> getResultByID(uint32_t id)
 std::string tfs::lua::getErrorDesc(ErrorCode_t code)
 {
 	switch (code) {
+		case LUA_ERROR_XML_DOCUMENT_NOT_FOUND:
+			return "XML document not found";
+		case LUA_ERROR_XML_NODE_NOT_FOUND:
+			return "XML node not found";
 		case LUA_ERROR_PLAYER_NOT_FOUND:
 			return "Player not found";
 		case LUA_ERROR_CREATURE_NOT_FOUND:
@@ -18353,6 +18357,7 @@ int LuaScriptInterface::luaXmlDocumentChild(lua_State* L)
 	// doc:child(name)
 	pugi::xml_document* document = tfs::lua::getUserdata<pugi::xml_document>(L, 1);
 	if (!document) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_XML_DOCUMENT_NOT_FOUND));
 		lua_pushnil(L);
 		return 1;
 	}
@@ -18385,6 +18390,7 @@ int LuaScriptInterface::luaXmlNodeAttribute(lua_State* L)
 	// node:attribute(name)
 	pugi::xml_node* node = tfs::lua::getUserdata<pugi::xml_node>(L, 1);
 	if (!node) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_XML_NODE_NOT_FOUND));
 		lua_pushnil(L);
 		return 1;
 	}
@@ -18409,6 +18415,7 @@ int LuaScriptInterface::luaXmlNodeName(lua_State* L)
 	// node:name()
 	pugi::xml_node* node = tfs::lua::getUserdata<pugi::xml_node>(L, 1);
 	if (!node) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_XML_NODE_NOT_FOUND));
 		lua_pushnil(L);
 		return 1;
 	}
@@ -18422,6 +18429,7 @@ int LuaScriptInterface::luaXmlNodeFirstChild(lua_State* L)
 	// node:firstChild()
 	pugi::xml_node* node = tfs::lua::getUserdata<pugi::xml_node>(L, 1);
 	if (!node) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_XML_NODE_NOT_FOUND));
 		lua_pushnil(L);
 		return 1;
 	}
@@ -18443,6 +18451,7 @@ int LuaScriptInterface::luaXmlNodeNextSibling(lua_State* L)
 	// node:nextSibling()
 	pugi::xml_node* node = tfs::lua::getUserdata<pugi::xml_node>(L, 1);
 	if (!node) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_XML_NODE_NOT_FOUND));
 		lua_pushnil(L);
 		return 1;
 	}
