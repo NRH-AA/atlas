@@ -67,7 +67,7 @@ public:
 	 * @brief Check if the node is a leaf.
 	 * @return true if the node is a leaf, false otherwise.
 	 */
-	virtual bool is_leaf() const = 0;
+	virtual bool isLeaf() const = 0;
 
 	/**
 	 * @brief Set a child node at a specified index.
@@ -79,7 +79,7 @@ public:
 	 * @param {node} A pointer to the child node to be
 	 * set.
 	 */
-	virtual void set_child(uint8_t index, Node* node) = 0;
+	virtual void setChild(uint8_t index, Node* node) = 0;
 
 	/**
 	 * @brief Get a child node at a specified index.
@@ -87,7 +87,7 @@ public:
 	 * retrieve (0 to 3).
 	 * @return A pointer to the child node, or nullptr if no child exists.
 	 */
-	virtual Node* get_child(uint8_t index) const = 0;
+	virtual Node* getChild(uint8_t index) const = 0;
 };
 
 /// The number of bits used to represent the dimensions of a tile grid.
@@ -125,7 +125,7 @@ public:
 	 * since Branch nodes always have the potential for children.
 	 * @return false, indicating this is not a leaf.
 	 */
-	bool is_leaf() const override { return false; }
+	bool isLeaf() const override { return false; }
 
 	/**
 	 * @brief Set a child node at a specified index.
@@ -133,7 +133,7 @@ public:
 	 * @param index Index at which to set the child node (0–3).
 	 * @param node Pointer to the child node.
 	 */
-	void set_child(uint8_t index, Node* node) override { nodes[index] = node; }
+	void setChild(uint8_t index, Node* node) override { nodes[index] = node; }
 
 	/**
 	 * @brief Get a child node at a specified index.
@@ -141,7 +141,7 @@ public:
 	 * @param index Index of the child node (0–3).
 	 * @return Pointer to the child node, or nullptr if none exists.
 	 */
-	Node* get_child(uint8_t index) const override { return nodes[index]; }
+	Node* getChild(uint8_t index) const override { return nodes[index]; }
 
 private:
 	/// Array storing pointers to the 4 child nodes.
@@ -179,7 +179,7 @@ public:
 	 * indicating that this object is a leaf.
 	 * @return true, indicating that the node is a Leaf.
 	 */
-	bool is_leaf() const override { return true; }
+	bool isLeaf() const override { return true; }
 
 	/**
 	 * @brief Set a child node at a specified index.
@@ -189,7 +189,7 @@ public:
 	 * @param {index} The index at which to set the child node (not used).
 	 * @param {node} A pointer to the child node to be set (not used).
 	 */
-	void set_child(uint8_t, Node*) override {}
+	void setChild(uint8_t, Node*) override {}
 
 	/**
 	 * @brief Get a child node at a specified index.
@@ -199,7 +199,7 @@ public:
 	 * @param {index} The index of the child node to retrieve (not used).
 	 * @return Always returns nullptr.
 	 */
-	Node* get_child(uint8_t) const override { return nullptr; };
+	Node* getChild(uint8_t) const override { return nullptr; };
 
 	/**
 	 * @brief Add a creature to the leaf.
@@ -208,7 +208,7 @@ public:
 	 * node.
 	 * @param {creature} A pointer to the creature to be added.
 	 */
-	void add_creature(const std::shared_ptr<Creature>& creature);
+	void addCreature(const std::shared_ptr<Creature>& creature);
 
 	/**
 	 * @brief Remove a creature from the leaf.
@@ -217,7 +217,7 @@ public:
 	 * the leaf node.
 	 * @param {creature} A pointer to the creature to be removed.
 	 */
-	void remove_creature(const std::shared_ptr<Creature>& creature);
+	void removeCreature(const std::shared_ptr<Creature>& creature);
 
 	/**
 	 * @brief A 3D array of pointers to tiles for the leaf across multiple layers.

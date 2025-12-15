@@ -11,12 +11,12 @@ uint8_t create_index(uint16_t x, uint16_t y) { return ((x & 0x8000) >> 15) | ((y
 
 Node* find_leaf(Node* current_node, uint16_t x, uint16_t y)
 {
-	if (current_node->is_leaf()) {
+	if (current_node->isLeaf()) {
 		return current_node;
 	}
 
 	const auto index = create_index(x, y);
-	if (auto child_node = current_node->get_child(index)) {
+	if (auto child_node = current_node->getChild(index)) {
 		return find_leaf(child_node, x << 1, y << 1);
 	}
 	return nullptr;
@@ -76,12 +76,12 @@ void update_leaf_neighbors(uint16_t x, uint16_t y)
 
 void create_leaf_node(Node* current_node, uint16_t x, uint16_t y, uint8_t z)
 {
-	if (current_node->is_leaf()) {
+	if (current_node->isLeaf()) {
 		return;
 	}
 
 	const auto index = create_index(x, y);
-	auto child_node = current_node->get_child(index);
+	auto child_node = current_node->getChild(index);
 	if (!child_node) {
 		if (z == TILE_GRID_BITS) {
 			/*
@@ -94,7 +94,7 @@ void create_leaf_node(Node* current_node, uint16_t x, uint16_t y, uint8_t z)
 			child_node = new Branch();
 		}
 
-		current_node->set_child(index, child_node);
+		current_node->setChild(index, child_node);
 	}
 
 	create_leaf_node(child_node, x * 2, y * 2, z - 1);
@@ -190,8 +190,8 @@ void tfs::map::quadtree::move_creature(uint16_t old_x, uint16_t old_y, uint16_t 
 
 		if (auto leaf = find_leaf_in_root(x, y)) {
 			if (old_leaf != leaf) {
-				old_leaf->remove_creature(creature);
-				leaf->add_creature(creature);
+				old_leaf->removeCreature(creature);
+				leaf->addCreature(creature);
 			}
 		}
 	}
@@ -202,7 +202,7 @@ void tfs::map::quadtree::add_creature(uint16_t x, uint16_t y, const std::shared_
 	create_leaf_in_root(x, y);
 
 	if (auto leaf = find_leaf_in_root(x, y)) {
-		leaf->add_creature(creature);
+		leaf->addCreature(creature);
 	}
 }
 
@@ -211,7 +211,7 @@ void tfs::map::quadtree::remove_creature(uint16_t x, uint16_t y, const std::shar
 	create_leaf_in_root(x, y);
 
 	if (auto leaf = find_leaf_in_root(x, y)) {
-		leaf->remove_creature(creature);
+		leaf->removeCreature(creature);
 	}
 }
 
@@ -222,6 +222,6 @@ Branch::~Branch()
 	}
 }
 
-void Leaf::add_creature(const std::shared_ptr<Creature>& creature) { creatures.insert(creature); }
+void Leaf::addCreature(const std::shared_ptr<Creature>& creature) { creatures.insert(creature); }
 
-void Leaf::remove_creature(const std::shared_ptr<Creature>& creature) { creatures.erase(creature); }
+void Leaf::removeCreature(const std::shared_ptr<Creature>& creature) { creatures.erase(creature); }
