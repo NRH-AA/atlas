@@ -13,18 +13,19 @@
 
 class Creature;
 class Tile;
+class Leaf;
 
 namespace tfs::map::quadtree {
 
 /// @brief Finds creatures within the specified range.
 std::generator<std::weak_ptr<Creature>> find_creature_in_range(uint16_t start_x, uint16_t start_y, uint16_t end_x,
-                                                                 uint16_t end_y);
+                                                               uint16_t end_y);
 
 /// @brief Finds the tile at the specified coordinates and layer.
 std::shared_ptr<Tile> find_tile(uint16_t x, uint16_t y, uint8_t z);
 
 /// @brief Creates a tile at the specified coordinates and layer.
-void create_tile(uint16_t x, uint16_t y, uint8_t z, const std::shared_ptr<Tile>& tile);
+std::shared_ptr<Tile> find_or_create_tile(uint16_t x, uint16_t y, uint8_t z, const std::shared_ptr<Tile>& tile);
 
 /// @brief Moves a creature from one location to another within the quadtree.
 void move_creature(uint16_t old_x, uint16_t old_y, uint16_t x, uint16_t y, const std::shared_ptr<Creature>& creature);
@@ -67,7 +68,7 @@ public:
 	 * @brief Check if the node is a leaf.
 	 * @return true if the node is a leaf, false otherwise.
 	 */
-	virtual bool isLeaf() const = 0;
+	virtual Leaf* asLeaf() = 0;
 
 	/**
 	 * @brief Set a child node at a specified index.
@@ -125,7 +126,7 @@ public:
 	 * since Branch nodes always have the potential for children.
 	 * @return false, indicating this is not a leaf.
 	 */
-	bool isLeaf() const override { return false; }
+	Leaf* asLeaf() override { return nullptr; }
 
 	/**
 	 * @brief Set a child node at a specified index.
@@ -179,7 +180,7 @@ public:
 	 * indicating that this object is a leaf.
 	 * @return true, indicating that the node is a Leaf.
 	 */
-	bool isLeaf() const override { return true; }
+	Leaf* asLeaf() override { return this; }
 
 	/**
 	 * @brief Set a child node at a specified index.

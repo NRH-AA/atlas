@@ -9,10 +9,10 @@ std::array<Node*, 4> root_nodes = {};
 
 uint8_t create_index(uint32_t x, uint32_t y) { return ((x & 0x8000) >> 15) | ((y & 0x8000) >> 14); }
 
-Node* find_leaf(Node* current_node, uint32_t x, uint32_t y)
+Leaf* find_leaf(Node* current_node, uint32_t x, uint32_t y)
 {
-	if (current_node->isLeaf()) {
-		return current_node;
+	if (const auto leaf = current_node->asLeaf()) {
+		return leaf;
 	}
 
 	const auto index = create_index(x, y);
@@ -42,7 +42,7 @@ Leaf* find_leaf_in_root(uint32_t x, uint32_t y)
  * @param {x} The x-coordinate of the leaf node in the quadtree.
  * @param {y} The y-coordinate of the leaf node in the quadtree.
  */
-void update_leaf_neighbors(uint32_t x, uint32_t y)
+void update_leaf_neighbors(Leaf* leaf, uint32_t x, uint32_t y)
 {
 	/*
 	 * The following relationships are updated:
@@ -51,33 +51,32 @@ void update_leaf_neighbors(uint32_t x, uint32_t y)
 	 * - This leaf's south_leaf pointer is updated to point to the south neighbor, if found.
 	 * - This leaf's east_leaf pointer is updated to point to the east neighbor, if found.
 	 */
-	if (auto leaf = find_leaf_in_root(x, y)) {
-		// update north
-		if (auto north_leaf = find_leaf_in_root(x, y - TILE_GRID_SIZE)) {
-			north_leaf->south_leaf = leaf;
-		}
 
-		// update west
-		if (auto west_leaf = find_leaf_in_root(x - TILE_GRID_SIZE, y)) {
-			west_leaf->east_leaf = leaf;
-		}
+	// update north
+	if (auto north_leaf = find_leaf_in_root(x, y - TILE_GRID_SIZE)) {
+		north_leaf->south_leaf = leaf;
+	}
 
-		// update south
-		if (auto south_leaf = find_leaf_in_root(x, y + TILE_GRID_SIZE)) {
-			leaf->south_leaf = south_leaf;
-		}
+	// update west
+	if (auto west_leaf = find_leaf_in_root(x - TILE_GRID_SIZE, y)) {
+		west_leaf->east_leaf = leaf;
+	}
 
-		// update east
-		if (auto east_leaf = find_leaf_in_root(x + TILE_GRID_SIZE, y)) {
-			leaf->east_leaf = east_leaf;
-		}
+	// update south
+	if (auto south_leaf = find_leaf_in_root(x, y + TILE_GRID_SIZE)) {
+		leaf->south_leaf = south_leaf;
+	}
+
+	// update east
+	if (auto east_leaf = find_leaf_in_root(x + TILE_GRID_SIZE, y)) {
+		leaf->east_leaf = east_leaf;
 	}
 }
 
-void create_leaf_node(Node* current_node, uint32_t x, uint32_t y, uint8_t z)
+Leaf* create_leaf_node(Node* current_node, uint32_t x, uint32_t y, uint8_t z)
 {
-	if (current_node->isLeaf()) {
-		return;
+	if (const auto leaf = current_node->asLeaf()) {
+		return leaf;
 	}
 
 	const auto index = create_index(x, y);
@@ -97,18 +96,19 @@ void create_leaf_node(Node* current_node, uint32_t x, uint32_t y, uint8_t z)
 		current_node->setChild(index, child_node);
 	}
 
-	create_leaf_node(child_node, x * 2, y * 2, z - 1);
+	return create_leaf_node(child_node, x * 2, y * 2, z - 1);
 }
 
-void create_leaf_in_root(uint32_t x, uint32_t y)
+Leaf* create_leaf_in_root(uint32_t x, uint32_t y)
 {
 	const auto index = create_index(x, y);
 	if (!root_nodes[index]) {
 		root_nodes[index] = new Branch();
 	}
 
-	create_leaf_node(root_nodes[index], x, y, (MAP_MAX_LAYERS - 1));
-	update_leaf_neighbors(x, y);
+	const auto leaf = create_leaf_node(root_nodes[index], x, y, (MAP_MAX_LAYERS - 1));
+	update_leaf_neighbors(leaf, x, y);
+	return leaf;
 }
 
 } // namespace
@@ -166,16 +166,21 @@ std::shared_ptr<Tile> tfs::map::quadtree::find_tile(uint16_t x, uint16_t y, uint
 	return nullptr;
 }
 
-void tfs::map::quadtree::create_tile(uint16_t x, uint16_t y, uint8_t z, const std::shared_ptr<Tile>& tile)
+std::shared_ptr<Tile> tfs::map::quadtree::find_or_create_tile(uint16_t x, uint16_t y, uint8_t z,
+                                                              const std::shared_ptr<Tile>& tile)
 {
-	create_leaf_in_root(x, y);
+	const auto leaf = create_leaf_in_root(x, y);
 
-	if (auto leaf = find_leaf_in_root(x, y)) {
-		// Store the tile in the correct position in the tile array.
-		// Here, we also use TILE_INDEX_MASK to index correctly, ensuring that only
-		// the relevant bits of the x and y coordinates are used.
-		leaf->layers[z][x & TILE_INDEX_MASK][y & TILE_INDEX_MASK] = tile;
+	// Store the tile in the correct position in the tile array.
+	// Here, we also use TILE_INDEX_MASK to index correctly, ensuring that only
+	// the relevant bits of the x and y coordinates are used.
+	auto& layerTile = leaf->layers[z][x & TILE_INDEX_MASK][y & TILE_INDEX_MASK];
+	if (layerTile) {
+		return layerTile;
 	}
+
+	layerTile = tile;
+	return nullptr;
 }
 
 void tfs::map::quadtree::move_creature(uint16_t old_x, uint16_t old_y, uint16_t x, uint16_t y,

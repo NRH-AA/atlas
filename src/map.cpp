@@ -86,7 +86,7 @@ void Map::setTile(uint16_t x, uint16_t y, uint8_t z, const std::shared_ptr<Tile>
 		return;
 	}
 
-	if (const auto& tile = tfs::map::quadtree::find_tile(x, y, z)) {
+	if (const auto& tile = tfs::map::quadtree::find_or_create_tile(x, y, z, newTile)) {
 		TileItemVector* items = newTile->getItemList();
 		if (items) {
 			for (auto it = items->rbegin(), end = items->rend(); it != end; ++it) {
@@ -99,8 +99,6 @@ void Map::setTile(uint16_t x, uint16_t y, uint8_t z, const std::shared_ptr<Tile>
 			tile->addThing(ground);
 			newTile->setGround(nullptr);
 		}
-	} else {
-		tfs::map::quadtree::create_tile(x, y, z, newTile);
 	}
 }
 
