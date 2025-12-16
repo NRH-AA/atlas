@@ -1102,18 +1102,18 @@ void Player::onCreatureAppear(const std::shared_ptr<Creature>& creature, bool is
 		}
 	}
 
+	sendClientFeatures();
 	sendPendingStateEntered();
 	sendEnterWorld();
 	sendMapDescription();
 	sendStats();
 	sendSkills();
 	sendIcons();
+	sendBasicData();
+	sendItems();
 	sendLight();
 	sendVIPEntries();
 	sendItemClasses();
-	sendClientFeatures();
-	sendBasicData();
-	sendItems();
 
 	for (int i = CONST_SLOT_FIRST; i <= CONST_SLOT_LAST; ++i) {
 		auto slot = static_cast<slots_t>(i);
