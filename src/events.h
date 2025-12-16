@@ -117,7 +117,7 @@ bool onAdvance(const std::shared_ptr<Player>& player, skills_t skill, uint32_t o
 void onModalWindow(const std::shared_ptr<Player>& player, uint32_t modalWindowId, uint8_t buttonId, uint8_t choiceId);
 bool onTextEdit(const std::shared_ptr<Player>& player, const std::shared_ptr<Item>& item, std::string_view text,
                 const uint32_t windowTextId);
-void onExtendedOpcode(const std::shared_ptr<Player>& player, uint8_t opcode, const std::string& buffer);
+void onExtendedOpcode(const std::shared_ptr<Player>& player, uint8_t opcode, std::string_view buffer);
 
 } // namespace tfs::events::player
 

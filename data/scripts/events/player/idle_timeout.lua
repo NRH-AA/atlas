@@ -3,7 +3,7 @@ local GRACE_PERIOD_MILLIS = 1 * 60 * 1000
 
 local event = Event()
 
-function event.onThink(self, interval)
+event.onCreatureThink = function(self, interval)
 	if not self:isPlayer() then
 		return
 	end

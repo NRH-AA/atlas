@@ -5388,7 +5388,7 @@ void Game::playerAcceptMarketOffer(uint32_t playerId, uint32_t timestamp, uint16
 	player->sendMarketAcceptOffer(offer);
 }
 
-void Game::parsePlayerExtendedOpcode(uint32_t playerId, uint8_t opcode, const std::string& buffer)
+void Game::parsePlayerExtendedOpcode(uint32_t playerId, uint8_t opcode, std::string_view buffer)
 {
 	if (const auto& player = getPlayerByID(playerId)) {
 		tfs::events::player::onExtendedOpcode(player, opcode, buffer);

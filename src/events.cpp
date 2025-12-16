@@ -653,7 +653,7 @@ void onDeath(const std::shared_ptr<Creature>& creature, const std::shared_ptr<It
 
 	tfs::lua::pushBoolean(L, lastHitUnjustified);
 	tfs::lua::pushBoolean(L, mostDamageUnjustified);
-	scriptInterface.callFunction(6);
+	scriptInterface.callVoidFunction(6);
 }
 
 void onKill(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& target)
@@ -676,7 +676,7 @@ void onKill(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Cre
 
 	tfs::lua::pushThing(L, creature);
 	tfs::lua::pushThing(L, target);
-	scriptInterface.callFunction(2);
+	scriptInterface.callVoidFunction(2);
 }
 
 } // namespace tfs::events::creature
@@ -1186,7 +1186,7 @@ void onRotateItem(const std::shared_ptr<Player>& player, const std::shared_ptr<I
 
 	tfs::lua::pushThing(L, player);
 	tfs::lua::pushThing(L, item);
-	scriptInterface.callFunction(2);
+	scriptInterface.callVoidFunction(2);
 }
 
 bool onTurn(const std::shared_ptr<Player>& player, Direction direction)
@@ -1287,7 +1287,7 @@ void onTradeCompleted(const std::shared_ptr<Player>& player, const std::shared_p
 	tfs::lua::pushThing(L, item);
 	tfs::lua::pushThing(L, targetItem);
 	tfs::lua::pushBoolean(L, isSuccess);
-	return scriptInterface.callVoidFunction(5);
+	scriptInterface.callFunction(5);
 }
 
 void onPodiumRequest(const std::shared_ptr<Player>& player, const std::shared_ptr<Item>& item)
@@ -1310,7 +1310,7 @@ void onPodiumRequest(const std::shared_ptr<Player>& player, const std::shared_pt
 
 	tfs::lua::pushThing(L, player);
 	tfs::lua::pushThing(L, item);
-	scriptInterface.callFunction(2);
+	scriptInterface.callVoidFunction(2);
 }
 
 void onPodiumEdit(const std::shared_ptr<Player>& player, const std::shared_ptr<Item>& item, const Outfit_t& outfit,
@@ -1338,7 +1338,7 @@ void onPodiumEdit(const std::shared_ptr<Player>& player, const std::shared_ptr<I
 	tfs::lua::pushOutfit(L, outfit);
 	tfs::lua::pushNumber(L, direction);
 	tfs::lua::pushBoolean(L, podiumVisible);
-	scriptInterface.callFunction(5);
+	scriptInterface.callVoidFunction(5);
 }
 
 void onGainExperience(const std::shared_ptr<Player>& player, const std::shared_ptr<Creature>& source, uint64_t& exp,
@@ -1583,7 +1583,7 @@ void onJoin(const std::shared_ptr<Player>& player)
 	scriptInterface.pushFunction(playerHandlers.onJoin);
 
 	tfs::lua::pushThing(L, player);
-	scriptInterface.callFunction(1);
+	scriptInterface.callVoidFunction(1);
 }
 
 bool onLogout(const std::shared_ptr<Player>& player)
@@ -1627,7 +1627,7 @@ void onReconnect(const std::shared_ptr<Player>& player)
 	scriptInterface.pushFunction(playerHandlers.onReconnect);
 
 	tfs::lua::pushThing(L, player);
-	scriptInterface.callFunction(1);
+	scriptInterface.callVoidFunction(1);
 }
 
 bool onAdvance(const std::shared_ptr<Player>& player, skills_t skill, uint32_t oldLevel, uint32_t newLevel)
@@ -1677,7 +1677,7 @@ void onModalWindow(const std::shared_ptr<Player>& player, uint32_t modalWindowId
 	tfs::lua::pushNumber(L, modalWindowId);
 	tfs::lua::pushNumber(L, buttonId);
 	tfs::lua::pushNumber(L, choiceId);
-	scriptInterface.callFunction(4);
+	scriptInterface.callVoidFunction(4);
 }
 
 bool onTextEdit(const std::shared_ptr<Player>& player, const std::shared_ptr<Item>& item, std::string_view text,
@@ -1706,7 +1706,7 @@ bool onTextEdit(const std::shared_ptr<Player>& player, const std::shared_ptr<Ite
 	return scriptInterface.callFunction(4);
 }
 
-void onExtendedOpcode(const std::shared_ptr<Player>& player, uint8_t opcode, const std::string& buffer)
+void onExtendedOpcode(const std::shared_ptr<Player>& player, uint8_t opcode, std::string_view buffer)
 {
 	// Player:onExtendedOpcode(opcode, buffer)
 	if (playerHandlers.onExtendedOpcode == -1) {
@@ -1727,7 +1727,7 @@ void onExtendedOpcode(const std::shared_ptr<Player>& player, uint8_t opcode, con
 	tfs::lua::pushThing(L, player);
 	tfs::lua::pushNumber(L, opcode);
 	tfs::lua::pushString(L, buffer);
-	scriptInterface.callFunction(3);
+	scriptInterface.callVoidFunction(3);
 }
 
 } // namespace tfs::events::player
@@ -1779,7 +1779,7 @@ void onDropLoot(const std::shared_ptr<Monster>& monster, const std::shared_ptr<C
 
 	tfs::lua::pushMonster(L, monster);
 	tfs::lua::pushContainer(L, corpse);
-	return scriptInterface.callVoidFunction(2);
+	scriptInterface.callVoidFunction(2);
 }
 
 } // namespace tfs::events::monster

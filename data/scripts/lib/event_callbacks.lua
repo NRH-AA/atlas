@@ -72,8 +72,8 @@ ec.onPlayerLogout = {}
 ec.onPlayerReconnect = {}
 ec.onPlayerAdvance = {}
 ec.onPlayerModalWindow = {}
-ec.onPlayerTextEdit = {}
-ec.onPlayerExtendedOpcode = {}
+ec.onPlayerTextEdit = {[3] = 1}
+ec.onPlayerExtendedOpcode = {[3] = 1}
 -- Monster
 ec.onMonsterDropLoot = {}
 ec.onMonsterSpawn = {}
