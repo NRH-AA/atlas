@@ -40,6 +40,10 @@ event.onCreatureKill = function(self, target)
 
 	for _, killer in pairs(getKillersForBestiary(monster)) do
 		killer:addBestiaryKills(raceId)
+
+		if killer:isBestiaryTracked(raceId) then
+			killer:sendTrackedBestiary()
+		end
 	end
 	return true
 end
