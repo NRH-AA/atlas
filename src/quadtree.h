@@ -231,7 +231,7 @@ public:
 	    {};
 
 	/// @brief A set of creatures (monsters, NPCs and players) present in this leaf node.
-	boost::container::flat_set<std::weak_ptr<Creature>, std::owner_less<std::weak_ptr<Creature>>> creatures;
+	boost::container::flat_set<std::shared_ptr<Creature>> creatures;
 
 	Leaf* south_leaf = nullptr;
 	Leaf* east_leaf = nullptr;
