@@ -283,8 +283,8 @@ public:
 	void setInMarket(bool value) { inMarket = value; }
 	bool isInMarket() const { return inMarket; }
 
-	int32_t getIdleTime() const { return idleTime; }
-
+	auto getIdleTime() const { return idleTime; }
+	void setIdleTime(uint32_t ms) { this->idleTime = ms; }
 	void resetIdleTime() { idleTime = 0; }
 
 	bool isInGhostMode() const override { return ghostMode; }
@@ -728,7 +728,7 @@ public:
 	void sendLight()
 	{
 		if (client) {
-			client->sendCreatureLight(getCreature());
+			client->sendCreatureLight(asCreature());
 		}
 	}
 	void sendCreatureLight(const std::shared_ptr<const Creature>& creature)
@@ -807,7 +807,7 @@ public:
 		if (!sendAll) {
 			// update one slot
 			if (const auto& slotThing = getThing(CONST_SLOT_RIGHT)) {
-				if (const auto& slotItem = slotThing->getItem()) {
+				if (const auto& slotItem = slotThing->asItem()) {
 					if (slotItem->getWeaponType() == WEAPON_QUIVER) {
 						sendInventoryItem(CONST_SLOT_RIGHT, slotItem);
 					}
@@ -818,7 +818,7 @@ public:
 			constexpr auto slots = std::array{CONST_SLOT_RIGHT, CONST_SLOT_LEFT, CONST_SLOT_AMMO};
 			for (const auto& slot : slots) {
 				if (const auto& slotThing = getThing(slot)) {
-					if (const auto& slotItem = slotThing->getItem()) {
+					if (const auto& slotItem = slotThing->asItem()) {
 						if (slotItem->getWeaponType() == WEAPON_QUIVER) {
 							sendInventoryItem(slot, slotItem);
 						}
@@ -1186,7 +1186,7 @@ public:
 	                            int32_t index, ReceiverLink_t link = LINK_OWNER) override;
 
 	void setNextWalkActionTask(SchedulerTask* task);
-	void setNextActionTask(SchedulerTask* task, bool resetIdleTime = true);
+	void setNextActionTask(SchedulerTask* task);
 
 	void setNextAction(int64_t time)
 	{
@@ -1229,7 +1229,7 @@ public:
 
 	void addExperience(const std::shared_ptr<Creature>& source, uint64_t exp, bool sendText = false);
 	void removeExperience(uint64_t exp, bool sendText = false);
-	double getLostPercent() const;
+	double getLossPercent() const;
 
 private:
 	std::forward_list<Condition*> getMuteConditions() const;
@@ -1348,6 +1348,7 @@ private:
 	uint32_t manaMax = 0;
 	uint16_t manaShieldBar = 0;
 	uint16_t maxManaShieldBar = 0;
+	uint32_t idleTime = 0;
 	int32_t varSkills[SKILL_LAST + 1] = {};
 	int32_t varSpecialSkills[SPECIALSKILL_LAST + 1] = {};
 	int32_t varStats[STAT_LAST + 1] = {};
@@ -1359,7 +1360,6 @@ private:
 	int32_t shieldBlockCount = 0;
 	int32_t offlineTrainingSkill = -1;
 	int32_t offlineTrainingTime = 0;
-	int32_t idleTime = 0;
 
 	uint16_t lastStatsTrainingTime = 0;
 	uint16_t staminaMinutes = 2520;
@@ -1413,7 +1413,7 @@ private:
 
 	uint64_t getLostExperience() const override
 	{
-		return skillLoss ? static_cast<uint64_t>(experience * getLostPercent()) : 0;
+		return skillLoss ? static_cast<uint64_t>(experience * getLossPercent()) : 0;
 	}
 	uint32_t getDamageImmunities() const override { return damageImmunities; }
 	uint32_t getConditionImmunities() const override { return conditionImmunities; }

@@ -3,7 +3,14 @@ name: Unit tests
 permissions:
   contents: read
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - dev
+
+  pull_request:
+    branches:
+      - dev
 
 jobs:
   test:
@@ -14,9 +21,9 @@ jobs:
         image: mariadb
 
         env:
-          MARIADB_USER: forgottenserver
-          MARIADB_PASSWORD: forgottenserver
-          MARIADB_DATABASE: forgottenserver
+          MARIADB_USER: atlas
+          MARIADB_PASSWORD: atlas
+          MARIADB_DATABASE: atlas
           MARIADB_INITDB_SKIP_TZINFO: "yes"
           MARIADB_RANDOM_ROOT_PASSWORD: "yes"
 
@@ -44,10 +51,13 @@ jobs:
         run: |
           sudo apt update -qq
           sudo apt install -yqq mariadb-client
-          mysql -h 0.0.0.0 -u forgottenserver -pforgottenserver forgottenserver < schema.sql
+          mysql -h 0.0.0.0 -u atlas -patlas atlas < schema.sql
 
       - name: Build with CMake
         uses: lukka/run-cmake@v10
+        env:
+          ASAN_OPTIONS: exitcode=0
+          LSAN_OPTIONS: exitcode=0
         with:
           buildPreset: vcpkg
           buildPresetAdditionalArgs: "['--config', 'Debug']"

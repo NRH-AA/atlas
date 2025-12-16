@@ -45,7 +45,8 @@ std::pair<beast::http::status, json::value> tfs::http::handle_login(const json::
 	}
 
 	thread_local auto& db = Database::getInstance();
-	auto result = db.storeQuery(std::format(
+
+	const auto& result = db.storeQuery(std::format(
 	    "SELECT `id`, UNHEX(`password`) AS `password`, `secret`, `premium_ends_at` FROM `accounts` WHERE `email` = {:s}",
 	    db.escapeString(emailField->get_string())));
 	if (!result) {
@@ -78,6 +79,7 @@ std::pair<beast::http::status, json::value> tfs::http::handle_login(const json::
 
 	auto accountId = result->getNumber<uint64_t>("id");
 	auto premiumEndsAt = result->getNumber<int64_t>("premium_ends_at");
+	auto freePremium = getBoolean(ConfigManager::FREE_PREMIUM);
 
 	std::string sessionKey = randomBytes(16);
 	if (!db.executeQuery(
@@ -86,13 +88,11 @@ std::pair<beast::http::status, json::value> tfs::http::handle_login(const json::
 		return make_error_response();
 	}
 
-	result = db.storeQuery(std::format(
-	    "SELECT `id`, `name`, `level`, `vocation`, `lastlogin`, `sex`, `looktype`, `lookhead`, `lookbody`, `looklegs`, `lookfeet`, `lookaddons` FROM `players` WHERE `account_id` = {:d}",
-	    accountId));
-
 	json::array characters;
 	uint32_t lastLogin = 0;
-	if (result) {
+	if (const auto& result = db.storeQuery(std::format(
+	        "SELECT `id`, `name`, `level`, `vocation`, `lastlogin`, `sex`, `looktype`, `lookhead`, `lookbody`, `looklegs`, `lookfeet`, `lookaddons` FROM `players` WHERE `account_id` = {:d}",
+	        accountId))) {
 		do {
 			auto vocation = g_vocations.getVocation(result->getNumber<uint32_t>("vocation"));
 			assert(vocation);
@@ -142,7 +142,7 @@ std::pair<beast::http::status, json::value> tfs::http::handle_login(const json::
 	         {
 	             {"sessionkey", tfs::base64::encode(sessionKey)},
 	             {"lastlogintime", lastLogin},
-	             {"ispremium", premiumEndsAt >= now},
+	             {"ispremium", freePremium || premiumEndsAt >= now},
 	             {"premiumuntil", premiumEndsAt},
 	             // not implemented
 	             {"status", "active"},

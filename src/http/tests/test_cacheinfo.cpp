@@ -15,9 +15,9 @@ struct CacheInfoFixture
 	CacheInfoFixture()
 	{
 		setString(ConfigManager::MYSQL_HOST, "0.0.0.0");
-		setString(ConfigManager::MYSQL_USER, "forgottenserver");
-		setString(ConfigManager::MYSQL_PASS, "forgottenserver");
-		setString(ConfigManager::MYSQL_DB, "forgottenserver");
+		setString(ConfigManager::MYSQL_USER, "atlas");
+		setString(ConfigManager::MYSQL_PASS, "atlas");
+		setString(ConfigManager::MYSQL_DB, "atlas");
 		setNumber(ConfigManager::SQL_PORT, 3306);
 
 		db.connect();
@@ -40,7 +40,7 @@ struct CacheInfoFixture
 
 using status = boost::beast::http::status;
 
-BOOST_FIXTURE_TEST_CASE(test_login_success_with_token, CacheInfoFixture)
+BOOST_FIXTURE_TEST_CASE(test_cacheinfo_players_online, CacheInfoFixture)
 {
 	auto result = db.storeQuery(
 	    "INSERT INTO `accounts` (`name`, `email`, `password`, `secret`) VALUES ('foo', 'foo@example.com', SHA1('bar'), UNHEX('')) RETURNING `id`");

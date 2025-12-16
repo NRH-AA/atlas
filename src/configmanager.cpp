@@ -189,10 +189,10 @@ bool ConfigManager::load()
 		string[MAP_NAME] = getGlobalString(L, "mapName", "forgotten");
 		string[MAP_AUTHOR] = getGlobalString(L, "mapAuthor", "Unknown");
 		string[HOUSE_RENT_PERIOD] = getGlobalString(L, "houseRentPeriod", "never");
-		string[MYSQL_HOST] = getEnv("MYSQL_HOST", getGlobalString(L, "mysqlHost", "127.0.0.1"));
-		string[MYSQL_USER] = getEnv("MYSQL_USER", getGlobalString(L, "mysqlUser", "forgottenserver"));
+		string[MYSQL_HOST] = getEnv("MYSQL_HOST", getGlobalString(L, "mysqlHost", ""));
+		string[MYSQL_USER] = getEnv("MYSQL_USER", getGlobalString(L, "mysqlUser", ""));
 		string[MYSQL_PASS] = getEnv("MYSQL_PASSWORD", getGlobalString(L, "mysqlPass", ""));
-		string[MYSQL_DB] = getEnv("MYSQL_DATABASE", getGlobalString(L, "mysqlDatabase", "forgottenserver"));
+		string[MYSQL_DB] = getEnv("MYSQL_DATABASE", getGlobalString(L, "mysqlDatabase", ""));
 		string[MYSQL_SOCK] = getEnv("MYSQL_SOCK", getGlobalString(L, "mysqlSock", ""));
 
 		integer[SQL_PORT] = getEnv("MYSQL_PORT", getGlobalNumber(L, "mysqlPort", 3306));
@@ -235,7 +235,6 @@ bool ConfigManager::load()
 	boolean[ONLINE_OFFLINE_CHARLIST] = getGlobalBoolean(L, "showOnlineStatusInCharlist", false);
 	boolean[YELL_ALLOW_PREMIUM] = getGlobalBoolean(L, "yellAlwaysAllowPremium", false);
 	boolean[PREMIUM_TO_SEND_PRIVATE] = getGlobalBoolean(L, "premiumToSendPrivate", false);
-	boolean[FORCE_MONSTERTYPE_LOAD] = getGlobalBoolean(L, "forceMonsterTypesOnLoad", true);
 	boolean[HOUSE_OWNED_BY_ACCOUNT] = getGlobalBoolean(L, "houseOwnedByAccount", false);
 	boolean[CLEAN_PROTECTION_ZONES] = getGlobalBoolean(L, "cleanProtectionZones", false);
 	boolean[HOUSE_DOOR_SHOW_PRICE] = getGlobalBoolean(L, "houseDoorShowPrice", true);
@@ -270,7 +269,6 @@ bool ConfigManager::load()
 	integer[ACTIONS_DELAY_INTERVAL] = getGlobalNumber(L, "timeBetweenActions", 200);
 	integer[EX_ACTIONS_DELAY_INTERVAL] = getGlobalNumber(L, "timeBetweenExActions", 1000);
 	integer[MAX_MESSAGEBUFFER] = getGlobalNumber(L, "maxMessageBuffer", 4);
-	integer[KICK_AFTER_MINUTES] = getGlobalNumber(L, "kickIdlePlayerAfterMinutes", 15);
 	integer[PROTECTION_LEVEL] = getGlobalNumber(L, "protectionLevel", 1);
 	integer[DEATH_LOSE_PERCENT] = getGlobalNumber(L, "deathLosePercent", -1);
 	integer[STATUSQUERY_TIMEOUT] = getGlobalNumber(L, "statusTimeout", 5000);

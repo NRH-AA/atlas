@@ -36,25 +36,6 @@ function Player.hasFlag(self, flag)
 	return self:getGroup():hasFlag(flag)
 end
 
-function Player.getLossPercent(self)
-	local blessings = 0
-	local lossPercent = {
-		[0] = 100,
-		[1] = 70,
-		[2] = 45,
-		[3] = 25,
-		[4] = 10,
-		[5] = 0
-	}
-
-	for i = 1, 5 do
-		if self:hasBlessing(i) then
-			blessings = blessings + 1
-		end
-	end
-	return lossPercent[blessings]
-end
-
 function Player.getPremiumTime(self)
 	return math.max(0, self:getPremiumEndsAt() - os.time())
 end
@@ -390,7 +371,11 @@ end
 
 function Player.isPromoted(self)
 	local vocation = self:getVocation()
-	local fromVocId = vocation:getDemotion():getId()
+	local fromVocId = vocation:getId()
+
+	if vocation:getDemotion() then
+		fromVocId = vocation:getDemotion():getId()
+	end
 	return vocation:getId() ~= fromVocId
 end
 
@@ -646,16 +631,6 @@ function Player.takeScreenshot(self, screenshotType, ignoreConfig)
 	return true
 end
 
-function Player.getBlessings(self)
-	local blessings = 0
-	for i = 1, 6 do
-		if self:hasBlessing(i) then
-			blessings = blessings + 1
-		end
-	end
-	return blessings
-end
-
 local slots = {
 	CONST_SLOT_RIGHT,
 	CONST_SLOT_LEFT,
@@ -733,6 +708,121 @@ function Player.disableLoginMusic(self)
 	msg:addByte(0x01)
 	msg:addByte(0x00)
 	msg:addByte(0x00)
+	msg:sendToPlayer(self)
+	msg:delete()
+	return true
+end
+
+function Player.getBlessings(self)
+	local blessings = Game.getBlessings()
+	local blessingCount = 0
+	local flags = 0
+
+	for i = 1, SERVER_BLESSINGS_COUNT do
+		if self:hasBlessing(i) then
+			blessingCount = blessingCount + 1
+			flags = flags + blessings[i]
+		end
+	end
+	return blessingCount, flags
+end
+
+local function getBlessingStatus(n)
+	if n == SERVER_BLESSINGS_COUNT then
+		return BLESSINGS_STATUS_FULL
+	elseif n > 0 then
+		return BLESSINGS_STATUS_PARTIAL
+	end
+	return BLESSINGS_STATUS_NONE
+end
+
+function Player.sendBlessings(self)
+	local n, flags = self:getBlessings()
+	local status = getBlessingStatus(n)
+
+	local msg = NetworkMessage()
+	msg:addByte(0x9C)
+	msg:addU16(flags)
+	msg:addByte(status)
+	msg:sendToPlayer(self)
+	msg:delete()
+	return true
+end
+
+do
+	local lossPercents = {
+		[0] = { container = 100, other = 10, skills = 0 },
+		[1] = { container = 70, other = 7, skills = 8 },
+		[2] = { container = 45, other = 4.5, skills = 16 },
+		[3] = { container = 25, other = 2.5, skills = 24 },
+		[4] = { container = 10, other = 1, skills = 32 },
+		[5] = { container = 0, other = 0, skills = 40 },
+	}
+
+	function Player.getLossPercent(self)
+		local blessingCount = 0
+		for i = 1, SERVER_BLESSINGS_COUNT do
+			if self:hasBlessing(i) then
+				blessingCount = blessingCount + 1
+			end
+		end
+		return lossPercents[blessingCount]
+	end
+end
+
+function Player.getMaxTrackedBestiary(self)
+	return 50
+end
+
+function Player.isBestiaryTracked(self, raceId)
+	return self:getStorageValue(PlayerStorageKeys.bestiaryTrackerBase + raceId) == 1
+end
+
+function Player.trackBestiary(self, raceId)
+	self:setStorageValue(PlayerStorageKeys.bestiaryTrackerBase + raceId, 1)
+end
+
+function Player.untrackBestiary(self, raceId)
+	self:setStorageValue(PlayerStorageKeys.bestiaryTrackerBase + raceId, -1)
+end
+
+function Player.getTrackedBestiary(self)
+	local result = {}
+
+	local maxRaceId = Game.getMaxBestiaryRaceId()
+	for raceId = 1, maxRaceId do
+		if self:isBestiaryTracked(raceId) then
+			table.insert(result, raceId)
+		end
+	end
+	return result
+end
+
+function Player.sendTrackedBestiary(self)
+	local msg = NetworkMessage()
+	msg:addByte(0xB9)
+
+	local trackedBestiary = self:getTrackedBestiary()
+	msg:addByte(#trackedBestiary)
+
+	for _, raceId in ipairs(trackedBestiary) do
+		msg:addU16(raceId)
+
+		local kills = self:getBestiaryKills(raceId)
+		msg:addU32(kills)
+
+		local monsterType = MonsterType(raceId)
+		if not monsterType then
+			print(string.format("[Warning] MonsterType with raceId %d does not exist.", raceId))
+		end
+
+		local info = monsterType and monsterType:getBestiaryInfo() or {prowess = 1, expertise = 2, mastery = 3}
+		msg:addU16(info.prowess)
+		msg:addU16(info.expertise)
+		msg:addU16(info.mastery)
+		msg:addByte(kills >= info.mastery and 0x01 or 0x00)
+	end
+
 	msg:sendToPlayer(self)
 	msg:delete()
 	return true

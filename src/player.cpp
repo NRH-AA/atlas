@@ -1125,7 +1125,7 @@ void Player::onCreatureAppear(const std::shared_ptr<Creature>& creature, bool is
 		auto slot = static_cast<slots_t>(i);
 		sendInventoryItem(slot, getInventoryItem(slot));
 	}
-	sendInventoryItem(CONST_SLOT_STORE_INBOX, getStoreInbox()->getItem());
+	sendInventoryItem(CONST_SLOT_STORE_INBOX, getStoreInbox()->asItem());
 
 	openSavedContainers();
 
@@ -1475,7 +1475,7 @@ void Player::setNextWalkActionTask(SchedulerTask* task)
 	walkTask = task;
 }
 
-void Player::setNextActionTask(SchedulerTask* task, bool resetIdleTime /*= true */)
+void Player::setNextActionTask(SchedulerTask* task)
 {
 	if (actionTaskEvent != 0) {
 		g_scheduler.stopEvent(actionTaskEvent);
@@ -1484,9 +1484,6 @@ void Player::setNextActionTask(SchedulerTask* task, bool resetIdleTime /*= true 
 
 	if (task) {
 		actionTaskEvent = g_scheduler.addEvent(task);
-		if (resetIdleTime) {
-			this->resetIdleTime();
-		}
 	}
 }
 
@@ -1502,20 +1499,6 @@ void Player::onThink(uint32_t interval)
 	if (MessageBufferTicks >= 1500) {
 		MessageBufferTicks = 0;
 		addMessageBuffer();
-	}
-
-	if (!getTile()->hasFlag(TILESTATE_NOLOGOUT) && !isAccessPlayer()) {
-		idleTime += interval;
-		const int32_t kickAfterMinutes = getNumber(ConfigManager::KICK_AFTER_MINUTES);
-		if (idleTime > (kickAfterMinutes * 60000) + 60000) {
-			kickPlayer(true);
-		} else if (client && idleTime == 60000 * kickAfterMinutes) {
-			client->sendTextMessage(TextMessage(
-			    MESSAGE_STATUS_WARNING,
-			    std::format(
-			        "There was no variation in your behaviour for {:d} minutes. You will be disconnected in one minute if there is no change in your actions until then.",
-			        kickAfterMinutes)));
-		}
 	}
 
 	if (g_game.getWorldType() != WORLD_TYPE_PVP_ENFORCED) {
@@ -1578,7 +1561,7 @@ void Player::onAttacking(uint32_t)
 	SchedulerTask* task = createSchedulerTask(std::max<uint32_t>(SCHEDULER_MINTICKS, delay),
 	                                          [id = getID()]() { g_game.checkCreatureAttack(id); });
 	if (!classicSpeed) {
-		setNextActionTask(task, false);
+		setNextActionTask(task);
 	} else {
 		g_scheduler.stopEvent(classicAttackEvent);
 		classicAttackEvent = g_scheduler.addEvent(task);
@@ -2101,7 +2084,7 @@ void Player::death(const std::shared_ptr<Creature>& lastHitCreature)
 			sumMana += vocation->getReqMana(i);
 		}
 
-		double deathLossPercent = getLostPercent() * (unfairFightReduction / 100.);
+		double deathLossPercent = getLossPercent() * (unfairFightReduction / 100.);
 		removeManaSpent(static_cast<uint64_t>((sumMana + manaSpent) * deathLossPercent), false);
 
 		// Skill loss
@@ -2171,8 +2154,8 @@ void Player::death(const std::shared_ptr<Creature>& lastHitCreature)
 			mana = manaMax;
 		}
 
-		auto it = conditions.begin(), end = conditions.end();
-		while (it != end) {
+		auto it = conditions.begin();
+		while (it != conditions.end()) {
 			Condition* condition = *it;
 			if (condition->isPersistent()) {
 				it = conditions.erase(it);
@@ -2187,8 +2170,8 @@ void Player::death(const std::shared_ptr<Creature>& lastHitCreature)
 	} else {
 		setSkillLoss(true);
 
-		auto it = conditions.begin(), end = conditions.end();
-		while (it != end) {
+		auto it = conditions.begin();
+		while (it != conditions.end()) {
 			Condition* condition = *it;
 			if (condition->isPersistent()) {
 				it = conditions.erase(it);
@@ -2202,7 +2185,7 @@ void Player::death(const std::shared_ptr<Creature>& lastHitCreature)
 		}
 
 		health = healthMax;
-		g_game.internalTeleport(getCreature(), getTemplePosition(), true);
+		g_game.internalTeleport(asCreature(), getTemplePosition(), true);
 		g_game.addCreatureHealth(getPlayer());
 		onThink(EVENT_CREATURE_THINK_INTERVAL);
 		onIdleStatus();
@@ -2408,7 +2391,7 @@ bool Player::hasCapacity(const std::shared_ptr<const Item>& item, uint32_t count
 ReturnValue Player::queryAdd(int32_t index, const std::shared_ptr<const Thing>& thing, uint32_t count, uint32_t flags,
                              const std::shared_ptr<Creature>&) const
 {
-	const auto& item = thing->getItem();
+	const auto& item = thing->asItem();
 	if (!item) {
 		return RETURNVALUE_NOTPOSSIBLE;
 	}
@@ -2662,7 +2645,7 @@ ReturnValue Player::queryAdd(int32_t index, const std::shared_ptr<const Thing>& 
 ReturnValue Player::queryMaxCount(int32_t index, const std::shared_ptr<const Thing>& thing, uint32_t count,
                                   uint32_t& maxQueryCount, uint32_t flags) const
 {
-	const auto& item = thing->getItem();
+	const auto& item = thing->asItem();
 	if (!item) {
 		maxQueryCount = 0;
 		return RETURNVALUE_NOTPOSSIBLE;
@@ -2707,7 +2690,7 @@ ReturnValue Player::queryMaxCount(int32_t index, const std::shared_ptr<const Thi
 		std::shared_ptr<Item> destItem = nullptr;
 
 		if (const auto& destThing = getThing(index)) {
-			destItem = destThing->getItem();
+			destItem = destThing->asItem();
 		}
 
 		if (destItem) {
@@ -2741,7 +2724,7 @@ ReturnValue Player::queryRemove(const std::shared_ptr<const Thing>& thing, uint3
 		return RETURNVALUE_NOTPOSSIBLE;
 	}
 
-	const auto& item = thing->getItem();
+	const auto& item = thing->asItem();
 	if (!item) {
 		return RETURNVALUE_NOTPOSSIBLE;
 	}
@@ -2763,7 +2746,7 @@ std::shared_ptr<Thing> Player::queryDestination(int32_t& index, const std::share
 	destItem = nullptr;
 
 	if (index == 0 /*drop to capacity window*/ || index == INDEX_WHEREEVER) {
-		const auto& item = thing->getItem();
+		const auto& item = thing->asItem();
 		if (!item) {
 			return getPlayer();
 		}
@@ -2874,7 +2857,7 @@ std::shared_ptr<Thing> Player::queryDestination(int32_t& index, const std::share
 		return getPlayer();
 	}
 
-	const auto& item = destThing->getItem();
+	const auto& item = destThing->asItem();
 	if (!item) {
 		return getPlayer();
 	}
@@ -2895,7 +2878,7 @@ void Player::addThing(int32_t index, const std::shared_ptr<Thing>& thing)
 		return /*RETURNVALUE_NOTPOSSIBLE*/;
 	}
 
-	const auto& item = thing->getItem();
+	const auto& item = thing->asItem();
 	if (!item) {
 		return /*RETURNVALUE_NOTPOSSIBLE*/;
 	}
@@ -2914,7 +2897,7 @@ void Player::updateThing(const std::shared_ptr<Thing>& thing, uint16_t itemId, u
 		return /*RETURNVALUE_NOTPOSSIBLE*/;
 	}
 
-	const auto& item = thing->getItem();
+	const auto& item = thing->asItem();
 	if (!item) {
 		return /*RETURNVALUE_NOTPOSSIBLE*/;
 	}
@@ -2940,7 +2923,7 @@ void Player::replaceThing(uint32_t index, const std::shared_ptr<Thing>& thing)
 		return /*RETURNVALUE_NOTPOSSIBLE*/;
 	}
 
-	const auto& item = thing->getItem();
+	const auto& item = thing->asItem();
 	if (!item) {
 		return /*RETURNVALUE_NOTPOSSIBLE*/;
 	}
@@ -2958,7 +2941,7 @@ void Player::replaceThing(uint32_t index, const std::shared_ptr<Thing>& thing)
 
 void Player::removeThing(const std::shared_ptr<Thing>& thing, uint32_t count)
 {
-	const auto& item = thing->getItem();
+	const auto& item = thing->asItem();
 	if (!item) {
 		return /*RETURNVALUE_NOTPOSSIBLE*/;
 	}
@@ -3116,14 +3099,14 @@ void Player::postAddNotification(const std::shared_ptr<Thing>& thing, const std:
 {
 	if (link == LINK_OWNER) {
 		// calling movement scripts
-		g_moveEvents->onPlayerEquip(getPlayer(), thing->getItem(), static_cast<slots_t>(index), false);
-		tfs::events::player::onInventoryUpdate(getPlayer(), thing->getItem(), static_cast<slots_t>(index), true);
+		g_moveEvents->onPlayerEquip(getPlayer(), thing->asItem(), static_cast<slots_t>(index), false);
+		tfs::events::player::onInventoryUpdate(getPlayer(), thing->asItem(), static_cast<slots_t>(index), true);
 	}
 
 	bool requireListUpdate = false;
 
 	if (link == LINK_OWNER || link == LINK_TOPPARENT) {
-		const auto& i = (oldParent ? oldParent->getItem() : nullptr);
+		const auto& i = (oldParent ? oldParent->asItem() : nullptr);
 
 		// Check if we owned the old container too, so we don't need to do anything,
 		// as the list was updated in postRemoveNotification
@@ -3141,7 +3124,7 @@ void Player::postAddNotification(const std::shared_ptr<Thing>& thing, const std:
 		sendItems();
 	}
 
-	if (const auto& item = thing->getItem()) {
+	if (const auto& item = thing->asItem()) {
 		if (const auto& container = item->getContainer()) {
 			onSendContainer(container);
 		}
@@ -3149,7 +3132,7 @@ void Player::postAddNotification(const std::shared_ptr<Thing>& thing, const std:
 		if (!shopOwner.expired() && requireListUpdate) {
 			updateSaleShopList(item);
 		}
-	} else if (const auto& creature = thing->getCreature()) {
+	} else if (const auto& creature = thing->asCreature()) {
 		if (creature.get() == this) {
 			// check containers
 			std::vector<std::shared_ptr<Container>> containers;
@@ -3172,14 +3155,14 @@ void Player::postRemoveNotification(const std::shared_ptr<Thing>& thing, const s
 {
 	if (link == LINK_OWNER) {
 		// calling movement scripts
-		g_moveEvents->onPlayerDeEquip(getPlayer(), thing->getItem(), static_cast<slots_t>(index));
-		tfs::events::player::onInventoryUpdate(getPlayer(), thing->getItem(), static_cast<slots_t>(index), false);
+		g_moveEvents->onPlayerDeEquip(getPlayer(), thing->asItem(), static_cast<slots_t>(index));
+		tfs::events::player::onInventoryUpdate(getPlayer(), thing->asItem(), static_cast<slots_t>(index), false);
 	}
 
 	bool requireListUpdate = false;
 
 	if (link == LINK_OWNER || link == LINK_TOPPARENT) {
-		const auto& i = (newParent ? newParent->getItem() : nullptr);
+		const auto& i = (newParent ? newParent->asItem() : nullptr);
 
 		// Check if we owned the old container too, so we don't need to do anything,
 		// as the list was updated in postRemoveNotification
@@ -3197,7 +3180,7 @@ void Player::postRemoveNotification(const std::shared_ptr<Thing>& thing, const s
 		sendItems();
 	}
 
-	if (const auto& item = thing->getItem()) {
+	if (const auto& item = thing->asItem()) {
 		if (item->isSupply()) {
 			if (const auto& player = item->getHoldingPlayer()) {
 				player->sendSupplyUsed(item->getClientID());
@@ -3287,7 +3270,7 @@ bool Player::hasShopItemForSale(uint32_t itemId, uint8_t subType) const
 
 void Player::internalAddThing(uint32_t index, const std::shared_ptr<Thing>& thing)
 {
-	const auto& item = thing->getItem();
+	const auto& item = thing->asItem();
 	if (!item) {
 		return;
 	}
@@ -4030,7 +4013,7 @@ bool Player::isPromoted() const
 	return promotedVocation == VOCATION_NONE && vocation->getId() != promotedVocation;
 }
 
-double Player::getLostPercent() const
+double Player::getLossPercent() const
 {
 	int32_t deathLosePercent = getNumber(ConfigManager::DEATH_LOSE_PERCENT);
 	if (deathLosePercent != -1) {
