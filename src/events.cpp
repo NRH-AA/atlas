@@ -320,7 +320,7 @@ ReturnValue onAreaCombat(const std::shared_ptr<Creature>& creature, const std::s
 	if (creature) {
 		tfs::lua::pushThing(L, creature);
 	} else {
-		tfs::lua::pushNil(L);
+		lua_pushnil(L);
 	}
 
 	tfs::lua::pushThing(L, tile);
@@ -360,7 +360,7 @@ ReturnValue onTargetCombat(const std::shared_ptr<Creature>& creature, const std:
 	if (creature) {
 		tfs::lua::pushThing(L, creature);
 	} else {
-		tfs::lua::pushNil(L);
+		lua_pushnil(L);
 	}
 
 	tfs::lua::pushThing(L, target);
@@ -453,7 +453,7 @@ void onChangeHealth(const std::shared_ptr<Creature>& creature, const std::shared
 		tfs::lua::pushSharedPtr(L, attacker);
 		tfs::lua::setCreatureMetatable(L, -1, attacker);
 	} else {
-		tfs::lua::pushNil(L);
+		lua_pushnil(L);
 	}
 
 	tfs::lua::pushNumber(L, damage.primary.value);
@@ -504,7 +504,7 @@ void onChangeMana(const std::shared_ptr<Creature>& creature, const std::shared_p
 	if (attacker) {
 		tfs::lua::pushThing(L, attacker);
 	} else {
-		tfs::lua::pushNil(L);
+		lua_pushnil(L);
 	}
 
 	tfs::lua::pushNumber(L, damage.primary.value);
@@ -551,13 +551,13 @@ void onUpdateStorage(const std::shared_ptr<Creature>& creature, uint32_t key, st
 	if (value) {
 		tfs::lua::pushNumber(L, value.value());
 	} else {
-		tfs::lua::pushNil(L);
+		lua_pushnil(L);
 	}
 
 	if (oldValue) {
 		tfs::lua::pushNumber(L, oldValue.value());
 	} else {
-		tfs::lua::pushNil(L);
+		lua_pushnil(L);
 	}
 
 	tfs::lua::pushBoolean(L, isSpawn);
@@ -610,7 +610,7 @@ bool onPrepareDeath(const std::shared_ptr<Creature>& creature, const std::shared
 	if (killer) {
 		tfs::lua::pushThing(L, killer);
 	} else {
-		tfs::lua::pushNil(L);
+		lua_pushnil(L);
 	}
 
 	return scriptInterface.callFunction(2);
@@ -642,13 +642,13 @@ void onDeath(const std::shared_ptr<Creature>& creature, const std::shared_ptr<It
 	if (killer) {
 		tfs::lua::pushThing(L, killer);
 	} else {
-		tfs::lua::pushNil(L);
+		lua_pushnil(L);
 	}
 
 	if (mostDamageKiller) {
 		tfs::lua::pushThing(L, mostDamageKiller);
 	} else {
-		tfs::lua::pushNil(L);
+		lua_pushnil(L);
 	}
 
 	tfs::lua::pushBoolean(L, lastHitUnjustified);
@@ -905,7 +905,7 @@ void onLook(const std::shared_ptr<Player>& player, const Position& position, con
 		tfs::lua::pushSharedPtr(L, item);
 		tfs::lua::setItemMetatable(L, -1, item);
 	} else {
-		tfs::lua::pushNil(L);
+		lua_pushnil(L);
 	}
 
 	tfs::lua::pushPosition(L, position, stackpos);
@@ -1365,7 +1365,7 @@ void onGainExperience(const std::shared_ptr<Player>& player, const std::shared_p
 	if (source) {
 		tfs::lua::pushThing(L, source);
 	} else {
-		tfs::lua::pushNil(L);
+		lua_pushnil(L);
 	}
 
 	tfs::lua::pushNumber(L, exp);
