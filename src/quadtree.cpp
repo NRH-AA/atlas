@@ -7,9 +7,9 @@ namespace {
 
 std::array<Node*, 4> root_nodes = {};
 
-uint8_t create_index(uint16_t x, uint16_t y) { return ((x & 0x8000) >> 15) | ((y & 0x8000) >> 14); }
+uint8_t create_index(uint32_t x, uint32_t y) { return ((x & 0x8000) >> 15) | ((y & 0x8000) >> 14); }
 
-Node* find_leaf(Node* current_node, uint16_t x, uint16_t y)
+Node* find_leaf(Node* current_node, uint32_t x, uint32_t y)
 {
 	if (current_node->isLeaf()) {
 		return current_node;
@@ -22,7 +22,7 @@ Node* find_leaf(Node* current_node, uint16_t x, uint16_t y)
 	return nullptr;
 }
 
-Leaf* find_leaf_in_root(uint16_t x, uint16_t y)
+Leaf* find_leaf_in_root(uint32_t x, uint32_t y)
 {
 	const auto index = create_index(x, y);
 	if (auto node = root_nodes[index]) {
@@ -42,7 +42,7 @@ Leaf* find_leaf_in_root(uint16_t x, uint16_t y)
  * @param {x} The x-coordinate of the leaf node in the quadtree.
  * @param {y} The y-coordinate of the leaf node in the quadtree.
  */
-void update_leaf_neighbors(uint16_t x, uint16_t y)
+void update_leaf_neighbors(uint32_t x, uint32_t y)
 {
 	/*
 	 * The following relationships are updated:
@@ -74,7 +74,7 @@ void update_leaf_neighbors(uint16_t x, uint16_t y)
 	}
 }
 
-void create_leaf_node(Node* current_node, uint16_t x, uint16_t y, uint8_t z)
+void create_leaf_node(Node* current_node, uint32_t x, uint32_t y, uint8_t z)
 {
 	if (current_node->isLeaf()) {
 		return;
@@ -100,7 +100,7 @@ void create_leaf_node(Node* current_node, uint16_t x, uint16_t y, uint8_t z)
 	create_leaf_node(child_node, x * 2, y * 2, z - 1);
 }
 
-void create_leaf_in_root(uint16_t x, uint16_t y)
+void create_leaf_in_root(uint32_t x, uint32_t y)
 {
 	const auto index = create_index(x, y);
 	if (!root_nodes[index]) {
