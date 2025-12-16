@@ -158,8 +158,6 @@ std::generator<std::weak_ptr<Creature>> tfs::map::quadtree::find_creature_in_ran
 
 std::shared_ptr<Tile> tfs::map::quadtree::find_tile(uint16_t x, uint16_t y, uint8_t z)
 {
-	create_leaf_in_root(x, y);
-
 	if (auto leaf = find_leaf_in_root(x, y)) {
 		// Find the tile at layer z, using TILE_INDEX_MASK to ensure that the x and y coordinates
 		// are within the bounds of the leaf (only the least significant bits are used).
@@ -183,11 +181,7 @@ void tfs::map::quadtree::create_tile(uint16_t x, uint16_t y, uint8_t z, const st
 void tfs::map::quadtree::move_creature(uint16_t old_x, uint16_t old_y, uint16_t x, uint16_t y,
                                        const std::shared_ptr<Creature>& creature)
 {
-	create_leaf_in_root(old_x, old_y);
-
 	if (auto old_leaf = find_leaf_in_root(old_x, old_y)) {
-		create_leaf_in_root(x, y);
-
 		if (auto leaf = find_leaf_in_root(x, y)) {
 			if (old_leaf != leaf) {
 				old_leaf->removeCreature(creature);
@@ -199,8 +193,6 @@ void tfs::map::quadtree::move_creature(uint16_t old_x, uint16_t old_y, uint16_t 
 
 void tfs::map::quadtree::add_creature(uint16_t x, uint16_t y, const std::shared_ptr<Creature>& creature)
 {
-	create_leaf_in_root(x, y);
-
 	if (auto leaf = find_leaf_in_root(x, y)) {
 		leaf->addCreature(creature);
 	}
@@ -208,8 +200,6 @@ void tfs::map::quadtree::add_creature(uint16_t x, uint16_t y, const std::shared_
 
 void tfs::map::quadtree::remove_creature(uint16_t x, uint16_t y, const std::shared_ptr<Creature>& creature)
 {
-	create_leaf_in_root(x, y);
-
 	if (auto leaf = find_leaf_in_root(x, y)) {
 		leaf->removeCreature(creature);
 	}
