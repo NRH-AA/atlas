@@ -26,9 +26,7 @@ Leaf* find_leaf_in_root(uint32_t x, uint32_t y)
 {
 	const auto index = create_index(x, y);
 	if (auto node = root_nodes[index]) {
-		if (auto leaf = find_leaf(node, x, y)) {
-			return static_cast<Leaf*>(leaf);
-		}
+		return find_leaf(node, x, y);
 	}
 	return nullptr;
 }
