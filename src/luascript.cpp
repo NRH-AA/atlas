@@ -394,6 +394,8 @@ static std::shared_ptr<DBResult> getResultByID(uint32_t id)
 std::string tfs::lua::getErrorDesc(ErrorCode_t code)
 {
 	switch (code) {
+		case LUA_ERROR_GLOBALEVENT_NOT_FOUND:
+			return "GlobalEvent not found";
 		case LUA_ERROR_WEAPON_NOT_FOUND:
 			return "Weapon not found";
 		case LUA_ERROR_XML_DOCUMENT_NOT_FOUND:
@@ -17560,28 +17562,33 @@ int LuaScriptInterface::luaCreateGlobalEvent(lua_State* L)
 int LuaScriptInterface::luaGlobalEventType(lua_State* L)
 {
 	// globalevent:type(callback)
-	GlobalEvent* global = tfs::lua::getUserdata<GlobalEvent>(L, 1);
-	if (global) {
-		std::string typeName = tfs::lua::getString(L, 2);
-		std::string tmpStr = boost::algorithm::to_lower_copy(typeName);
-		if (tmpStr == "startup") {
-			global->setEventType(GLOBALEVENT_STARTUP);
-		} else if (tmpStr == "shutdown") {
-			global->setEventType(GLOBALEVENT_SHUTDOWN);
-		} else if (tmpStr == "record") {
-			global->setEventType(GLOBALEVENT_RECORD);
-		} else if (tmpStr == "timer") {
-			global->setEventType(GLOBALEVENT_TIMER);
-		} else if (tmpStr == "save") {
-			global->setEventType(GLOBALEVENT_SAVE);
-		} else {
-			std::cout << "[Error - CreatureEvent::configureLuaEvent] Invalid type for global event: " << typeName
-			          << '\n';
-			tfs::lua::pushBoolean(L, false);
-		}
+	GlobalEvent* globalevent = tfs::lua::getUserdata<GlobalEvent>(L, 1);
+	if (!globalevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_GLOBALEVENT_NOT_FOUND));
+		lua_pushnil(L);
+		return 1;
+	}
+
+	std::string typeName = tfs::lua::getString(L, 2);
+	std::string tmpStr = boost::algorithm::to_lower_copy(typeName);
+	if (tmpStr == "startup") {
+		globalevent->setEventType(GLOBALEVENT_STARTUP);
+		tfs::lua::pushBoolean(L, true);
+	} else if (tmpStr == "shutdown") {
+		globalevent->setEventType(GLOBALEVENT_SHUTDOWN);
+		tfs::lua::pushBoolean(L, true);
+	} else if (tmpStr == "record") {
+		globalevent->setEventType(GLOBALEVENT_RECORD);
+		tfs::lua::pushBoolean(L, true);
+	} else if (tmpStr == "timer") {
+		globalevent->setEventType(GLOBALEVENT_TIMER);
+		tfs::lua::pushBoolean(L, true);
+	} else if (tmpStr == "save") {
+		globalevent->setEventType(GLOBALEVENT_SAVE);
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		std::cout << "[Error - CreatureEvent::configureLuaEvent] Invalid type for global event: " << typeName << '\n';
+		tfs::lua::pushBoolean(L, false);
 	}
 	return 1;
 }
@@ -17590,23 +17597,25 @@ int LuaScriptInterface::luaGlobalEventRegister(lua_State* L)
 {
 	// globalevent:register()
 	GlobalEvent* globalevent = tfs::lua::getUserdata<GlobalEvent>(L, 1);
-	if (globalevent) {
-		if (!globalevent->isScripted()) {
-			tfs::lua::pushBoolean(L, false);
-			return 1;
-		}
-
-		if (globalevent->getEventType() == GLOBALEVENT_NONE && globalevent->getInterval() == 0) {
-			std::cout << "[Error - LuaScriptInterface::luaGlobalEventRegister] No interval for globalevent with name "
-			          << globalevent->getName() << '\n';
-			tfs::lua::pushBoolean(L, false);
-			return 1;
-		}
-
-		tfs::lua::pushBoolean(L, g_globalEvents->registerLuaEvent(globalevent));
-	} else {
+	if (!globalevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_GLOBALEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	if (!globalevent->isScripted()) {
+		tfs::lua::pushBoolean(L, false);
+		return 1;
+	}
+
+	if (globalevent->getEventType() == GLOBALEVENT_NONE && globalevent->getInterval() == 0) {
+		std::cout << "[Error - LuaScriptInterface::luaGlobalEventRegister] No interval for globalevent with name "
+		          << globalevent->getName() << '\n';
+		tfs::lua::pushBoolean(L, false);
+		return 1;
+	}
+
+	tfs::lua::pushBoolean(L, g_globalEvents->registerLuaEvent(globalevent));
 	return 1;
 }
 
@@ -17614,15 +17623,13 @@ int LuaScriptInterface::luaGlobalEventOnCallback(lua_State* L)
 {
 	// globalevent:onThink / record / etc. (callback)
 	GlobalEvent* globalevent = tfs::lua::getUserdata<GlobalEvent>(L, 1);
-	if (globalevent) {
-		if (!globalevent->loadCallback()) {
-			tfs::lua::pushBoolean(L, false);
-			return 1;
-		}
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!globalevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_GLOBALEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	tfs::lua::pushBoolean(L, globalevent->loadCallback());
 	return 1;
 }
 
@@ -17630,59 +17637,62 @@ int LuaScriptInterface::luaGlobalEventTime(lua_State* L)
 {
 	// globalevent:time(time)
 	GlobalEvent* globalevent = tfs::lua::getUserdata<GlobalEvent>(L, 1);
-	if (globalevent) {
-		std::string timer = tfs::lua::getString(L, 2);
-		std::vector<int32_t> params = vectorAtoi(explodeString(timer, ":"));
+	if (!globalevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_GLOBALEVENT_NOT_FOUND));
+		lua_pushnil(L);
+		return 1;
+	}
 
-		int32_t hour = params.front();
-		if (hour < 0 || hour > 23) {
-			std::cout << "[Error - GlobalEvent::configureEvent] Invalid hour \"" << timer
+	std::string timer = tfs::lua::getString(L, 2);
+	std::vector<int32_t> params = vectorAtoi(explodeString(timer, ":"));
+
+	int32_t hour = params.front();
+	if (hour < 0 || hour > 23) {
+		std::cout << "[Error - GlobalEvent::configureEvent] Invalid hour \"" << timer
+		          << "\" for globalevent with name: " << globalevent->getName() << '\n';
+		tfs::lua::pushBoolean(L, false);
+		return 1;
+	}
+
+	globalevent->setInterval(hour << 16);
+
+	int32_t min = 0;
+	int32_t sec = 0;
+	if (params.size() > 1) {
+		min = params[1];
+		if (min < 0 || min > 59) {
+			std::cout << "[Error - GlobalEvent::configureEvent] Invalid minute \"" << timer
 			          << "\" for globalevent with name: " << globalevent->getName() << '\n';
 			tfs::lua::pushBoolean(L, false);
 			return 1;
 		}
 
-		globalevent->setInterval(hour << 16);
-
-		int32_t min = 0;
-		int32_t sec = 0;
-		if (params.size() > 1) {
-			min = params[1];
-			if (min < 0 || min > 59) {
-				std::cout << "[Error - GlobalEvent::configureEvent] Invalid minute \"" << timer
+		if (params.size() > 2) {
+			sec = params[2];
+			if (sec < 0 || sec > 59) {
+				std::cout << "[Error - GlobalEvent::configureEvent] Invalid second \"" << timer
 				          << "\" for globalevent with name: " << globalevent->getName() << '\n';
 				tfs::lua::pushBoolean(L, false);
 				return 1;
 			}
-
-			if (params.size() > 2) {
-				sec = params[2];
-				if (sec < 0 || sec > 59) {
-					std::cout << "[Error - GlobalEvent::configureEvent] Invalid second \"" << timer
-					          << "\" for globalevent with name: " << globalevent->getName() << '\n';
-					tfs::lua::pushBoolean(L, false);
-					return 1;
-				}
-			}
 		}
-
-		time_t current_time = time(nullptr);
-		tm* timeinfo = localtime(&current_time);
-		timeinfo->tm_hour = hour;
-		timeinfo->tm_min = min;
-		timeinfo->tm_sec = sec;
-
-		time_t difference = static_cast<time_t>(difftime(mktime(timeinfo), current_time));
-		if (difference < 0) {
-			difference += 86400;
-		}
-
-		globalevent->setNextExecution((current_time + difference) * 1000);
-		globalevent->setEventType(GLOBALEVENT_TIMER);
-		tfs::lua::pushBoolean(L, true);
-	} else {
-		lua_pushnil(L);
 	}
+
+	time_t current_time = time(nullptr);
+	tm* timeinfo = localtime(&current_time);
+	timeinfo->tm_hour = hour;
+	timeinfo->tm_min = min;
+	timeinfo->tm_sec = sec;
+
+	time_t difference = static_cast<time_t>(difftime(mktime(timeinfo), current_time));
+	if (difference < 0) {
+		difference += 86400;
+	}
+
+	globalevent->setNextExecution((current_time + difference) * 1000);
+	globalevent->setEventType(GLOBALEVENT_TIMER);
+
+	tfs::lua::pushBoolean(L, true);
 	return 1;
 }
 
@@ -17690,13 +17700,16 @@ int LuaScriptInterface::luaGlobalEventInterval(lua_State* L)
 {
 	// globalevent:interval(interval)
 	GlobalEvent* globalevent = tfs::lua::getUserdata<GlobalEvent>(L, 1);
-	if (globalevent) {
-		globalevent->setInterval(tfs::lua::getNumber<uint32_t>(L, 2));
-		globalevent->setNextExecution(OTSYS_TIME() + tfs::lua::getNumber<uint32_t>(L, 2));
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!globalevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_GLOBALEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	globalevent->setInterval(tfs::lua::getNumber<uint32_t>(L, 2));
+	globalevent->setNextExecution(OTSYS_TIME() + tfs::lua::getNumber<uint32_t>(L, 2));
+
+	tfs::lua::pushBoolean(L, true);
 	return 1;
 }
 
