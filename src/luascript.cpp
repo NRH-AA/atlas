@@ -394,6 +394,8 @@ static std::shared_ptr<DBResult> getResultByID(uint32_t id)
 std::string tfs::lua::getErrorDesc(ErrorCode_t code)
 {
 	switch (code) {
+		case LUA_ERROR_MOVEEVENT_NOT_FOUND:
+			return "MoveEvent not found";
 		case LUA_ERROR_GLOBALEVENT_NOT_FOUND:
 			return "GlobalEvent not found";
 		case LUA_ERROR_WEAPON_NOT_FOUND:
@@ -17247,34 +17249,41 @@ int LuaScriptInterface::luaMoveEventType(lua_State* L)
 {
 	// moveevent:type(callback)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		std::string typeName = tfs::lua::getString(L, 2);
-		std::string tmpStr = boost::algorithm::to_lower_copy(typeName);
-		if (tmpStr == "stepin") {
-			moveevent->setEventType(MOVE_EVENT_STEP_IN);
-			moveevent->stepFunction = moveevent->StepInField;
-		} else if (tmpStr == "stepout") {
-			moveevent->setEventType(MOVE_EVENT_STEP_OUT);
-			moveevent->stepFunction = moveevent->StepOutField;
-		} else if (tmpStr == "equip") {
-			moveevent->setEventType(MOVE_EVENT_EQUIP);
-			moveevent->equipFunction = moveevent->EquipItem;
-		} else if (tmpStr == "deequip") {
-			moveevent->setEventType(MOVE_EVENT_DEEQUIP);
-			moveevent->equipFunction = moveevent->DeEquipItem;
-		} else if (tmpStr == "additem") {
-			moveevent->setEventType(MOVE_EVENT_ADD_ITEM);
-			moveevent->moveFunction = moveevent->AddItemField;
-		} else if (tmpStr == "removeitem") {
-			moveevent->setEventType(MOVE_EVENT_REMOVE_ITEM);
-			moveevent->moveFunction = moveevent->RemoveItemField;
-		} else {
-			std::cout << "Error: [MoveEvent::configureMoveEvent] No valid event name " << typeName << '\n';
-			tfs::lua::pushBoolean(L, false);
-		}
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
+		lua_pushnil(L);
+		return 1;
+	}
+
+	std::string typeName = tfs::lua::getString(L, 2);
+	std::string tmpStr = boost::algorithm::to_lower_copy(typeName);
+	if (tmpStr == "stepin") {
+		moveevent->setEventType(MOVE_EVENT_STEP_IN);
+		moveevent->stepFunction = moveevent->StepInField;
+		tfs::lua::pushBoolean(L, true);
+	} else if (tmpStr == "stepout") {
+		moveevent->setEventType(MOVE_EVENT_STEP_OUT);
+		moveevent->stepFunction = moveevent->StepOutField;
+		tfs::lua::pushBoolean(L, true);
+	} else if (tmpStr == "equip") {
+		moveevent->setEventType(MOVE_EVENT_EQUIP);
+		moveevent->equipFunction = moveevent->EquipItem;
+		tfs::lua::pushBoolean(L, true);
+	} else if (tmpStr == "deequip") {
+		moveevent->setEventType(MOVE_EVENT_DEEQUIP);
+		moveevent->equipFunction = moveevent->DeEquipItem;
+		tfs::lua::pushBoolean(L, true);
+	} else if (tmpStr == "additem") {
+		moveevent->setEventType(MOVE_EVENT_ADD_ITEM);
+		moveevent->moveFunction = moveevent->AddItemField;
+		tfs::lua::pushBoolean(L, true);
+	} else if (tmpStr == "removeitem") {
+		moveevent->setEventType(MOVE_EVENT_REMOVE_ITEM);
+		moveevent->moveFunction = moveevent->RemoveItemField;
 		tfs::lua::pushBoolean(L, true);
 	} else {
-		lua_pushnil(L);
+		std::cout << "Error: [MoveEvent::configureMoveEvent] No valid event name " << typeName << '\n';
+		tfs::lua::pushBoolean(L, false);
 	}
 	return 1;
 }
@@ -17283,26 +17292,32 @@ int LuaScriptInterface::luaMoveEventRegister(lua_State* L)
 {
 	// moveevent:register()
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		if ((moveevent->getEventType() == MOVE_EVENT_EQUIP || moveevent->getEventType() == MOVE_EVENT_DEEQUIP) &&
-		    moveevent->getSlot() == SLOTP_WHEREEVER) {
-			uint32_t id = g_moveEvents->getItemIdRange(moveevent).at(0);
-			ItemType& it = Item::items.getItemType(id);
-			moveevent->setSlot(it.slotPosition);
-		}
-		if (!moveevent->isScripted()) {
-			tfs::lua::pushBoolean(L, g_moveEvents->registerLuaFunction(moveevent));
-			g_moveEvents->clearItemIdRange(moveevent);
-			return 1;
-		}
-		tfs::lua::pushBoolean(L, g_moveEvents->registerLuaEvent(moveevent));
-		g_moveEvents->clearItemIdRange(moveevent);
-		g_moveEvents->clearActionIdRange(moveevent);
-		g_moveEvents->clearUniqueIdRange(moveevent);
-		g_moveEvents->clearPosList(moveevent);
-	} else {
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	if ((moveevent->getEventType() == MOVE_EVENT_EQUIP || moveevent->getEventType() == MOVE_EVENT_DEEQUIP) &&
+	    moveevent->getSlot() == SLOTP_WHEREEVER) {
+		uint32_t id = g_moveEvents->getItemIdRange(moveevent).at(0);
+		ItemType& it = Item::items.getItemType(id);
+		moveevent->setSlot(it.slotPosition);
+	}
+
+	if (!moveevent->isScripted()) {
+		tfs::lua::pushBoolean(L, g_moveEvents->registerLuaFunction(moveevent));
+		g_moveEvents->clearItemIdRange(moveevent);
+		return 1;
+	}
+
+	tfs::lua::pushBoolean(L, g_moveEvents->registerLuaEvent(moveevent));
+
+	g_moveEvents->clearItemIdRange(moveevent);
+	g_moveEvents->clearActionIdRange(moveevent);
+	g_moveEvents->clearUniqueIdRange(moveevent);
+	g_moveEvents->clearPosList(moveevent);
+
 	return 1;
 }
 
@@ -17310,15 +17325,13 @@ int LuaScriptInterface::luaMoveEventOnCallback(lua_State* L)
 {
 	// moveevent:onEquip / deEquip / etc. (callback)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		if (!moveevent->loadCallback()) {
-			tfs::lua::pushBoolean(L, false);
-			return 1;
-		}
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	tfs::lua::pushBoolean(L, moveevent->loadCallback());
 	return 1;
 }
 
@@ -17327,6 +17340,7 @@ int LuaScriptInterface::luaMoveEventSlot(lua_State* L)
 	// moveevent:slot(slot)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
 	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
 		return 1;
 	}
@@ -17370,13 +17384,16 @@ int LuaScriptInterface::luaMoveEventLevel(lua_State* L)
 {
 	// moveevent:level(lvl)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		moveevent->setRequiredLevel(tfs::lua::getNumber<uint32_t>(L, 2));
-		moveevent->setWieldInfo(WIELDINFO_LEVEL);
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	moveevent->setRequiredLevel(tfs::lua::getNumber<uint32_t>(L, 2));
+	moveevent->setWieldInfo(WIELDINFO_LEVEL);
+
+	tfs::lua::pushBoolean(L, true);
 	return 1;
 }
 
@@ -17384,13 +17401,16 @@ int LuaScriptInterface::luaMoveEventMagLevel(lua_State* L)
 {
 	// moveevent:magicLevel(lvl)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		moveevent->setRequiredMagLevel(tfs::lua::getNumber<uint32_t>(L, 2));
-		moveevent->setWieldInfo(WIELDINFO_MAGLV);
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	moveevent->setRequiredMagLevel(tfs::lua::getNumber<uint32_t>(L, 2));
+	moveevent->setWieldInfo(WIELDINFO_MAGLV);
+
+	tfs::lua::pushBoolean(L, true);
 	return 1;
 }
 
@@ -17398,13 +17418,16 @@ int LuaScriptInterface::luaMoveEventPremium(lua_State* L)
 {
 	// moveevent:premium(bool)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		moveevent->setNeedPremium(tfs::lua::getBoolean(L, 2));
-		moveevent->setWieldInfo(WIELDINFO_PREMIUM);
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	moveevent->setNeedPremium(tfs::lua::getBoolean(L, 2));
+	moveevent->setWieldInfo(WIELDINFO_PREMIUM);
+
+	tfs::lua::pushBoolean(L, true);
 	return 1;
 }
 
@@ -17412,39 +17435,45 @@ int LuaScriptInterface::luaMoveEventVocation(lua_State* L)
 {
 	// moveevent:vocation(vocName[, showInDescription = false, lastVoc = false])
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		moveevent->addVocationEquipSet(tfs::lua::getString(L, 2));
-		moveevent->setWieldInfo(WIELDINFO_VOCREQ);
-		std::string tmp;
-		bool showInDescription = false;
-		bool lastVoc = false;
-		if (tfs::lua::getBoolean(L, 3)) {
-			showInDescription = tfs::lua::getBoolean(L, 3);
-		}
-		if (tfs::lua::getBoolean(L, 4)) {
-			lastVoc = tfs::lua::getBoolean(L, 4);
-		}
-		if (showInDescription) {
-			if (moveevent->getVocationString().empty()) {
-				tmp = boost::algorithm::to_lower_copy(tfs::lua::getString(L, 2));
-				tmp += "s";
-				moveevent->setVocationString(tmp);
-			} else {
-				tmp = moveevent->getVocationString();
-				if (lastVoc) {
-					tmp += " and ";
-				} else {
-					tmp += ", ";
-				}
-				tmp += boost::algorithm::to_lower_copy(tfs::lua::getString(L, 2));
-				tmp += "s";
-				moveevent->setVocationString(tmp);
-			}
-		}
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	moveevent->addVocationEquipSet(tfs::lua::getString(L, 2));
+	moveevent->setWieldInfo(WIELDINFO_VOCREQ);
+
+	bool showInDescription = false;
+	if (tfs::lua::getBoolean(L, 3)) {
+		showInDescription = tfs::lua::getBoolean(L, 3);
+	}
+
+	bool lastVoc = false;
+	if (tfs::lua::getBoolean(L, 4)) {
+		lastVoc = tfs::lua::getBoolean(L, 4);
+	}
+
+	if (showInDescription) {
+		std::string tmp;
+		if (moveevent->getVocationString().empty()) {
+			tmp = boost::algorithm::to_lower_copy(tfs::lua::getString(L, 2));
+			tmp += "s";
+			moveevent->setVocationString(tmp);
+		} else {
+			tmp = moveevent->getVocationString();
+			if (lastVoc) {
+				tmp += " and ";
+			} else {
+				tmp += ", ";
+			}
+			tmp += boost::algorithm::to_lower_copy(tfs::lua::getString(L, 2));
+			tmp += "s";
+			moveevent->setVocationString(tmp);
+		}
+	}
+
+	tfs::lua::pushBoolean(L, true);
 	return 1;
 }
 
@@ -17452,12 +17481,15 @@ int LuaScriptInterface::luaMoveEventTileItem(lua_State* L)
 {
 	// moveevent:tileItem(bool)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		moveevent->setTileItem(tfs::lua::getBoolean(L, 2));
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	moveevent->setTileItem(tfs::lua::getBoolean(L, 2));
+
+	tfs::lua::pushBoolean(L, true);
 	return 1;
 }
 
@@ -17465,19 +17497,22 @@ int LuaScriptInterface::luaMoveEventItemId(lua_State* L)
 {
 	// moveevent:id(ids)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		int parameters = lua_gettop(L) - 1; // - 1 because self is a parameter aswell, which we want to skip ofc
-		if (parameters > 1) {
-			for (int i = 0; i < parameters; ++i) {
-				g_moveEvents->addItemId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2 + i));
-			}
-		} else {
-			g_moveEvents->addItemId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2));
-		}
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	int parameters = lua_gettop(L) - 1; // - 1 because self is a parameter aswell, which we want to skip ofc
+	if (parameters > 1) {
+		for (int i = 0; i < parameters; ++i) {
+			g_moveEvents->addItemId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2 + i));
+		}
+	} else {
+		g_moveEvents->addItemId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2));
+	}
+
+	tfs::lua::pushBoolean(L, true);
 	return 1;
 }
 
@@ -17485,19 +17520,22 @@ int LuaScriptInterface::luaMoveEventActionId(lua_State* L)
 {
 	// moveevent:aid(ids)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		int parameters = lua_gettop(L) - 1; // - 1 because self is a parameter aswell, which we want to skip ofc
-		if (parameters > 1) {
-			for (int i = 0; i < parameters; ++i) {
-				g_moveEvents->addActionId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2 + i));
-			}
-		} else {
-			g_moveEvents->addActionId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2));
-		}
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	int parameters = lua_gettop(L) - 1; // - 1 because self is a parameter aswell, which we want to skip ofc
+	if (parameters > 1) {
+		for (int i = 0; i < parameters; ++i) {
+			g_moveEvents->addActionId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2 + i));
+		}
+	} else {
+		g_moveEvents->addActionId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2));
+	}
+
+	tfs::lua::pushBoolean(L, true);
 	return 1;
 }
 
@@ -17505,19 +17543,22 @@ int LuaScriptInterface::luaMoveEventUniqueId(lua_State* L)
 {
 	// moveevent:uid(ids)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		int parameters = lua_gettop(L) - 1; // - 1 because self is a parameter aswell, which we want to skip ofc
-		if (parameters > 1) {
-			for (int i = 0; i < parameters; ++i) {
-				g_moveEvents->addUniqueId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2 + i));
-			}
-		} else {
-			g_moveEvents->addUniqueId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2));
-		}
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	int parameters = lua_gettop(L) - 1; // - 1 because self is a parameter aswell, which we want to skip ofc
+	if (parameters > 1) {
+		for (int i = 0; i < parameters; ++i) {
+			g_moveEvents->addUniqueId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2 + i));
+		}
+	} else {
+		g_moveEvents->addUniqueId(moveevent, tfs::lua::getNumber<uint32_t>(L, 2));
+	}
+
+	tfs::lua::pushBoolean(L, true);
 	return 1;
 }
 
@@ -17525,19 +17566,22 @@ int LuaScriptInterface::luaMoveEventPosition(lua_State* L)
 {
 	// moveevent:position(positions)
 	MoveEvent* moveevent = tfs::lua::getUserdata<MoveEvent>(L, 1);
-	if (moveevent) {
-		int parameters = lua_gettop(L) - 1; // - 1 because self is a parameter aswell, which we want to skip ofc
-		if (parameters > 1) {
-			for (int i = 0; i < parameters; ++i) {
-				g_moveEvents->addPosList(moveevent, tfs::lua::getPosition(L, 2 + i));
-			}
-		} else {
-			g_moveEvents->addPosList(moveevent, tfs::lua::getPosition(L, 2));
-		}
-		tfs::lua::pushBoolean(L, true);
-	} else {
+	if (!moveevent) {
+		reportErrorFunc(L, tfs::lua::getErrorDesc(LUA_ERROR_MOVEEVENT_NOT_FOUND));
 		lua_pushnil(L);
+		return 1;
 	}
+
+	int parameters = lua_gettop(L) - 1; // - 1 because self is a parameter aswell, which we want to skip ofc
+	if (parameters > 1) {
+		for (int i = 0; i < parameters; ++i) {
+			g_moveEvents->addPosList(moveevent, tfs::lua::getPosition(L, 2 + i));
+		}
+	} else {
+		g_moveEvents->addPosList(moveevent, tfs::lua::getPosition(L, 2));
+	}
+
+	tfs::lua::pushBoolean(L, true);
 	return 1;
 }
 
