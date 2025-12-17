@@ -5,6 +5,10 @@ event.onPlayerLogout = function(self)
 	if nextUseStaminaTime[playerId] then
 		nextUseStaminaTime[playerId] = nil
 	end
+
+	player:setLastPing(nil)
+	player:setLastPong(nil)
+
 	return true
 end
 

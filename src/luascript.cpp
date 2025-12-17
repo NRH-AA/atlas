@@ -1029,6 +1029,8 @@ std::shared_ptr<Creature> tfs::lua::getCreature(lua_State* L, int32_t arg)
 {
 	if (lua_isuserdata(L, arg)) {
 		return getSharedPtr<Creature>(L, arg);
+	} else if (lua_isnil(L, arg)) {
+		return nullptr;
 	}
 	return g_game.getCreatureByID(getNumber<uint32_t>(L, arg));
 }
@@ -3023,6 +3025,7 @@ void LuaScriptInterface::registerFunctions()
 	registerMethod(L, "Vocation", "getPromotion", LuaScriptInterface::luaVocationGetPromotion);
 
 	registerMethod(L, "Vocation", "allowsPvp", LuaScriptInterface::luaVocationAllowsPvp);
+	registerMethod(L, "Vocation", "getNoPongKickTime", LuaScriptInterface::luaVocationGetNoPongKickTime);
 
 	// House
 	registerClass(L, "House", "", LuaScriptInterface::luaHouseCreate);
@@ -3807,7 +3810,7 @@ int LuaScriptInterface::luaIsMoveable(lua_State* L)
 		tfs::lua::pushBoolean(L, item->isPushable());
 	} else if (const auto& creature = thing->asCreature()) {
 		tfs::lua::pushBoolean(L, creature->isPushable());
-	} else if (const auto& tile = thing->getTile()) {
+	} else if (const auto& tile = thing->asTile()) {
 		tfs::lua::pushBoolean(L, false);
 	} else {
 		tfs::lua::pushBoolean(L, false);
@@ -12166,6 +12169,18 @@ int LuaScriptInterface::luaVocationAllowsPvp(lua_State* L)
 	Vocation* vocation = tfs::lua::getUserdata<Vocation>(L, 1);
 	if (vocation) {
 		tfs::lua::pushBoolean(L, vocation->allowsPvp());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int LuaScriptInterface::luaVocationGetNoPongKickTime(lua_State* L)
+{
+	// vocation:getNoPongKickTime()
+	Vocation* vocation = tfs::lua::getUserdata<Vocation>(L, 1);
+	if (vocation) {
+		tfs::lua::pushNumber(L, vocation->getNoPongKickTime());
 	} else {
 		lua_pushnil(L);
 	}
