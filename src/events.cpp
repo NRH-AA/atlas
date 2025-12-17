@@ -7,6 +7,7 @@
 
 #include "item.h"
 #include "player.h"
+#include "monster.h"
 
 namespace {
 
@@ -1752,7 +1753,7 @@ bool onSpawn(const std::shared_ptr<Monster>& monster, const Position& position, 
 	const auto L = scriptInterface.getLuaState();
 	scriptInterface.pushFunction(monsterHandlers.onSpawn);
 
-	tfs::lua::pushMonster(L, monster);
+	tfs::lua::pushThing(L, monster);
 	tfs::lua::pushPosition(L, position);
 	tfs::lua::pushBoolean(L, startup);
 	tfs::lua::pushBoolean(L, artificial);
@@ -1777,8 +1778,14 @@ void onDropLoot(const std::shared_ptr<Monster>& monster, const std::shared_ptr<C
 	const auto L = scriptInterface.getLuaState();
 	scriptInterface.pushFunction(monsterHandlers.onDropLoot);
 
-	tfs::lua::pushMonster(L, monster);
-	tfs::lua::pushContainer(L, corpse);
+	tfs::lua::pushThing(L, monster);
+
+	if (corpse) {
+		tfs::lua::pushThing(L, corpse);
+	} else {
+		lua_pushnil(L);
+	}
+
 	scriptInterface.callVoidFunction(2);
 }
 

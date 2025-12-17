@@ -1411,10 +1411,6 @@ void reportError(std::string_view function, std::string_view error_desc, lua_Sta
 
 // push/pop common structures
 void pushThing(lua_State* L, const std::shared_ptr<Thing>& thing);
-void pushMonster(lua_State* L, const std::shared_ptr<Monster>& monster);
-void pushNpc(lua_State* L, const std::shared_ptr<Npc>& npc);
-void pushPlayer(lua_State* L, const std::shared_ptr<Player>& player);
-void pushContainer(lua_State* L, const std::shared_ptr<Container>& container);
 void pushVariant(lua_State* L, const LuaVariant& var);
 void pushString(lua_State* L, std::string_view value);
 void pushCallback(lua_State* L, int32_t callback);
