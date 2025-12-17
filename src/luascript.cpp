@@ -737,14 +737,14 @@ void tfs::lua::pushThing(lua_State* L, const std::shared_ptr<Thing>& thing)
 	}
 
 	if (const auto& item = thing->asItem()) {
-		tfs::lua::pushSharedPtr(L, item);
-		tfs::lua::setItemMetatable(L, -1, item);
+		pushSharedPtr(L, item);
+		setItemMetatable(L, -1, item);
 	} else if (const auto& creature = thing->asCreature()) {
-		tfs::lua::pushSharedPtr(L, creature);
-		tfs::lua::setCreatureMetatable(L, -1, creature);
-	} else if (const auto& tile = thing->getTile()) {
-		tfs::lua::pushSharedPtr(L, tile);
-		tfs::lua::setMetatable(L, -1, "Tile");
+		pushSharedPtr(L, creature);
+		setCreatureMetatable(L, -1, creature);
+	} else if (const auto& tile = thing->asTile()) {
+		pushSharedPtr(L, tile);
+		setMetatable(L, -1, "Tile");
 	} else {
 		lua_pushnil(L);
 	}
@@ -1074,20 +1074,20 @@ void tfs::lua::pushOutfit(lua_State* L, const Outfit* outfit)
 
 void tfs::lua::pushParty(lua_State* L, Party* party)
 {
-	tfs::lua::pushUserdata(L, party);
-	tfs::lua::setMetatable(L, -1, "Party");
+	pushUserdata(L, party);
+	setMetatable(L, -1, "Party");
 }
 
 void tfs::lua::pushItemType(lua_State* L, const ItemType* itemType)
 {
-	tfs::lua::pushUserdata(L, itemType);
-	tfs::lua::setMetatable(L, -1, "ItemType");
+	pushUserdata(L, itemType);
+	setMetatable(L, -1, "ItemType");
 }
 
 void tfs::lua::pushNetworkMessage(lua_State* L, NetworkMessage* msg)
 {
-	tfs::lua::pushUserdata(L, msg);
-	tfs::lua::setMetatable(L, -1, "NetworkMessage");
+	pushUserdata(L, msg);
+	setMetatable(L, -1, "NetworkMessage");
 }
 
 static void pushLoot(lua_State* L, const std::vector<LootBlock>& lootList)
