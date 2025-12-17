@@ -453,7 +453,7 @@ void Creature::onDeath()
 	}
 
 	for (const auto& [attacker, gainExp] : experienceMap) {
-		attacker->onGainExperience(gainExp, getCreature());
+		attacker->onGainExperience(gainExp, asCreature());
 	}
 
 	if (mostDamageCreature) {
