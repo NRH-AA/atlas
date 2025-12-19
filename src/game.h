@@ -450,8 +450,6 @@ public:
 
 	void startDecay(const std::shared_ptr<Item>& item);
 
-	void sendOfflineTrainingDialog(const std::shared_ptr<Player>& player);
-
 	auto getPlayers() const { return players | std::views::values; }
 	auto getNpcs() const { return npcs | std::views::values; }
 	auto getMonsters() const { return monsters | std::views::values; }
@@ -463,7 +461,6 @@ public:
 	std::unordered_map<Tile*, std::shared_ptr<Container>> browseFields;
 
 	void internalRemoveItems(const std::vector<std::shared_ptr<Item>>& itemList, uint32_t amount, bool stackable);
-
 
 	void updatePodium(const std::shared_ptr<Podium>& podium);
 
@@ -530,12 +527,9 @@ private:
 	// list of items that are in trading state, mapped to the player holding them
 	std::map<std::shared_ptr<Item>, uint32_t> tradeItems;
 
-
 	std::unordered_set<std::shared_ptr<Tile>> tilesToClean;
 
 	std::set<std::shared_ptr<Party>> parties;
-
-	ModalWindow offlineTrainingWindow{std::numeric_limits<uint32_t>::max(), "Choose a Skill", "Please choose a skill:"};
 
 	GameState_t gameState = GAME_STATE_NORMAL;
 	WorldType_t worldType = WORLD_TYPE_PVP;
