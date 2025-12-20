@@ -47,7 +47,7 @@ extern Weapons* g_weapons;
 
 Game g_game;
 
-Game::Game() {}
+Game() = default;
 
 void Game::start(ServiceManager* manager)
 {
