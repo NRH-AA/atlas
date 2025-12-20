@@ -125,6 +125,49 @@ string.trim = function(str)
 	return str:match'^()%s*$' and '' or str:match'^%s*(.*%S)'
 end
 
+-- Offline player lookups (temporary DB-based implementation)
+-- TODO: replace with native API/caching once available
+function getPlayerGuidByName(name)
+	if type(name) ~= 'string' or name == '' then
+		return 0
+	end
+
+	local resultId = db.storeQuery("SELECT `id` AS `guid` FROM `players` WHERE `name`=" .. db.escapeString(name) .. " LIMIT 1")
+	if not resultId then
+		return 0
+	end
+
+	local guid = result.getNumber(resultId, "guid")
+	result.free(resultId)
+	return guid or 0
+end
+
+function getPlayerNameByGuid(guid)
+	if type(guid) ~= 'number' then
+		return nil
+	end
+
+	local resultId = db.storeQuery("SELECT `name` FROM `players` WHERE `id`=" .. guid .. " LIMIT 1")
+	if not resultId then
+		return nil
+	end
+
+	local name = result.getString(resultId, "name")
+	result.free(resultId)
+	return name
+end
+
+-- Case-preserving aliases for future API parity
+function getPlayerGUIDByName(name)
+	return getPlayerGuidByName(name)
+end
+
+function getPlayerNameByGUID(guid)
+	return getPlayerNameByGuid(guid)
+end
+
+-- TODO: guild rank access helpers will be added here when door rank handling moves fully to Lua
+
 if not nextUseStaminaTime then
 	nextUseStaminaTime = {}
 end

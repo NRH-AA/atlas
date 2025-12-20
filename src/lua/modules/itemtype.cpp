@@ -330,6 +330,19 @@ int luaItemTypeGetSlotPosition(lua_State* L)
 	return 1;
 }
 
+int luaItemTypeGetBedPartnerDirection(lua_State* L)
+{
+	// itemType:getBedPartnerDirection()
+	const ItemType* itemType = tfs::lua::getUserdata<const ItemType>(L, 1);
+	if (!itemType || itemType->bedPartnerDir == DIRECTION_NONE) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	tfs::lua::pushNumber(L, itemType->bedPartnerDir);
+	return 1;
+}
+
 int luaItemTypeGetCharges(lua_State* L)
 {
 	// itemType:getCharges()
@@ -1027,7 +1040,6 @@ void tfs::lua::registerItemType(LuaScriptInterface& lsi)
 	registerEnum(lsi, ITEM_TYPE_DOOR);
 	registerEnum(lsi, ITEM_TYPE_MAGICFIELD);
 	registerEnum(lsi, ITEM_TYPE_TELEPORT);
-	registerEnum(lsi, ITEM_TYPE_BED);
 	registerEnum(lsi, ITEM_TYPE_KEY);
 	registerEnum(lsi, ITEM_TYPE_RUNE);
 	registerEnum(lsi, ITEM_TYPE_PODIUM);
@@ -1112,6 +1124,7 @@ void tfs::lua::registerItemType(LuaScriptInterface& lsi)
 	lsi.registerMethod("ItemType", "getArticle", luaItemTypeGetArticle);
 	lsi.registerMethod("ItemType", "getDescription", luaItemTypeGetDescription);
 	lsi.registerMethod("ItemType", "getSlotPosition", luaItemTypeGetSlotPosition);
+	lsi.registerMethod("ItemType", "getBedPartnerDirection", luaItemTypeGetBedPartnerDirection);
 
 	lsi.registerMethod("ItemType", "getCharges", luaItemTypeGetCharges);
 	lsi.registerMethod("ItemType", "getFluidSource", luaItemTypeGetFluidSource);

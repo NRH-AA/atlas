@@ -39,7 +39,6 @@ enum ItemTypes_t
 	ITEM_TYPE_DOOR,
 	ITEM_TYPE_MAGICFIELD,
 	ITEM_TYPE_TELEPORT,
-	ITEM_TYPE_BED,
 	ITEM_TYPE_KEY,
 	ITEM_TYPE_RUNE,
 	ITEM_TYPE_PODIUM,
@@ -280,7 +279,6 @@ public:
 	bool isDepot() const { return (type == ITEM_TYPE_DEPOT); }
 	bool isMailbox() const { return (type == ITEM_TYPE_MAILBOX); }
 	bool isTrashHolder() const { return (type == ITEM_TYPE_TRASHHOLDER); }
-	bool isBed() const { return (type == ITEM_TYPE_BED); }
 	bool isRune() const { return (type == ITEM_TYPE_RUNE); }
 	bool isPodium() const { return (type == ITEM_TYPE_PODIUM); }
 	bool isPickupable() const { return (allowPickupable || pickupable); }

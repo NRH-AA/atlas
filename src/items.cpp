@@ -284,7 +284,6 @@ const std::unordered_map<std::string, ItemTypes_t> ItemTypesMap = {{"key", ITEM_
                                                                    {"trashholder", ITEM_TYPE_TRASHHOLDER},
                                                                    {"teleport", ITEM_TYPE_TELEPORT},
                                                                    {"door", ITEM_TYPE_DOOR},
-                                                                   {"bed", ITEM_TYPE_BED},
                                                                    {"rune", ITEM_TYPE_RUNE},
                                                                    {"podium", ITEM_TYPE_PODIUM}};
 
@@ -1913,13 +1912,6 @@ void Items::parseItemNode(const pugi::xml_node& itemNode, uint16_t id)
 			std::cout << "[Warning - Items::parseItemNode] Unknown key value: " << keyAttribute.as_string()
 			          << std::endl;
 		}
-	}
-
-	// check bed items
-	if ((it.transformToFree != 0 || it.transformToOnUse[PLAYERSEX_FEMALE] != 0 ||
-	     it.transformToOnUse[PLAYERSEX_MALE] != 0) &&
-	    it.type != ITEM_TYPE_BED) {
-		std::cout << "[Warning - Items::parseItemNode] Item " << it.id << " is not set as a bed-type" << std::endl;
 	}
 }
 

@@ -6,7 +6,6 @@
 #include "game.h"
 
 #include "actions.h"
-#include "bed.h"
 #include "configmanager.h"
 #include "creature.h"
 #include "databasetasks.h"
@@ -5457,18 +5456,12 @@ void Game::playerAnswerModalWindow(uint32_t playerId, uint32_t modalWindowId, ui
 		if (button == offlineTrainingWindow.defaultEnterButton) {
 			if (choice == SKILL_SWORD || choice == SKILL_AXE || choice == SKILL_CLUB || choice == SKILL_DISTANCE ||
 			    choice == SKILL_MAGLEVEL) {
-				if (const auto& bedItem = player->getBedItem()) {
-					if (bedItem->hasParent() && bedItem->sleep(player)) {
-						player->setOfflineTrainingSkill(choice);
-						return;
-					}
-				}
+				// TODO: migrate to Lua
 			}
 		} else {
 			player->sendTextMessage(MESSAGE_EVENT_ADVANCE, "Offline training aborted.");
 		}
 
-		player->setBedItem(nullptr);
 	} else {
 		tfs::events::player::onModalWindow(player, modalWindowId, button, choice);
 	}
@@ -5502,14 +5495,6 @@ void Game::internalRemoveItems(const std::vector<std::shared_ptr<Item>>& itemLis
 	}
 }
 
-std::shared_ptr<BedItem> Game::getBedBySleeper(uint32_t guid) const
-{
-	auto it = bedSleepersMap.find(guid);
-	if (it == bedSleepersMap.end()) {
-		return nullptr;
-	}
-	return it->second;
-}
 
 void Game::updatePodium(const std::shared_ptr<Podium>& podium)
 {

@@ -40,7 +40,11 @@ function Position:getNextPosition(direction, steps)
 		self.x = self.x + offset.x * steps
 		self.y = self.y + offset.y * steps
 	end
+	return self
 end
+
+-- ensure userdata instances can call getNextPosition via metatable lookup
+mt.getNextPosition = Position.getNextPosition
 
 function Position:moveUpstairs()
 	local swap = function(lhs, rhs)
