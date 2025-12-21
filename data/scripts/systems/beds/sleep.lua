@@ -36,11 +36,7 @@ local function setSleeper(bed, player)
 end
 
 function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
-    local ok, reason = canUse(player, item)
-    if not ok then
-        if reason then
-            player:sendCancelMessage(reason)
-        end
+    if not canUse(player, item) then
         item:getPosition():sendMagicEffect(CONST_ME_POFF)
         return true
     end
