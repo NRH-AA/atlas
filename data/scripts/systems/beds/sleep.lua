@@ -1,5 +1,13 @@
 local action = Action()
 
+local skillChoices = {
+	{ text = "Sword Fighting and Shielding", skill = SKILL_SWORD },
+	{ text = "Axe Fighting and Shielding", skill = SKILL_AXE },
+	{ text = "Club Fighting and Shielding", skill = SKILL_CLUB },
+	{ text = "Distance Fighting and Shielding", skill = SKILL_DISTANCE },
+	{ text = "Magic Level and Shielding", skill = SKILL_MAGLEVEL },
+}
+
 local function canUse(player, bed)
     if Bed.REQUIRES_PROTECTION_ZONE and player:getZone() ~= ZONE_PROTECTION then
         return false
@@ -35,13 +43,7 @@ local function setSleeper(bed, player)
     end
 end
 
-function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
-    if not canUse(player, item) then
-        item:getPosition():sendMagicEffect(CONST_ME_POFF)
-        return true
-    end
-
-
+local function sleep(player, bed)
     local partner = Bed.getPartnerBed(item)
 
     setSleeper(item, player)
@@ -58,7 +60,60 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
             sleeper:remove()
         end
     end, SCHEDULER_MINTICKS, player:getId())
+end
 
+local function abortOfflineTraining(player)
+	player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Offline training aborted.")
+end
+
+local function sendOfflineTrainingModal(player, bed)
+    local offlineTrainingModal = ModalWindow{
+        title = "Choose a Skill",
+        message = "Please choose a skill:",
+        priority = true
+    }
+
+    offlineTrainingModal:setDefaultEnterButton("Okay")
+    offlineTrainingModal:setDefaultEscapeButton("Cancel")
+
+    local choiceSkillById = {}
+    for _, entry in ipairs(skillChoices) do
+        local choice = offlineTrainingModal:addChoice(entry.text)
+        choiceSkillById[choice.id] = entry.skill
+    end
+
+    offlineTrainingModal:addButton("Okay", function(player, button, choice)
+        local selectedSkill = choiceSkillById[choice.id]
+        if not selectedSkill then
+            abortOfflineTraining(player)
+            return true
+        end
+
+        player:setOfflineTrainingSkill(selectedSkill)
+        sleep(player, bed)
+        return true
+    end)
+
+    offlineTrainingModal:addButton("Cancel", function(player, button, choice)
+        abortOfflineTraining(player)
+        return true
+    end)
+
+    offlineTrainingModal:sendToPlayer(player)
+end
+
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
+    if not canUse(player, item) then
+        item:getPosition():sendMagicEffect(CONST_ME_POFF)
+        return true
+    end
+
+    if Bed.OFFLINE_TRAINING_ENABLED then
+        sendOfflineTrainingModal(player, bed)
+        return true
+    end
+
+    sleep(player, item)
     return true
 end
 
