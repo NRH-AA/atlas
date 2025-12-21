@@ -1959,7 +1959,8 @@ std::vector<uint16_t> Items::getBedItemIds() const
 	bedIds.reserve(items.size());
 
 	for (size_t id = 0; id < items.size(); ++id) {
-		if (items[id].isBed()) {
+		const ItemType& itemType = items[id];
+		if (itemType.bedPartnerDir != DIRECTION_NONE || itemType.transformToOnUse != 0 || itemType.transformToFree != 0) {
 			bedIds.push_back(static_cast<uint16_t>(id));
 		}
 	}

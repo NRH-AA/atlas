@@ -44,15 +44,15 @@ local function setSleeper(bed, player)
 end
 
 local function sleep(player, bed)
-    local partner = Bed.getPartnerBed(item)
+    local partner = Bed.getPartnerBed(bed)
 
-    setSleeper(item, player)
+    setSleeper(bed, player)
     if partner then
         setSleeper(partner, player)
     end
 
-    item:getPosition():sendMagicEffect(CONST_ME_SLEEP)
-    player:teleportTo(item:getPosition(), true)
+    bed:getPosition():sendMagicEffect(CONST_ME_SLEEP)
+    player:teleportTo(bed:getPosition(), true)
 
     addEvent(function(pid)
         local sleeper = Player(pid)
@@ -109,7 +109,7 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
     end
 
     if Bed.OFFLINE_TRAINING_ENABLED then
-        sendOfflineTrainingModal(player, bed)
+        sendOfflineTrainingModal(player, item)
         return true
     end
 

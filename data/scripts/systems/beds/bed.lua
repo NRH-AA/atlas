@@ -37,10 +37,6 @@ local function getPartnerDirFromType(bed)
     end
 
     local it = ItemType(bed:getId())
-    if not it:isBed() then
-        return nil
-    end
-
     return it:getBedPartnerDirection()
 end
 
@@ -70,8 +66,14 @@ function Bed.getPartnerBed(bed)
     for _, item in ipairs(items) do
         if Bed.isBed(item:getId()) then
             local partnerDir = getPartnerDirFromType(item)
-            if partnerDir == oppositeDir[dir] and bed:getId() < item:getId() then
-                return item
+            if partnerDir == oppositeDir[dir] then
+                local candidatePos = Position(item:getPosition())
+                candidatePos:getNextPosition(partnerDir)
+
+                local bedPos = bed:getPosition()
+                if candidatePos.x == bedPos.x and candidatePos.y == bedPos.y and candidatePos.z == bedPos.z then
+                    return item
+                end
             end
         end
     end
