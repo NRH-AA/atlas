@@ -46,15 +46,15 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
     end
 
 
-    local partner = Bed.getPartnerBed(bed)
+    local partner = Bed.getPartnerBed(item)
 
-    setSleeper(bed, player)
+    setSleeper(item, player)
     if partner then
         setSleeper(partner, player)
     end
 
-    bed:getPosition():sendMagicEffect(CONST_ME_SLEEP)
-    player:teleportTo(bed:getPosition(), true)
+    item:getPosition():sendMagicEffect(CONST_ME_SLEEP)
+    player:teleportTo(item:getPosition(), true)
 
     addEvent(function(pid)
         local sleeper = Player(pid)
