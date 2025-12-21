@@ -45,10 +45,6 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
         return true
     end
 
-    if not canUse(player, bed) then
-        bed:getPosition():sendMagicEffect(CONST_ME_POFF)
-        return false
-    end
 
     local partner = Bed.getPartnerBed(bed)
 
