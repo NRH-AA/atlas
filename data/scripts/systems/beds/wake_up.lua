@@ -34,7 +34,7 @@ local function findRelevantBed(player)
 		if checkTile then
 			local candidate = findBedOnTile(checkTile)
 			if candidate then
-				local partnerDir = Bed.PARTNER_DIR[candidate:getId()]
+				local partnerDir = Bed.getPartnerDir(candidate)
 				if partnerDir then
 					local candidatePos = Position(candidate:getPosition())
 					candidatePos:getNextPosition(partnerDir)
