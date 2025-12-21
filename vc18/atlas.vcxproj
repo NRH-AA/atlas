@@ -84,7 +84,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <ObjectFileName>$(IntDir)\obj_d\</ObjectFileName>
+      <ObjectFileName>$(IntDir)%(RelativeDir)%(Filename)\obj_d\</ObjectFileName>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -105,7 +105,7 @@
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
       <AdditionalIncludeDirectories>$(VcpkgRoot)include\luajit;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp23</LanguageStandard>
-      <ObjectFileName>$(IntDir)\obj_r\</ObjectFileName>
+      <ObjectFileName>$(IntDir)%(RelativeDir)%(Filename)\obj_r\</ObjectFileName>
       <FunctionLevelLinking>true</FunctionLevelLinking>
     </ClCompile>
     <Link>
