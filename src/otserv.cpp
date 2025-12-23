@@ -9,6 +9,7 @@
 #include "game.h"
 #include "http/http.h"
 #include "iomarket.h"
+#include "modules.h"
 #include "monsters.h"
 #include "outfit.h"
 #include "protocolstatus.h"
@@ -215,6 +216,12 @@ void mainLoader(ServiceManager* services)
 	std::cout << ">> Loading outfits" << std::endl;
 	if (!Outfits::getInstance().loadFromXml()) {
 		startupErrorMessage("Unable to load outfits!");
+		return;
+	}
+
+	std::cout << ">> Loading modules" << std::endl;
+	if (!tfs::lua::modules::load()) {
+		startupErrorMessage("Unable to load modules!");
 		return;
 	}
 

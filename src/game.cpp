@@ -18,6 +18,7 @@
 #include "iologindata.h"
 #include "iomarket.h"
 #include "items.h"
+#include "modules.h"
 #include "movement.h"
 #include "outfit.h"
 #include "party.h"
@@ -5664,6 +5665,11 @@ bool Game::reload(ReloadTypes_t reloadType)
 			return true;
 		}
 
+		case RELOAD_TYPE_MODULES: {
+			tfs::lua::modules::reload();
+			return true;
+		}
+
 		case RELOAD_TYPE_SCRIPTS: {
 			// commented out stuff is TODO, once we approach further in revscriptsys
 			g_actions->clear(true);
@@ -5718,6 +5724,7 @@ bool Game::reload(ReloadTypes_t reloadType)
 			g_spells->clear(true);
 			g_scripts->loadScripts("scripts", false, true);
 			g_creatureEvents->removeInvalidEvents();
+			tfs::lua::modules::reload();
 			return true;
 		}
 	}

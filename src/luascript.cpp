@@ -2135,6 +2135,7 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(L, RELOAD_TYPE_SPELLS);
 	registerEnum(L, RELOAD_TYPE_TALKACTIONS);
 	registerEnum(L, RELOAD_TYPE_WEAPONS);
+	registerEnum(L, RELOAD_TYPE_MODULES);
 
 	registerEnum(L, ZONE_PROTECTION);
 	registerEnum(L, ZONE_NOPVP);
@@ -16835,11 +16836,11 @@ int LuaScriptInterface::luaSpellCheckFloor(lua_State* L)
 int LuaScriptInterface::luaCreateAction(lua_State* L)
 {
 	// Action()
-	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
+	/*if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
 		reportErrorFunc(L, "Actions can only be registered in the Scripts interface.");
 		lua_pushnil(L);
 		return 1;
-	}
+	}*/
 
 	Action* action = new Action(tfs::lua::getScriptEnv()->getScriptInterface());
 	action->fromLua = true;

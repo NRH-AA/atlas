@@ -159,7 +159,6 @@
 	<action itemid="2093" script="others/water_pipe.lua" />
 	<action itemid="2095" script="others/bird_cage.lua" />
 	<action itemid="2099" script="others/water_pipe.lua" />
-	<action itemid="2114" script="others/piggy_bank.lua" />
 	<action itemid="2579" script="others/trap.lua" />
 	<action itemid="2692" script="others/create_bread.lua" />
 	<action itemid="2694" script="others/create_bread.lua" />
