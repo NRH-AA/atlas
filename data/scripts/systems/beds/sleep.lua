@@ -9,15 +9,13 @@ local skillChoices = {
 }
 
 local function canUse(player, bed)
-    if Bed.REQUIRES_PROTECTION_ZONE and player:getZone() ~= ZONE_PROTECTION then
+    if player:getZone() ~= ZONE_PROTECTION then
         return false
     end
 
-    if Bed.REQUIRES_PREMIUM then
-        local premiumEnds = player.getPremiumEndsAt and player:getPremiumEndsAt() or 0
-        if premiumEnds <= os.time() then
-            return false
-        end
+    local premiumEnds = player:getPremiumEndsAt()
+    if premiumEnds <= os.time() then
+        return false
     end
 
     local tile = bed:getTile()

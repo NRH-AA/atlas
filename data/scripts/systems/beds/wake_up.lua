@@ -1,4 +1,4 @@
-local bedLogin = CreatureEvent("BedLogin")
+local event = CreatureEvent("BedLogin")
 
 local function findBedOnTile(tile)
     if not tile then
@@ -49,21 +49,22 @@ local function findRelevantBed(player)
 	return nil, nil
 end
 
-local function applyRegeneration(player, sleptSeconds)
-    if sleptSeconds <= 0 then
-        return
-    end
+local function regeneratePlayer(player, sleptSeconds)
+	if sleptSeconds <= 0 then
+		return
+	end
 
-    local regenTicks = math.floor(sleptSeconds / 30) * Bed.HEALTH_MANA_PER_30_SEC
-    if regenTicks > 0 then
-        player:addHealth(regenTicks)
-        player:addMana(regenTicks)
-    end
+	local regenWindow = math.min(sleptSeconds, Bed.HEALTH_MANA_MAX_SECONDS)
+	local regenTicks = math.floor(regenWindow / Bed.HEALTH_MANA_TICK_SECONDS) * Bed.HEALTH_MANA_PER_TICK
+	if regenTicks > 0 then
+		player:addHealth(regenTicks)
+		player:addMana(regenTicks)
+	end
 
-    local soulTicks = math.floor(sleptSeconds / (15 * 60)) * Bed.SOUL_PER_15_MIN
-    if soulTicks > 0 then
-        player:addSoul(soulTicks)
-    end
+	local soulTicks = math.floor(sleptSeconds / Bed.SOUL_TICK_SECONDS) * Bed.SOUL_PER_TICK
+	if soulTicks > 0 then
+		player:addSoul(soulTicks)
+	end
 end
 
 local function clearSleeper(bed)
@@ -75,7 +76,7 @@ local function clearSleeper(bed)
     end
 end
 
-function bedLogin.onLogin(player)
+function event.onLogin(player)
 	local bed, partner = findRelevantBed(player)
 	if not bed then
 		return true
@@ -87,8 +88,7 @@ function bedLogin.onLogin(player)
 		sleptSeconds = math.max(0, os.time() - lastLogout)
 	end
 
-	applyRegeneration(player, sleptSeconds)
-	player:addHealth(0)
+	regeneratePlayer(player, sleptSeconds)
 
 	clearSleeper(bed)
 	if partner then
@@ -98,4 +98,4 @@ function bedLogin.onLogin(player)
 	return true
 end
 
-bedLogin:register()
+event:register()
