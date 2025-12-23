@@ -72,7 +72,7 @@ static constexpr uint8_t ITEM_STACK_SIZE = 100;
 class Game
 {
 public:
-	Game();
+	Game() = default;
 
 	// non-copyable
 	Game(const Game&) = delete;

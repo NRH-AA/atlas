@@ -1952,18 +1952,3 @@ uint16_t Items::getItemIdByName(const std::string& name)
 
 	return result->second;
 }
-
-std::vector<uint16_t> Items::getBedItemIds() const
-{
-	std::vector<uint16_t> bedIds;
-	bedIds.reserve(items.size());
-
-	for (size_t id = 0; id < items.size(); ++id) {
-		const ItemType& itemType = items[id];
-		if (itemType.bedPartnerDir != DIRECTION_NONE || itemType.transformToOnUse != 0 || itemType.transformToFree != 0) {
-			bedIds.push_back(static_cast<uint16_t>(id));
-		}
-	}
-
-	return bedIds;
-}
