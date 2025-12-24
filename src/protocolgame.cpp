@@ -3102,7 +3102,7 @@ void ProtocolGame::sendPodiumWindow(const std::shared_ptr<const Item>& item)
 		return;
 	}
 
-	const auto& podium = item->getPodium();
+	const auto& podium = item->asPodium();
 	if (!podium) {
 		return;
 	}
