@@ -37,9 +37,9 @@ event.onPlayerJoin = function(self)
 	end
 
 	-- initialize ping-pong timestamps
-	local timeNow = os.mtime()
-	player:setLastPing(timeNow)
-	player:setLastPong(timeNow)
+	local timeNow = os.time()
+	self:setLastPing(timeNow)
+	self:setLastPong(timeNow)
 end
 
 event:register()

@@ -6,9 +6,8 @@ event.onPlayerLogout = function(self)
 		nextUseStaminaTime[playerId] = nil
 	end
 
-	player:setLastPing(nil)
-	player:setLastPong(nil)
-
+	self:setLastPing(nil)
+	self:setLastPong(nil)
 	return true
 end
 
