@@ -23,9 +23,9 @@ struct CreatureHandlers
 	int32_t onTargetCombat = -1;
 	int32_t onHear = -1;
 	int32_t onChangeZone = -1;
+	int32_t onUpdateStorage = -1;
 	int32_t onChangeHealth = -1;
 	int32_t onChangeMana = -1;
-	int32_t onUpdateStorage = -1;
 	int32_t onThink = -1;
 	int32_t onPrepareDeath = -1;
 	int32_t onDeath = -1;
@@ -48,6 +48,12 @@ void load_creature_from_scripts()
 	creatureHandlers.onHear = scriptInterface.getMetaEvent("Creature", "onHear");
 	creatureHandlers.onChangeZone = scriptInterface.getMetaEvent("Creature", "onChangeZone");
 	creatureHandlers.onUpdateStorage = scriptInterface.getMetaEvent("Creature", "onUpdateStorage");
+	creatureHandlers.onChangeHealth = scriptInterface.getMetaEvent("Creature", "onChangeHealth");
+	creatureHandlers.onChangeMana = scriptInterface.getMetaEvent("Creature", "onChangeMana");
+	creatureHandlers.onThink = scriptInterface.getMetaEvent("Creature", "onThink");
+	creatureHandlers.onPrepareDeath = scriptInterface.getMetaEvent("Creature", "onPrepareDeath");
+	creatureHandlers.onDeath = scriptInterface.getMetaEvent("Creature", "onDeath");
+	creatureHandlers.onKill = scriptInterface.getMetaEvent("Creature", "onKill");
 }
 
 struct PartyHandlers
@@ -148,6 +154,12 @@ void load_player_from_scripts()
 	playerHandlers.onInventoryUpdate = scriptInterface.getMetaEvent("Player", "onInventoryUpdate");
 	playerHandlers.onNetworkMessage = scriptInterface.getMetaEvent("Player", "onNetworkMessage");
 	playerHandlers.onSpellCheck = scriptInterface.getMetaEvent("Player", "onSpellCheck");
+	playerHandlers.onLogin = scriptInterface.getMetaEvent("Player", "onLogin");
+	playerHandlers.onJoin = scriptInterface.getMetaEvent("Player", "onJoin");
+	playerHandlers.onLogout = scriptInterface.getMetaEvent("Player", "onLogout");
+	playerHandlers.onReconnect = scriptInterface.getMetaEvent("Player", "onReconnect");
+	playerHandlers.onModalWindow = scriptInterface.getMetaEvent("Player", "onModalWindow");
+	playerHandlers.onExtendedOpcode = scriptInterface.getMetaEvent("Player", "onExtendedOpcode");
 }
 
 struct MonsterHandlers

@@ -270,53 +270,53 @@ function Player:onSpellCheck(spell)
 end
 
 function Player:onLogin()
-	if hasEvent.onPlayerLogin then
+	if Event.onPlayerLogin then
 		return Event.onPlayerLogin(self)
 	end
 	return true
 end
 
 function Player:onJoin()
-	if hasEvent.onPlayerJoin then
+	if Event.onPlayerJoin then
 		Event.onPlayerJoin(self)
 	end
 end
 
 function Player:onLogout()
-	if hasEvent.onPlayerLogout then
+	if Event.onPlayerLogout then
 		return Event.onPlayerLogout(self)
 	end
 	return true
 end
 
 function Player:onReconnect()
-	if hasEvent.onPlayerReconnect then
+	if Event.onPlayerReconnect then
 		Event.onPlayerReconnect(self)
 	end
 end
 
 function Player:onAdvance(skill, oldLevel, newLevel)
-	if hasEvent.onPlayerAdvance then
+	if Event.onPlayerAdvance then
 		return Event.onPlayerAdvance(self, skill, oldLevel, newLevel)
 	end
 	return true
 end
 
 function Player:onModalWindow()
-	if hasEvent.onPlayerModalWindow then
+	if Event.onPlayerModalWindow then
 		Event.onPlayerModalWindow(self, modalWindowId, buttonId, choiceId)
 	end
 end
 
 function Player:onTextEdit(item, text, windowTextId)
-	if hasEvent.onPlayerTextEdit then
+	if Event.onPlayerTextEdit then
 		return Event.onPlayerTextEdit(self, item, text, windowTextId)
 	end
 	return true
 end
 
 function Player:onExtendedOpcode(opcode, buffer)
-	if hasEvent.onPlayerExtendedOpcode then
+	if Event.onPlayerExtendedOpcode then
 		Event.onPlayerExtendedOpcode(self, opcode, buffer)
 	end
 end

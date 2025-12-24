@@ -28,8 +28,8 @@ ec.onCreatureAreaCombat = {returnValue=true}
 ec.onCreatureTargetCombat = {returnValue=true}
 ec.onCreatureHear = {}
 ec.onCreatureChangeZone = {}
-ec.onCreatureChangeHealth = {}
 ec.onCreatureUpdateStorage = {}
+ec.onCreatureChangeHealth = {}
 ec.onCreatureChangeMana = {}
 ec.onCreatureThink = {}
 ec.onCreaturePrepareDeath = {}

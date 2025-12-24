@@ -39,3 +39,46 @@ function Creature:onUpdateStorage(key, value, oldValue, isSpawn)
 		Event.onCreatureUpdateStorage(self, key, value, oldValue, isSpawn)
 	end
 end
+
+function Creature:onChangeHealth(attacker, damage)
+	if Event.onCreatureChangeHealth then
+		Event.onCreatureChangeHealth(self, attacker, damage)
+	end
+end
+
+function Creature:onChangeMana(attacker, damage)
+	if Event.onCreatureChangeMana then
+		Event.onCreatureChangeMana(self, attacker, damage)
+	end
+end
+
+function Creature:onUpdateStorage(key, value, oldValue, isSpawn)
+	if Event.onCreatureUpdateStorage then
+		Event.onCreatureUpdateStorage(self, key, value, oldValue, isSpawn)
+	end
+end
+
+function Creature:onThink(interval)
+	if Event.onCreatureThink then
+		Event.onCreatureThink(self, interval)
+	end
+end
+
+function Creature:onPrepareDeath(killer)
+	if Event.onCreaturePrepareDeath then
+		return Event.onCreaturePrepareDeath(self, killer)
+	end
+	return true
+end
+
+function Creature:onDeath(corpse, killer, mostDamageKiller, lastHitUnjustified, mostDamageUnjustified)
+	if Event.onCreatureDeath then
+		Event.onCreatureDeath(self, corpse, killer, mostDamageKiller, lastHitUnjustified, mostDamageUnjustified)
+	end
+end
+
+function Creature:onKill(target)
+	if Event.onCreatureKill then
+		Event.onCreatureKill(self, target)
+	end
+end
