@@ -16,7 +16,9 @@ double Creature::speedA = 857.36;
 double Creature::speedB = 261.29;
 double Creature::speedC = -4795.01;
 
+extern Dispatcher g_dispatcher;
 extern Game g_game;
+extern Scheduler g_scheduler;
 
 Creature::Creature() { onIdleStatus(); }
 
@@ -150,7 +152,7 @@ void Creature::onWalk()
 		if (getNextStep(dir, flags)) {
 			ReturnValue ret = g_game.internalMoveCreature(asCreature(), dir, flags);
 			if (ret != RETURNVALUE_NOERROR) {
-				if (const auto& player = getPlayer()) {
+				if (const auto& player = asPlayer()) {
 					player->sendCancelMessage(ret);
 					player->sendCancelWalk();
 				}
@@ -214,7 +216,7 @@ bool Creature::getNextStep(Direction& dir, uint32_t&)
 
 void Creature::startAutoWalk()
 {
-	if (const auto& player = getPlayer(); player && player->isMovementBlocked()) {
+	if (const auto& player = asPlayer(); player && player->isMovementBlocked()) {
 		player->sendCancelWalk();
 		return;
 	}
@@ -224,7 +226,7 @@ void Creature::startAutoWalk()
 
 void Creature::startAutoWalk(Direction direction)
 {
-	if (const auto& player = getPlayer(); player && player->isMovementBlocked()) {
+	if (const auto& player = asPlayer(); player && player->isMovementBlocked()) {
 		player->sendCancelWalk();
 		return;
 	}
@@ -239,7 +241,7 @@ void Creature::startAutoWalk(const std::vector<Direction>& listDir)
 		return;
 	}
 
-	if (const auto& player = getPlayer(); player && player->isMovementBlocked()) {
+	if (const auto& player = asPlayer(); player && player->isMovementBlocked()) {
 		player->sendCancelWalk();
 		return;
 	}
@@ -286,7 +288,7 @@ void Creature::updateIcons() const
 	SpectatorVec spectators;
 	g_game.map.getSpectators(spectators, position, true, true);
 	for (const auto& spectator : spectators) {
-		assert(spectator->getPlayer() != nullptr);
+		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendUpdateCreatureIcons(asCreature());
 	}
 }
@@ -426,13 +428,15 @@ void Creature::onDeath()
 
 			if (attacker.get() != this) {
 				uint64_t gainExp = getGainedExperience(attacker);
-				if (const auto& attackerPlayer = attacker->getPlayer()) {
-					attackerPlayer->removeAttacked(getPlayer());
+				if (const auto& attackerPlayer = attacker->asPlayer()) {
+					attackerPlayer->removeAttacked(asPlayer());
 
-					Party* party = attackerPlayer->getParty();
-					if (party && party->getLeader() && party->isSharedExperienceActive() &&
-					    party->isSharedExperienceEnabled()) {
-						attacker = party->getLeader();
+					if (const auto& party = attackerPlayer->getParty()) {
+						if (party->isSharedExperienceActive() && party->isSharedExperienceEnabled()) {
+							if (const auto& leader = party->getLeader()) {
+								attacker = leader;
+							}
+						}
 					}
 				}
 
@@ -476,7 +480,7 @@ bool Creature::dropCorpse(const std::shared_ptr<Creature>& lastHitCreature,
                           const std::shared_ptr<Creature>& mostDamageCreature, bool lastHitUnjustified,
                           bool mostDamageUnjustified)
 {
-	if (!lootDrop && getMonster()) {
+	if (!lootDrop && asMonster()) {
 		if (!master.expired()) {
 				tfs::events::creature::onDeath(asCreature(), nullptr, lastHitCreature, mostDamageCreature,
 				                           lastHitUnjustified, mostDamageUnjustified);
@@ -626,7 +630,7 @@ BlockType_t Creature::blockHit(const std::shared_ptr<Creature>& attacker, Combat
 	}
 
 	if (attacker) {
-		if (const auto& attackerPlayer = attacker->getPlayer()) {
+		if (const auto& attackerPlayer = attacker->asPlayer()) {
 			for (int32_t slot = CONST_SLOT_FIRST; slot <= CONST_SLOT_LAST; ++slot) {
 				if (!attackerPlayer->isItemAbilityEnabled(static_cast<slots_t>(slot))) {
 					continue;
@@ -653,7 +657,7 @@ BlockType_t Creature::blockHit(const std::shared_ptr<Creature>& attacker, Combat
 			attacker->onAttackedCreature(asCreature());
 			attacker->onAttackedCreatureBlockHit(blockType);
 			if (const auto& master = attacker->getMaster()) {
-				if (const auto& masterPlayer = master->getPlayer()) {
+				if (const auto& masterPlayer = master->asPlayer()) {
 					masterPlayer->onAttackedCreature(asCreature());
 				}
 			}
@@ -661,7 +665,7 @@ BlockType_t Creature::blockHit(const std::shared_ptr<Creature>& attacker, Combat
 	}
 
 	if (combatType != COMBAT_HEALING) {
-		if (const auto& player = getPlayer()) {
+		if (const auto& player = asPlayer()) {
 			player->addInFightTicks();
 		}
 	}
@@ -683,7 +687,7 @@ void Creature::setAttackedCreature(const std::shared_ptr<Creature>& creature)
 	creature->addFollower(asCreature());
 	onAttackedCreature(creature);
 
-	if (const auto& player = creature->getPlayer()) {
+	if (const auto& player = creature->asPlayer()) {
 		player->addInFightTicks();
 	}
 
@@ -932,7 +936,7 @@ void Creature::onGainExperience(uint64_t gainExp, const std::shared_ptr<Creature
 	message.primary.value = gainExp;
 
 	for (const auto& spectator : spectators) {
-		assert(spectator->getPlayer() != nullptr);
+		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendTextMessage(message);
 	}
 }
@@ -1208,7 +1212,7 @@ int64_t Creature::getStepDuration() const
 	double duration = std::floor(1000 * groundSpeed / calculatedStepSpeed);
 	int64_t stepDuration = std::ceil(duration / 50) * 50;
 
-	const auto& monster = this->getMonster();
+	const auto& monster = this->asMonster();
 	if (monster && monster->isTargetNearby() && !monster->isFleeing() && !monster->getMaster()) {
 		stepDuration *= 2;
 	}

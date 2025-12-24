@@ -6,12 +6,10 @@
 
 #include "baseevents.h"
 #include "creature.h"
-#include "luascript.h"
+#include "lua/script.h"
 #include "vocation.h"
 
 class MoveEvent;
-
-extern Vocations g_vocations;
 
 enum MoveEvent_t
 {
@@ -155,13 +153,7 @@ public:
 	void setVocationString(const std::string& str) { vocationString = str; }
 	uint32_t getWieldInfo() const { return wieldInfo; }
 	const auto& getVocationEquipSet() const { return vocationEquipSet; }
-	void addVocationEquipSet(const std::string& vocationName)
-	{
-		int32_t vocationId = g_vocations.getVocationId(vocationName);
-		if (vocationId != -1) {
-			vocationEquipSet.insert(vocationId);
-		}
-	}
+	void addVocationEquipSet(const std::string& vocationName);
 	// If the set is empty, it is considered to be for all vocations.
 	bool hasVocationEquipSet(uint16_t vocationId) const
 	{

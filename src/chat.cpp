@@ -6,11 +6,15 @@
 #include "chat.h"
 
 #include "game.h"
+#include "lua/env.h"
+#include "lua/error.h"
+#include "lua/meta.h"
 #include "pugicast.h"
 #include "scheduler.h"
 
 extern Chat* g_chat;
 extern Game g_game;
+extern Scheduler g_scheduler;
 
 bool PrivateChatChannel::isInvited(uint32_t guid) const
 {
@@ -36,7 +40,7 @@ void PrivateChatChannel::invitePlayer(const std::shared_ptr<const Player>& playe
 
 	player->sendTextMessage(MESSAGE_INFO_DESCR, std::format("{:s} has been invited.", invitePlayer->getName()));
 
-	for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 		user->sendChannelEvent(id, invitePlayer->getName(), CHANNELEVENT_INVITE);
 	}
 }
@@ -54,14 +58,14 @@ void PrivateChatChannel::excludePlayer(const std::shared_ptr<const Player>& play
 
 	excludePlayer->sendClosePrivate(id);
 
-	for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 		user->sendChannelEvent(id, excludePlayer->getName(), CHANNELEVENT_EXCLUDE);
 	}
 }
 
 void PrivateChatChannel::closeChannel() const
 {
-	for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 		user->sendClosePrivate(id);
 	}
 }
@@ -85,7 +89,7 @@ bool ChatChannel::addUser(const std::shared_ptr<Player>& player)
 	}
 
 	if (!publicChannel) {
-		for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+		for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 			user->sendChannelEvent(id, player->getName(), CHANNELEVENT_JOIN);
 		}
 	}
@@ -104,7 +108,7 @@ bool ChatChannel::removeUser(const std::shared_ptr<const Player>& player)
 	users.erase(iter);
 
 	if (!publicChannel) {
-		for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+		for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 			user->sendChannelEvent(id, player->getName(), CHANNELEVENT_LEAVE);
 		}
 	}
@@ -120,7 +124,7 @@ bool ChatChannel::hasUser(const std::shared_ptr<const Player>& player)
 
 void ChatChannel::sendToAll(const std::string& message, SpeakClasses type) const
 {
-	for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 		user->sendChannelMessage("", message, type, id);
 	}
 }
@@ -131,7 +135,7 @@ bool ChatChannel::talk(const std::shared_ptr<const Player>& fromPlayer, SpeakCla
 		return false;
 	}
 
-	for (auto&& user : users | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& user : users | std::views::values | tfs::views::lock_weak_ptrs) {
 		user->sendToChannel(fromPlayer, type, text, id);
 	}
 	return true;
@@ -150,7 +154,7 @@ bool ChatChannel::executeCanJoinEvent(const std::shared_ptr<const Player>& playe
 	}
 
 	LuaScriptInterface* scriptInterface = g_chat->getScriptInterface();
-	ScriptEnvironment* env = tfs::lua::getScriptEnv();
+	const auto env = tfs::lua::getScriptEnv();
 	env->setScriptId(canJoinEvent, scriptInterface);
 
 	lua_State* L = scriptInterface->getLuaState();
@@ -175,7 +179,7 @@ bool ChatChannel::executeOnJoinEvent(const std::shared_ptr<const Player>& player
 	}
 
 	LuaScriptInterface* scriptInterface = g_chat->getScriptInterface();
-	ScriptEnvironment* env = tfs::lua::getScriptEnv();
+	const auto env = tfs::lua::getScriptEnv();
 	env->setScriptId(onJoinEvent, scriptInterface);
 
 	lua_State* L = scriptInterface->getLuaState();
@@ -200,7 +204,7 @@ bool ChatChannel::executeOnLeaveEvent(const std::shared_ptr<const Player>& playe
 	}
 
 	LuaScriptInterface* scriptInterface = g_chat->getScriptInterface();
-	ScriptEnvironment* env = tfs::lua::getScriptEnv();
+	const auto env = tfs::lua::getScriptEnv();
 	env->setScriptId(onLeaveEvent, scriptInterface);
 
 	lua_State* L = scriptInterface->getLuaState();
@@ -226,7 +230,7 @@ bool ChatChannel::executeOnSpeakEvent(const std::shared_ptr<const Player>& playe
 	}
 
 	LuaScriptInterface* scriptInterface = g_chat->getScriptInterface();
-	ScriptEnvironment* env = tfs::lua::getScriptEnv();
+	const auto env = tfs::lua::getScriptEnv();
 	env->setScriptId(onSpeakEvent, scriptInterface);
 
 	lua_State* L = scriptInterface->getLuaState();
@@ -242,7 +246,7 @@ bool ChatChannel::executeOnSpeakEvent(const std::shared_ptr<const Player>& playe
 	int size0 = lua_gettop(L);
 	int ret = tfs::lua::protectedCall(L, 3, 1);
 	if (ret != 0) {
-		reportErrorFunc(nullptr, tfs::lua::popString(L));
+		tfs::lua::reportError(tfs::lua::popString(L));
 	} else if (lua_gettop(L) > 0) {
 		if (lua_isboolean(L, -1)) {
 			result = tfs::lua::getBoolean(L, -1);
@@ -254,7 +258,7 @@ bool ChatChannel::executeOnSpeakEvent(const std::shared_ptr<const Player>& playe
 	}
 
 	if ((lua_gettop(L) + 4) != size0) {
-		reportErrorFunc(nullptr, "Stack size changed!");
+		tfs::lua::reportError("Stack size changed!");
 	}
 	tfs::lua::resetScriptEnv();
 	return result;
@@ -300,7 +304,7 @@ bool Chat::load()
 			}
 
 			UsersMap tempUserMap = std::move(channel.users);
-			for (auto&& player : tempUserMap | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+			for (const auto& player : tempUserMap | std::views::values | tfs::views::lock_weak_ptrs) {
 				channel.addUser(player);
 			}
 			continue;
@@ -343,7 +347,7 @@ ChatChannel* Chat::createChannel(const std::shared_ptr<const Player>& player, ui
 		}
 
 		case CHANNEL_PARTY: {
-			if (Party* party = player->getParty()) {
+			if (const auto& party = player->getParty()) {
 				auto ret = partyChannels.emplace(std::make_pair(party, ChatChannel(channelId, "Party")));
 				return &ret.first->second;
 			}
@@ -387,7 +391,7 @@ bool Chat::deleteChannel(const std::shared_ptr<const Player>& player, uint16_t c
 		}
 
 		case CHANNEL_PARTY: {
-			if (Party* party = player->getParty()) {
+			if (const auto& party = player->getParty()) {
 				partyChannels.erase(party);
 				return true;
 			}
@@ -551,8 +555,7 @@ ChatChannel* Chat::getChannel(const std::shared_ptr<const Player>& player, uint1
 		}
 
 		case CHANNEL_PARTY: {
-			Party* party = player->getParty();
-			if (party) {
+			if (const auto& party = player->getParty()) {
 				auto it = partyChannels.find(party);
 				if (it != partyChannels.end()) {
 					return &it->second;

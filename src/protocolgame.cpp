@@ -20,6 +20,9 @@
 #include "scheduler.h"
 
 extern Chat* g_chat;
+extern Dispatcher g_dispatcher;
+extern Game g_game;
+extern Scheduler g_scheduler;
 
 namespace {
 
@@ -235,7 +238,6 @@ void ProtocolGame::login(uint32_t characterId, uint32_t accountId, OperatingSyst
 
 		if (foundPlayer->client) {
 			foundPlayer->disconnect();
-			foundPlayer->isConnecting = true;
 
 			eventConnect = g_scheduler.addEvent(
 			    createSchedulerTask(1000, [=, thisPtr = getThis(), playerID = foundPlayer->getID()]() {
@@ -271,7 +273,6 @@ void ProtocolGame::connect(uint32_t playerId, OperatingSystem_t operatingSystem)
 	g_chat->removeUserFromAllChannels(player);
 	player->clearModalWindows();
 	player->setOperatingSystem(operatingSystem);
-	player->isConnecting = false;
 
 	player->client = getThis();
 	player->onCreatureAppear(player, false, CONST_ME_NONE);
@@ -1636,7 +1637,7 @@ void ProtocolGame::sendCreatureShield(const std::shared_ptr<const Creature>& cre
 	NetworkMessage msg;
 	msg.addByte(0x91);
 	msg.add<uint32_t>(creature->getID());
-	msg.addByte(player->getPartyShield(creature->getPlayer()));
+	msg.addByte(player->getPartyShield(creature->asPlayer()));
 	writeToOutputBuffer(msg);
 }
 
@@ -1852,7 +1853,7 @@ void ProtocolGame::sendChannel(uint16_t channelId, const std::string& channelNam
 
 	if (channelUsers) {
 		msg.add<uint16_t>(channelUsers->size());
-		for (auto&& user : *channelUsers | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+		for (const auto& user : *channelUsers | std::views::values | tfs::views::lock_weak_ptrs) {
 			msg.addString(user->getName());
 		}
 	} else {
@@ -1861,7 +1862,7 @@ void ProtocolGame::sendChannel(uint16_t channelId, const std::string& channelNam
 
 	if (invitedUsers) {
 		msg.add<uint16_t>(invitedUsers->size());
-		for (auto&& user : *invitedUsers | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+		for (const auto& user : *invitedUsers | std::views::values | tfs::views::lock_weak_ptrs) {
 			msg.addString(user->getName());
 		}
 	} else {
@@ -2358,8 +2359,8 @@ void ProtocolGame::sendTradeItemRequest(const std::string& traderName, const std
 			containerList.pop_front();
 
 			for (const auto& containerItem : container->getItemList()) {
-				if (const auto& container = containerItem->getContainer()) {
-					containerList.push_back(container);
+				if (const auto& childContainer = containerItem->getContainer()) {
+					containerList.push_back(childContainer);
 				}
 				itemList.push_back(containerItem);
 			}
@@ -2427,7 +2428,7 @@ void ProtocolGame::sendCreatureSay(const std::shared_ptr<const Creature>& creatu
 	msg.addByte(0x00); // "(Traded)" suffix after player name
 
 	// Add level only for players
-	if (const auto& speaker = creature->getPlayer()) {
+	if (const auto& speaker = creature->asPlayer()) {
 		msg.add<uint16_t>(speaker->getLevel());
 	} else {
 		msg.add<uint16_t>(0x00);
@@ -2460,7 +2461,7 @@ void ProtocolGame::sendToChannel(const std::shared_ptr<const Creature>& creature
 		msg.addByte(0x00); // "(Traded)" suffix after player name
 
 		// Add level only for players
-		if (const auto& speaker = creature->getPlayer()) {
+		if (const auto& speaker = creature->asPlayer()) {
 			msg.add<uint16_t>(speaker->getLevel());
 		} else {
 			msg.add<uint16_t>(0x00);
@@ -3387,7 +3388,7 @@ void ProtocolGame::AddCreature(NetworkMessage& msg, const std::shared_ptr<const 
 
 	if (creatureType == CREATURETYPE_MONSTER) {
 		if (const auto& master = creature->getMaster()) {
-			if (const auto& masterPlayer = master->getPlayer()) {
+			if (const auto& masterPlayer = master->asPlayer()) {
 				masterId = master->getID();
 				creatureType = CREATURETYPE_SUMMON_OWN;
 			}
@@ -3437,7 +3438,7 @@ void ProtocolGame::AddCreature(NetworkMessage& msg, const std::shared_ptr<const 
 
 	msg.addByte(player->getCombatSkull(creature));
 
-	const auto& otherPlayer = creature->getPlayer();
+	const auto& otherPlayer = creature->asPlayer();
 	msg.addByte(player->getPartyShield(otherPlayer));
 
 	if (!known) {
@@ -3455,7 +3456,7 @@ void ProtocolGame::AddCreature(NetworkMessage& msg, const std::shared_ptr<const 
 		msg.addByte(otherPlayer ? otherPlayer->getVocation()->getClientId() : 0x00);
 	}
 
-	if (const auto npc = creature->getNpc()) {
+	if (const auto npc = creature->asNpc()) {
 		msg.addByte(npc->getSpeechBubble());
 	} else {
 		msg.addByte(SPEECHBUBBLE_NONE);
@@ -3470,7 +3471,7 @@ void ProtocolGame::AddCreature(NetworkMessage& msg, const std::shared_ptr<const 
 void ProtocolGame::AddCreatureIcons(NetworkMessage& msg, const std::shared_ptr<const Creature>& creature)
 {
 	const auto& creatureIcons = creature->getIcons();
-	if (const auto& monster = creature->getMonster()) {
+	if (const auto& monster = creature->asMonster()) {
 		const auto& monsterIcons = monster->getSpecialIcons();
 		msg.addByte(creatureIcons.size() + monsterIcons.size());
 		for (const auto& [iconId, level] : monsterIcons) {

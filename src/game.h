@@ -492,6 +492,16 @@ public:
 	void removeTileToClean(const std::shared_ptr<Tile>& tile) { tilesToClean.erase(tile); }
 	void clearTilesToClean() { tilesToClean.clear(); }
 
+	std::shared_ptr<House> addHouse(uint32_t id);
+	std::shared_ptr<House> getHouseById(uint32_t id);
+	std::shared_ptr<House> getHouseByPlayerId(uint32_t playerId);
+	auto getHouses() const { return houses | std::views::values; }
+	void payHouses(RentPeriod_t rentPeriod) const;
+
+	const auto& getParties() const { return parties; }
+	void addParty(const std::shared_ptr<Party>& party) { parties.insert(party); }
+	void removeParty(const std::shared_ptr<Party>& party) { parties.erase(party); }
+
 private:
 	bool playerSaySpell(const std::shared_ptr<Player>& player, SpeakClasses type, const std::string& text);
 	void playerWhisper(const std::shared_ptr<Player>& player, const std::string& text);
@@ -516,6 +526,8 @@ private:
 
 	WildcardTreeNode wildcardTree{false};
 
+	boost::container::flat_map<uint32_t, std::shared_ptr<House>> houses;
+
 	std::map<uint32_t, std::weak_ptr<Npc>> npcs;
 	std::map<uint32_t, std::weak_ptr<Monster>> monsters;
 
@@ -525,6 +537,8 @@ private:
 	std::map<uint32_t, std::shared_ptr<BedItem>> bedSleepersMap;
 
 	std::unordered_set<std::shared_ptr<Tile>> tilesToClean;
+
+	std::set<std::shared_ptr<Party>> parties;
 
 	ModalWindow offlineTrainingWindow{std::numeric_limits<uint32_t>::max(), "Choose a Skill", "Please choose a skill:"};
 

@@ -29,8 +29,8 @@ ec.onCreatureTargetCombat = {returnValue=true}
 ec.onCreatureHear = {}
 ec.onCreatureChangeZone = {}
 ec.onCreatureChangeHealth = {}
-ec.onCreatureChangeMana = {}
 ec.onCreatureUpdateStorage = {}
+ec.onCreatureChangeMana = {}
 ec.onCreatureThink = {}
 ec.onCreaturePrepareDeath = {}
 ec.onCreatureDeath = {}
@@ -45,10 +45,10 @@ ec.onPartyRevokeInvitation = {}
 ec.onPartyPassLeadership = {}
 -- Player
 ec.onPlayerBrowseField = {}
-ec.onPlayerLook = {[5] = 1}
-ec.onPlayerLookInBattleList = {[4] = 1}
-ec.onPlayerLookInTrade = {[5] = 1}
-ec.onPlayerLookInShop = {[4] = 1}
+ec.onPlayerLook = {}
+ec.onPlayerLookInBattleList = {}
+ec.onPlayerLookInTrade = {}
+ec.onPlayerLookInShop = {}
 ec.onPlayerLookInMarket = {}
 ec.onPlayerTradeRequest = {}
 ec.onPlayerTradeAccept = {}
@@ -57,7 +57,6 @@ ec.onPlayerMoveItem = {returnValue=true}
 ec.onPlayerItemMoved = {}
 ec.onPlayerMoveCreature = {}
 ec.onPlayerReportRuleViolation = {}
-ec.onPlayerReportBug = {}
 ec.onPlayerRotateItem = {}
 ec.onPlayerTurn = {}
 ec.onPlayerGainExperience = {[3] = 1}
@@ -145,6 +144,10 @@ Event = setmetatable({
 
 		local events = EventData[callback]
 		local eventsCount = events.maxn
+		if eventsCount == 0 then
+			return
+		end
+
 		local updateableParams = updateableParameters[callback]
 		return function(...)
 			local results, args, info = {}, pack(...), callbacks[callback]
@@ -177,15 +180,6 @@ Event = setmetatable({
 					args[i] = results[value]
 				end
 			end
-		end
-	end
-})
-
-hasEvent = setmetatable({}, {
-	__index = function(self, key)
-		local callback = callbacks[key]
-		if callback then
-			return EventData[callback].maxn > 0
 		end
 	end
 })

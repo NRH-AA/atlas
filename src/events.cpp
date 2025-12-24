@@ -6,8 +6,11 @@
 #include "events.h"
 
 #include "item.h"
-#include "player.h"
+#include "lua/env.h"
+#include "lua/error.h"
+#include "lua/meta.h"
 #include "monster.h"
+#include "player.h"
 
 namespace {
 
@@ -29,6 +32,24 @@ struct CreatureHandlers
 	int32_t onKill = -1;
 } creatureHandlers;
 
+void load_creature_from_scripts()
+{
+	creatureHandlers = {};
+
+	if (scriptInterface.loadFile("data/scripts/events/creature.lua") != 0) {
+		std::cout << "[Warning - tfs::events::load_creature_from_scripts] Cannot load creature events." << std::endl;
+		std::cout << scriptInterface.getLastLuaError() << std::endl;
+		return;
+	}
+
+	creatureHandlers.onChangeOutfit = scriptInterface.getMetaEvent("Creature", "onChangeOutfit");
+	creatureHandlers.onAreaCombat = scriptInterface.getMetaEvent("Creature", "onAreaCombat");
+	creatureHandlers.onTargetCombat = scriptInterface.getMetaEvent("Creature", "onTargetCombat");
+	creatureHandlers.onHear = scriptInterface.getMetaEvent("Creature", "onHear");
+	creatureHandlers.onChangeZone = scriptInterface.getMetaEvent("Creature", "onChangeZone");
+	creatureHandlers.onUpdateStorage = scriptInterface.getMetaEvent("Creature", "onUpdateStorage");
+}
+
 struct PartyHandlers
 {
 	int32_t onJoin = -1;
@@ -39,6 +60,25 @@ struct PartyHandlers
 	int32_t onRevokeInvitation = -1;
 	int32_t onPassLeadership = -1;
 } partyHandlers;
+
+void load_party_from_scripts()
+{
+	partyHandlers = {};
+
+	if (scriptInterface.loadFile("data/scripts/events/party.lua") != 0) {
+		std::cout << "[Warning - tfs::events::load_party_from_scripts] Cannot load party events." << std::endl;
+		std::cout << scriptInterface.getLastLuaError() << std::endl;
+		return;
+	}
+
+	partyHandlers.onJoin = scriptInterface.getMetaEvent("Party", "onJoin");
+	partyHandlers.onLeave = scriptInterface.getMetaEvent("Party", "onLeave");
+	partyHandlers.onDisband = scriptInterface.getMetaEvent("Party", "onDisband");
+	partyHandlers.onShareExperience = scriptInterface.getMetaEvent("Party", "onShareExperience");
+	partyHandlers.onInvite = scriptInterface.getMetaEvent("Party", "onInvite");
+	partyHandlers.onRevokeInvitation = scriptInterface.getMetaEvent("Party", "onRevokeInvitation");
+	partyHandlers.onPassLeadership = scriptInterface.getMetaEvent("Party", "onPassLeadership");
+}
 
 struct PlayerHandlers
 {
@@ -52,7 +92,6 @@ struct PlayerHandlers
 	int32_t onItemMoved = -1;
 	int32_t onMoveCreature = -1;
 	int32_t onReportRuleViolation = -1;
-	int32_t onReportBug = -1;
 	int32_t onRotateItem = -1;
 	int32_t onTurn = -1;
 	int32_t onTradeRequest = -1;
@@ -75,174 +114,60 @@ struct PlayerHandlers
 	int32_t onExtendedOpcode = -1;
 } playerHandlers;
 
+void load_player_from_scripts()
+{
+	playerHandlers = {};
+
+	if (scriptInterface.loadFile("data/scripts/events/player.lua") != 0) {
+		std::cout << "[Warning - tfs::events::load_player_from_scripts] Cannot load player events." << std::endl;
+		std::cout << scriptInterface.getLastLuaError() << std::endl;
+		return;
+	}
+
+	playerHandlers.onBrowseField = scriptInterface.getMetaEvent("Player", "onBrowseField");
+	playerHandlers.onLook = scriptInterface.getMetaEvent("Player", "onLook");
+	playerHandlers.onLookInBattleList = scriptInterface.getMetaEvent("Player", "onLookInBattleList");
+	playerHandlers.onLookInTrade = scriptInterface.getMetaEvent("Player", "onLookInTrade");
+	playerHandlers.onLookInShop = scriptInterface.getMetaEvent("Player", "onLookInShop");
+	playerHandlers.onLookInMarket = scriptInterface.getMetaEvent("Player", "onLookInMarket");
+	playerHandlers.onMoveItem = scriptInterface.getMetaEvent("Player", "onMoveItem");
+	playerHandlers.onItemMoved = scriptInterface.getMetaEvent("Player", "onItemMoved");
+	playerHandlers.onMoveCreature = scriptInterface.getMetaEvent("Player", "onMoveCreature");
+	playerHandlers.onReportRuleViolation = scriptInterface.getMetaEvent("Player", "onReportRuleViolation");
+	playerHandlers.onRotateItem = scriptInterface.getMetaEvent("Player", "onRotateItem");
+	playerHandlers.onTurn = scriptInterface.getMetaEvent("Player", "onTurn");
+	playerHandlers.onTradeRequest = scriptInterface.getMetaEvent("Player", "onTradeRequest");
+	playerHandlers.onTradeAccept = scriptInterface.getMetaEvent("Player", "onTradeAccept");
+	playerHandlers.onTradeCompleted = scriptInterface.getMetaEvent("Player", "onTradeCompleted");
+	playerHandlers.onPodiumRequest = scriptInterface.getMetaEvent("Player", "onPodiumRequest");
+	playerHandlers.onPodiumEdit = scriptInterface.getMetaEvent("Player", "onPodiumEdit");
+	playerHandlers.onGainExperience = scriptInterface.getMetaEvent("Player", "onGainExperience");
+	playerHandlers.onLoseExperience = scriptInterface.getMetaEvent("Player", "onLoseExperience");
+	playerHandlers.onGainSkillTries = scriptInterface.getMetaEvent("Player", "onGainSkillTries");
+	playerHandlers.onWrapItem = scriptInterface.getMetaEvent("Player", "onWrapItem");
+	playerHandlers.onInventoryUpdate = scriptInterface.getMetaEvent("Player", "onInventoryUpdate");
+	playerHandlers.onNetworkMessage = scriptInterface.getMetaEvent("Player", "onNetworkMessage");
+	playerHandlers.onSpellCheck = scriptInterface.getMetaEvent("Player", "onSpellCheck");
+}
+
 struct MonsterHandlers
 {
 	int32_t onDropLoot = -1;
 	int32_t onSpawn = -1;
 } monsterHandlers;
 
-bool load_from_xml()
+void load_monster_from_scripts()
 {
-	pugi::xml_document doc;
-	pugi::xml_parse_result result = doc.load_file("data/events/events.xml");
-	if (!result) {
-		printXMLError("Error - tfs::events::load_from_xml", "data/events/events.xml", result);
-		return false;
-	}
-
-	creatureHandlers = {};
-	partyHandlers = {};
-	playerHandlers = {};
 	monsterHandlers = {};
 
-	std::set<std::string> classes;
-	for (auto eventNode : doc.child("events").children()) {
-		if (!eventNode.attribute("enabled").as_bool()) {
-			continue;
-		}
-
-		const std::string& className = eventNode.attribute("class").as_string();
-		auto res = classes.insert(className);
-		if (res.second) {
-			const std::string& lowercase = boost::algorithm::to_lower_copy(className);
-			if (scriptInterface.loadFile("data/events/scripts/" + lowercase + ".lua") != 0) {
-				std::cout << "[Warning - tfs::events::load_from_xml] Can not load script: " << lowercase << ".lua"
-				          << std::endl;
-				std::cout << scriptInterface.getLastLuaError() << std::endl;
-			}
-		}
-
-		const std::string& methodName = eventNode.attribute("method").as_string();
-		const auto event = scriptInterface.getMetaEvent(className, methodName);
-		if (className == "Creature") {
-			if (methodName == "onChangeOutfit") {
-				creatureHandlers.onChangeOutfit = event;
-			} else if (methodName == "onAreaCombat") {
-				creatureHandlers.onAreaCombat = event;
-			} else if (methodName == "onTargetCombat") {
-				creatureHandlers.onTargetCombat = event;
-			} else if (methodName == "onHear") {
-				creatureHandlers.onHear = event;
-			} else if (methodName == "onChangeZone") {
-				creatureHandlers.onChangeZone = event;
-			} else if (methodName == "onChangeHealth") {
-				creatureHandlers.onChangeHealth = event;
-			} else if (methodName == "onChangeMana") {
-				creatureHandlers.onChangeMana = event;
-			} else if (methodName == "onUpdateStorage") {
-				creatureHandlers.onUpdateStorage = event;
-			} else if (methodName == "onThink") {
-				creatureHandlers.onThink = event;
-			} else if (methodName == "onPrepareDeath") {
-				creatureHandlers.onPrepareDeath = event;
-			} else if (methodName == "onDeath") {
-				creatureHandlers.onDeath = event;
-			} else if (methodName == "onKill") {
-				creatureHandlers.onKill = event;
-			} else {
-				std::cout << "[Warning - tfs::events::load_from_xml] Unknown creature method: " << methodName
-				          << std::endl;
-			}
-		} else if (className == "Party") {
-			if (methodName == "onJoin") {
-				partyHandlers.onJoin = event;
-			} else if (methodName == "onLeave") {
-				partyHandlers.onLeave = event;
-			} else if (methodName == "onDisband") {
-				partyHandlers.onDisband = event;
-			} else if (methodName == "onShareExperience") {
-				partyHandlers.onShareExperience = event;
-			} else if (methodName == "onInvite") {
-				partyHandlers.onInvite = event;
-			} else if (methodName == "onRevokeInvitation") {
-				partyHandlers.onRevokeInvitation = event;
-			} else if (methodName == "onPassLeadership") {
-				partyHandlers.onPassLeadership = event;
-			} else {
-				std::cout << "[Warning - tfs::events::load_from_xml] Unknown party method: " << methodName << std::endl;
-			}
-		} else if (className == "Player") {
-			if (methodName == "onBrowseField") {
-				playerHandlers.onBrowseField = event;
-			} else if (methodName == "onLook") {
-				playerHandlers.onLook = event;
-			} else if (methodName == "onLookInBattleList") {
-				playerHandlers.onLookInBattleList = event;
-			} else if (methodName == "onLookInTrade") {
-				playerHandlers.onLookInTrade = event;
-			} else if (methodName == "onLookInShop") {
-				playerHandlers.onLookInShop = event;
-			} else if (methodName == "onLookInMarket") {
-				playerHandlers.onLookInMarket = event;
-			} else if (methodName == "onTradeRequest") {
-				playerHandlers.onTradeRequest = event;
-			} else if (methodName == "onTradeAccept") {
-				playerHandlers.onTradeAccept = event;
-			} else if (methodName == "onTradeCompleted") {
-				playerHandlers.onTradeCompleted = event;
-			} else if (methodName == "onPodiumRequest") {
-				playerHandlers.onPodiumRequest = event;
-			} else if (methodName == "onPodiumEdit") {
-				playerHandlers.onPodiumEdit = event;
-			} else if (methodName == "onMoveItem") {
-				playerHandlers.onMoveItem = event;
-			} else if (methodName == "onItemMoved") {
-				playerHandlers.onItemMoved = event;
-			} else if (methodName == "onMoveCreature") {
-				playerHandlers.onMoveCreature = event;
-			} else if (methodName == "onReportRuleViolation") {
-				playerHandlers.onReportRuleViolation = event;
-			} else if (methodName == "onReportBug") {
-				playerHandlers.onReportBug = event;
-			} else if (methodName == "onRotateItem") {
-				playerHandlers.onRotateItem = event;
-			} else if (methodName == "onTurn") {
-				playerHandlers.onTurn = event;
-			} else if (methodName == "onGainExperience") {
-				playerHandlers.onGainExperience = event;
-			} else if (methodName == "onLoseExperience") {
-				playerHandlers.onLoseExperience = event;
-			} else if (methodName == "onGainSkillTries") {
-				playerHandlers.onGainSkillTries = event;
-			} else if (methodName == "onWrapItem") {
-				playerHandlers.onWrapItem = event;
-			} else if (methodName == "onInventoryUpdate") {
-				playerHandlers.onInventoryUpdate = event;
-			} else if (methodName == "onNetworkMessage") {
-				playerHandlers.onNetworkMessage = event;
-			} else if (methodName == "onSpellCheck") {
-				playerHandlers.onSpellCheck = event;
-			} else if (methodName == "onLogin") {
-				playerHandlers.onLogin = event;
-			} else if (methodName == "onJoin") {
-				playerHandlers.onJoin = event;
-			} else if (methodName == "onLogout") {
-				playerHandlers.onLogout = event;
-			} else if (methodName == "onReconnect") {
-				playerHandlers.onReconnect = event;
-			} else if (methodName == "onModalWindow") {
-				playerHandlers.onModalWindow = event;
-			} else if (methodName == "onExtendedOpcode") {
-				playerHandlers.onExtendedOpcode = event;
-			} else {
-				std::cout << "[Warning - tfs::events::load_from_xml] Unknown player method: " << methodName
-				          << std::endl;
-			}
-		} else if (className == "Monster") {
-			if (methodName == "onDropLoot") {
-				monsterHandlers.onDropLoot = event;
-			} else if (methodName == "onSpawn") {
-				monsterHandlers.onSpawn = event;
-			} else {
-				std::cout << "[Warning - tfs::events::load_from_xml] Unknown monster method: " << methodName
-				          << std::endl;
-			}
-		} else {
-			std::cout << "[Warning - tfs::events::load_from_xml] Unknown class: " << className << std::endl;
-		}
+	if (scriptInterface.loadFile("data/scripts/events/monster.lua") != 0) {
+		std::cout << "[Warning - tfs::events::load_monster_from_scripts] Cannot load monster events." << std::endl;
+		std::cout << scriptInterface.getLastLuaError() << std::endl;
+		return;
 	}
 
-	return true;
+	monsterHandlers.onDropLoot = scriptInterface.getMetaEvent("Monster", "onDropLoot");
+	monsterHandlers.onSpawn = scriptInterface.getMetaEvent("Monster", "onSpawn");
 }
 
 } // namespace
@@ -261,16 +186,24 @@ int32_t getScriptId(EventInfoId eventInfoId)
 	}
 }
 
-bool load()
+void load()
 {
 	scriptInterface.initState();
-	return load_from_xml();
+
+	load_creature_from_scripts();
+	load_party_from_scripts();
+	load_player_from_scripts();
+	load_monster_from_scripts();
 }
 
-bool reload()
+void reload()
 {
 	scriptInterface.reInitState();
-	return load_from_xml();
+
+	load_creature_from_scripts();
+	load_party_from_scripts();
+	load_player_from_scripts();
+	load_monster_from_scripts();
 }
 
 } // namespace tfs::events
@@ -330,7 +263,7 @@ ReturnValue onAreaCombat(const std::shared_ptr<Creature>& creature, const std::s
 	ReturnValue returnValue;
 	if (tfs::lua::protectedCall(L, 3, 1) != 0) {
 		returnValue = RETURNVALUE_NOTPOSSIBLE;
-		reportErrorFunc(L, tfs::lua::popString(L));
+		tfs::lua::reportError(L, tfs::lua::popString(L));
 	} else {
 		returnValue = tfs::lua::getNumber<ReturnValue>(L, -1);
 		lua_pop(L, 1);
@@ -369,7 +302,7 @@ ReturnValue onTargetCombat(const std::shared_ptr<Creature>& creature, const std:
 	ReturnValue returnValue;
 	if (tfs::lua::protectedCall(L, 2, 1) != 0) {
 		returnValue = RETURNVALUE_NOTPOSSIBLE;
-		reportErrorFunc(L, tfs::lua::popString(L));
+		tfs::lua::reportError(L, tfs::lua::popString(L));
 	} else {
 		returnValue = tfs::lua::getNumber<ReturnValue>(L, -1, RETURNVALUE_NOERROR);
 		lua_pop(L, 1);
@@ -464,7 +397,7 @@ void onChangeHealth(const std::shared_ptr<Creature>& creature, const std::shared
 	tfs::lua::pushNumber(L, damage.origin);
 
 	if (tfs::lua::protectedCall(L, 7, 4) != 0) {
-		reportErrorFunc(nullptr, tfs::lua::popString(L));
+		tfs::lua::reportError(tfs::lua::popString(L));
 	} else {
 		damage.primary.value = std::abs(tfs::lua::getNumber<int32_t>(L, -4, damage.primary.value));
 		damage.primary.type = tfs::lua::getNumber<CombatType_t>(L, -3, damage.primary.type);
@@ -515,7 +448,7 @@ void onChangeMana(const std::shared_ptr<Creature>& creature, const std::shared_p
 	tfs::lua::pushNumber(L, damage.origin);
 
 	if (tfs::lua::protectedCall(L, 7, 4) != 0) {
-		reportErrorFunc(nullptr, tfs::lua::popString(L));
+		tfs::lua::reportError(tfs::lua::popString(L));
 	} else {
 		damage.primary.value = tfs::lua::getNumber<int32_t>(L, -4, damage.primary.value);
 		damage.primary.type = tfs::lua::getNumber<CombatType_t>(L, -3, damage.primary.type);
@@ -684,7 +617,7 @@ void onKill(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Cre
 
 namespace tfs::events::party {
 
-bool onJoin(Party* party, const std::shared_ptr<Player>& player)
+bool onJoin(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>& player)
 {
 	// Party:onJoin(player) or Party.onJoin(self, player)
 	if (partyHandlers.onJoin == -1) {
@@ -707,7 +640,7 @@ bool onJoin(Party* party, const std::shared_ptr<Player>& player)
 	return scriptInterface.callFunction(2);
 }
 
-bool onLeave(Party* party, const std::shared_ptr<Player>& player)
+bool onLeave(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>& player)
 {
 	// Party:onLeave(player) or Party.onLeave(self, player)
 	if (partyHandlers.onLeave == -1) {
@@ -730,7 +663,7 @@ bool onLeave(Party* party, const std::shared_ptr<Player>& player)
 	return scriptInterface.callFunction(2);
 }
 
-bool onDisband(Party* party)
+bool onDisband(const std::shared_ptr<Party>& party)
 {
 	// Party:onDisband() or Party.onDisband(self)
 	if (partyHandlers.onDisband == -1) {
@@ -752,7 +685,7 @@ bool onDisband(Party* party)
 	return scriptInterface.callFunction(1);
 }
 
-bool onInvite(Party* party, const std::shared_ptr<Player>& player)
+bool onInvite(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>& player)
 {
 	// Party:onInvite(player) or Party.onInvite(self, player)
 	if (partyHandlers.onInvite == -1) {
@@ -775,7 +708,7 @@ bool onInvite(Party* party, const std::shared_ptr<Player>& player)
 	return scriptInterface.callFunction(2);
 }
 
-bool onRevokeInvitation(Party* party, const std::shared_ptr<Player>& player)
+bool onRevokeInvitation(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>& player)
 {
 	// Party:onRevokeInvitation(player) or Party.onRevokeInvitation(self, player)
 	if (partyHandlers.onRevokeInvitation == -1) {
@@ -798,7 +731,7 @@ bool onRevokeInvitation(Party* party, const std::shared_ptr<Player>& player)
 	return scriptInterface.callFunction(2);
 }
 
-bool onPassLeadership(Party* party, const std::shared_ptr<Player>& player)
+bool onPassLeadership(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>& player)
 {
 	// Party:onPassLeadership(player) or Party.onPassLeadership(self, player)
 	if (partyHandlers.onPassLeadership == -1) {
@@ -821,7 +754,7 @@ bool onPassLeadership(Party* party, const std::shared_ptr<Player>& player)
 	return scriptInterface.callFunction(2);
 }
 
-void onShareExperience(Party* party, uint64_t& exp)
+void onShareExperience(const std::shared_ptr<Party>& party, uint64_t& exp)
 {
 	// Party:onShareExperience(exp) or Party.onShareExperience(self, exp)
 	if (partyHandlers.onShareExperience == -1) {
@@ -843,7 +776,7 @@ void onShareExperience(Party* party, uint64_t& exp)
 	tfs::lua::pushNumber(L, exp);
 
 	if (tfs::lua::protectedCall(L, 2, 1) != 0) {
-		reportErrorFunc(L, tfs::lua::popString(L));
+		tfs::lua::reportError(L, tfs::lua::popString(L));
 	} else {
 		exp = tfs::lua::getNumber<uint64_t>(L, -1, exp);
 		lua_pop(L, 1);
@@ -966,16 +899,16 @@ void onLookInTrade(const std::shared_ptr<Player>& player, const std::shared_ptr<
 	scriptInterface.callVoidFunction(4);
 }
 
-bool onLookInShop(const std::shared_ptr<Player>& player, const ItemType* itemType, uint8_t count)
+void onLookInShop(const std::shared_ptr<Player>& player, const ItemType* itemType, uint8_t count)
 {
 	// Player:onLookInShop(itemType, count) or Player.onLookInShop(self, itemType, count)
 	if (playerHandlers.onLookInShop == -1) {
-		return true;
+		return;
 	}
 
 	if (!tfs::lua::reserveScriptEnv()) {
 		std::cout << "[Error - tfs::events::player::onLookInShop] Call stack overflow" << std::endl;
-		return false;
+		return;
 	}
 
 	const auto env = tfs::lua::getScriptEnv();
@@ -987,19 +920,19 @@ bool onLookInShop(const std::shared_ptr<Player>& player, const ItemType* itemTyp
 	tfs::lua::pushThing(L, player);
 	tfs::lua::pushItemType(L, itemType);
 	tfs::lua::pushNumber(L, count);
-	return scriptInterface.callFunction(3);
+	scriptInterface.callVoidFunction(3);
 }
 
-bool onLookInMarket(const std::shared_ptr<Player>& player, const ItemType* itemType)
+void onLookInMarket(const std::shared_ptr<Player>& player, const ItemType* itemType)
 {
 	// Player:onLookInMarket(itemType) or Player.onLookInMarket(self, itemType)
 	if (playerHandlers.onLookInMarket == -1) {
-		return true;
+		return;
 	}
 
 	if (!tfs::lua::reserveScriptEnv()) {
 		std::cout << "[Error - tfs::events::player::onLookInMarket] Call stack overflow" << std::endl;
-		return false;
+		return;
 	}
 
 	const auto env = tfs::lua::getScriptEnv();
@@ -1010,7 +943,7 @@ bool onLookInMarket(const std::shared_ptr<Player>& player, const ItemType* itemT
 
 	tfs::lua::pushThing(L, player);
 	tfs::lua::pushItemType(L, itemType);
-	return scriptInterface.callFunction(2);
+	scriptInterface.callVoidFunction(2);
 }
 
 ReturnValue onMoveItem(const std::shared_ptr<Player>& player, const std::shared_ptr<Item>& item, uint16_t count,
@@ -1045,7 +978,7 @@ ReturnValue onMoveItem(const std::shared_ptr<Player>& player, const std::shared_
 	ReturnValue returnValue;
 	if (tfs::lua::protectedCall(L, 7, 1) != 0) {
 		returnValue = RETURNVALUE_NOTPOSSIBLE;
-		reportErrorFunc(L, tfs::lua::popString(L));
+		tfs::lua::reportError(L, tfs::lua::popString(L));
 	} else {
 		returnValue = tfs::lua::getNumber<ReturnValue>(L, -1, RETURNVALUE_NOERROR);
 		lua_pop(L, 1);
@@ -1139,32 +1072,6 @@ void onReportRuleViolation(const std::shared_ptr<Player>& player, const std::str
 	tfs::lua::pushString(L, comment);
 	tfs::lua::pushString(L, translation);
 	scriptInterface.callVoidFunction(6);
-}
-
-bool onReportBug(const std::shared_ptr<Player>& player, const std::string& message, const Position& position,
-                 uint8_t category)
-{
-	// Player:onReportBug(message, position, category)
-	if (playerHandlers.onReportBug == -1) {
-		return true;
-	}
-
-	if (!tfs::lua::reserveScriptEnv()) {
-		std::cout << "[Error - tfs::events::player::onReportBug] Call stack overflow" << std::endl;
-		return false;
-	}
-
-	const auto env = tfs::lua::getScriptEnv();
-	env->setScriptId(playerHandlers.onReportBug, &scriptInterface);
-
-	const auto L = scriptInterface.getLuaState();
-	scriptInterface.pushFunction(playerHandlers.onReportBug);
-
-	tfs::lua::pushThing(L, player);
-	tfs::lua::pushString(L, message);
-	tfs::lua::pushPosition(L, position);
-	tfs::lua::pushNumber(L, category);
-	return scriptInterface.callFunction(4);
 }
 
 void onRotateItem(const std::shared_ptr<Player>& player, const std::shared_ptr<Item>& item)
@@ -1288,7 +1195,7 @@ void onTradeCompleted(const std::shared_ptr<Player>& player, const std::shared_p
 	tfs::lua::pushThing(L, item);
 	tfs::lua::pushThing(L, targetItem);
 	tfs::lua::pushBoolean(L, isSuccess);
-	scriptInterface.callFunction(5);
+	scriptInterface.callVoidFunction(5);
 }
 
 void onPodiumRequest(const std::shared_ptr<Player>& player, const std::shared_ptr<Item>& item)
@@ -1374,7 +1281,7 @@ void onGainExperience(const std::shared_ptr<Player>& player, const std::shared_p
 	tfs::lua::pushBoolean(L, sendText);
 
 	if (tfs::lua::protectedCall(L, 5, 1) != 0) {
-		reportErrorFunc(L, tfs::lua::popString(L));
+		tfs::lua::reportError(L, tfs::lua::popString(L));
 	} else {
 		exp = tfs::lua::getNumber<uint64_t>(L, -1, exp);
 		lua_pop(L, 1);
@@ -1405,7 +1312,7 @@ void onLoseExperience(const std::shared_ptr<Player>& player, uint64_t& exp)
 	tfs::lua::pushNumber(L, exp);
 
 	if (tfs::lua::protectedCall(L, 2, 1) != 0) {
-		reportErrorFunc(L, tfs::lua::popString(L));
+		tfs::lua::reportError(L, tfs::lua::popString(L));
 	} else {
 		exp = tfs::lua::getNumber<uint64_t>(L, -1, exp);
 		lua_pop(L, 1);
@@ -1438,7 +1345,7 @@ void onGainSkillTries(const std::shared_ptr<Player>& player, skills_t skill, uin
 	tfs::lua::pushNumber(L, tries);
 
 	if (tfs::lua::protectedCall(L, 3, 1) != 0) {
-		reportErrorFunc(L, tfs::lua::popString(L));
+		tfs::lua::reportError(L, tfs::lua::popString(L));
 	} else {
 		tries = tfs::lua::getNumber<uint64_t>(L, -1, tries);
 		lua_pop(L, 1);

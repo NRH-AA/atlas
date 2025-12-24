@@ -1,19 +1,8 @@
 ---@alias os.mtime fun(): number
 
----@alias table.create fun(arrayLength: number, keyLength: number): table
----@alias table.pack fun(...): table
-
 ---@class rawgetmetatable
 ---@field __index fun(self: table, key: any): any
 rawgetmetatable = {}
-
----@class bit
----@field band fun(a: number, b: number): number
----@field bor fun(a: number, b: number): number
----@field bxor fun(a: number, b: number): number
----@field lshift fun(a: number, b: number): number
----@field rshift fun(a: number, b: number): number
-bit = {}
 
 ---@alias Outfit_t table<string, integer>
 ---@alias MagicEffect_t table<string, integer>
@@ -75,6 +64,7 @@ configManager = {}
 ---@field getCurrencyItems fun(): table
 ---@field getItemTypeByClientId fun(clientId: number): ItemType
 ---@field getMountIdByLookType fun(lookType: number): number
+---@field getParties fun(): table
 ---@field getTowns fun(): table
 ---@field getHouses fun(): table
 ---@field getOutfits fun(sex: number): table
@@ -1022,19 +1012,20 @@ Weapon = {}
 ---@field onPartyInvite fun(party:Party, player:Player):boolean
 ---@field onPartyRevokeInvitation fun(party:Party, player:Player):boolean
 ---@field onPartyPassLeadership fun(party:Party, player:Player):boolean
----@field onPlayerLook fun(player:Player, thing:Thing, position:Position, distance:integer, description?:string):string
----@field onPlayerLookInBattleList fun(player:Player, creature:Creature, distance:integer, description?:string):string
----@field onPlayerLookInTrade fun(player:Player, partner:Player, item:Item, distance:integer, description?:string):string
----@field onPlayerLookInShop fun(player:Player, itemType:ItemType, count:integer, description?:string):string
+---@field onPlayerLook fun(player:Player, thing:Thing, position:Position, distance:integer):nil
+---@field onPlayerLookInBattleList fun(player:Player, creature:Creature, distance:integer):nil
+---@field onPlayerLookInTrade fun(player:Player, partner:Player, item:Item, distance:integer):nil
+---@field onPlayerLookInShop fun(player:Player, itemType:ItemType, count:integer):nil
 ---@field onPlayerMoveItem fun(player:Player, item:Item, count:integer, fromPosition:Position, toPosition:Position, fromThing?:Thing, toThing?:Thing):integer
 ---@field onPlayerItemMoved fun(player:Player, item:Item, count:integer, fromPosition:Position, toPosition:Position, fromThing?:Thing, toThing?:Thing):nil
 ---@field onPlayerMoveCreature fun(player:Player, creature:Creature, fromPosition:Position, toPosition:Position):boolean
 ---@field onPlayerReportRuleViolation fun(player:Player, targetName:string, reportType:integer, reportReason:integer, comment:string, translation:string):nil
----@field onPlayerReportBug fun(player:Player, message:string, position:Position, category:any):boolean
 ---@field onPlayerTurn fun(player:Player, direction:integer):boolean
 ---@field onPlayerTradeRequest fun(player:Player, target:Player, item:Item):boolean
 ---@field onPlayerTradeAccept fun(player:Player, target:Player, item:Item, targetItem:Item):boolean
 ---@field onPlayerTradeCompleted fun(player:Player, target:Player, item:Item, targetItem:Item, isSuccess:boolean):nil
+---@field onPlayerPodiumRequest fun(player:Player, item:Item):nil
+---@field onPlayerPodiumEdit fun(player:Player, item:Item, outfit:Outfit, direction:integer, isVisible:boolean):nil
 ---@field onPlayerGainExperience fun(player:Player, source?:Creature, exp:integer, rawExp:integer, sendText:boolean):integer
 ---@field onPlayerLoseExperience fun(player:Player, exp:integer):integer
 ---@field onPlayerGainSkillTries fun(player:Player, skill:integer, tries:integer, artificial?:boolean):integer
@@ -1055,58 +1046,6 @@ Weapon = {}
 ---@operator call():Event
 Event = {}
 EventCallback = Event()
-
----@class hasEvent
----@field onCreatureChangeOutfit  boolean
----@field onCreatureAreaCombat  boolean
----@field onCreatureTargetCombat  boolean
----@field onCreatureHear  boolean
----@field onCreatureChangeZone  boolean
----@field onCreatureChangeHealth  boolean
----@field onCreatureChangeMana  boolean
----@field onCreatureUpdateStorage  boolean
----@field onCreatureThink  boolean
----@field onCreaturePrepareDeath  boolean
----@field onCreatureDeath  boolean
----@field onCreatureKill  boolean
----@field onPartyJoin  boolean
----@field onPartyLeave  boolean
----@field onPartyDisband  boolean
----@field onPartyShareExperience  boolean
----@field onPartyInvite  boolean
----@field onPartyRevokeInvitation  boolean
----@field onPartyPassLeadership  boolean
----@field onPlayerLook  boolean
----@field onPlayerLookInBattleList  boolean
----@field onPlayerLookInTrade  boolean
----@field onPlayerLookInShop  boolean
----@field onPlayerMoveItem  boolean
----@field onPlayerItemMoved  boolean
----@field onPlayerMoveCreature  boolean
----@field onPlayerReportRuleViolation  boolean
----@field onPlayerReportBug  boolean
----@field onPlayerTurn  boolean
----@field onPlayerTradeRequest  boolean
----@field onPlayerTradeAccept  boolean
----@field onPlayerTradeCompleted  boolean
----@field onPlayerGainExperience  boolean
----@field onPlayerLoseExperience  boolean
----@field onPlayerGainSkillTries  boolean
----@field onPlayerNetworkMessage  boolean
----@field onPlayerUpdateInventory  boolean
----@field onPlayerRotateItem  boolean
----@field onPlayerSpellCheck  boolean
----@field onPlayerLogin  boolean
----@field onPlayerJoin  boolean
----@field onPlayerLogout  boolean
----@field onPlayerReconnect  boolean
----@field onPlayerAdvance  boolean
----@field onPlayerModalWindow  boolean
----@field onPlayerTextEdit  boolean
----@field onPlayerExtendedOpcode  boolean
----@field onMonsterDropLoot  boolean
----@field onMonsterSpawn  boolean
-hasEvent = {}
 
 -- MARK: Thing
 ---@class Thing

@@ -7,7 +7,7 @@
 #include "actions.h"
 #include "baseevents.h"
 #include "creature.h"
-#include "luascript.h"
+#include "lua/script.h"
 #include "talkaction.h"
 #include "vocation.h"
 
@@ -17,8 +17,6 @@ class Spell;
 
 using InstantSpell_ptr = std::unique_ptr<InstantSpell>;
 using RuneSpell_ptr = std::unique_ptr<RuneSpell>;
-
-extern Vocations g_vocations;
 
 class Spells final : public BaseEvents
 {
@@ -135,13 +133,7 @@ public:
 	void setLearnable(bool l) { learnable = l; }
 
 	const auto& getVocationSpellMap() const { return vocationSpellMap; }
-	void addVocationSpellMap(std::string_view vocationName, bool showInDescription)
-	{
-		int32_t vocationId = g_vocations.getVocationId(vocationName);
-		if (vocationId != -1) {
-			vocationSpellMap[vocationId] = showInDescription;
-		}
-	}
+	void addVocationSpellMap(std::string_view vocationName, bool showInDescription);
 	// If the set is empty, it is considered to be for all vocations.
 	bool hasVocationSpellMap(uint16_t vocationId) const
 	{
