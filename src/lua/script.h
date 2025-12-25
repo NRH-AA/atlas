@@ -14,7 +14,6 @@ class LuaVariant;
 class Npc;
 class Player;
 class Thing;
-struct Outfit;
 
 using Combat_ptr = std::shared_ptr<Combat>;
 

@@ -63,12 +63,13 @@ configManager = {}
 ---@field getBestiary fun(): table
 ---@field getCurrencyItems fun(): table
 ---@field getItemTypeByClientId fun(clientId: number): ItemType
----@field getMountIdByLookType fun(lookType: number): number
 ---@field getParties fun(): table
 ---@field getTowns fun(): table
 ---@field getHouses fun(): table
 ---@field getOutfits fun(sex: number): table
+---@field getOutfitByLookType fun(lookType: number): Outfit_t
 ---@field getMounts fun(): table
+---@field getMountByLookType fun(lookType: number): table
 ---@field getVocations fun(): table
 ---@field getGameState fun(): string
 ---@field setGameState fun(state: string): boolean
@@ -421,8 +422,19 @@ Creature = {}
 ---@field removeOutfitAddon fun(self: Player, outfitId: number, addonId: number)
 ---@field hasOutfit fun(self: Player, outfitId: number, addon?: number): boolean
 ---@field canWearOutfit fun(self: Player, outfitId: number, addonId?: number): boolean
+---@field getCurrentOutfit fun(self: Player): Outfit
+---@field setCurrentOutfit fun(self: Player, outfit: Outfit)
+---@field getDefaultOutfit fun(self: Player): Outfit
+---@field setDefaultOutfit fun(self: Player, outfit: Outfit)
 ---@field sendOutfitWindow fun(self: Player)
----@field sendEditPodium fun(self: Player, item: Item)
+---@field getRandomizeMount fun(self: Player): boolean
+---@field setRandomizeMount fun(self: Player, randomize: boolean)
+---@field getLastMountToggle fun(self: Player): number
+---@field setLastMountToggle fun(self: Player, timestamp: number)
+---@field getCurrentMount fun(self: Player): number
+---@field mount fun(self: Player, mountId: number)
+---@field dismount fun(self: Player)
+---@field sendPodiumWindow fun(self: Player, item: Item)
 ---@field addMount fun(self: Player, mountId: number)
 ---@field removeMount fun(self: Player, mountId: number)
 ---@field hasMount fun(self: Player, mountId: number): boolean

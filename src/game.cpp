@@ -18,7 +18,6 @@
 #include "iomarket.h"
 #include "items.h"
 #include "movement.h"
-#include "outfit.h"
 #include "party.h"
 #include "podium.h"
 #include "scheduler.h"
@@ -93,8 +92,6 @@ void Game::setGameState(GameState_t newState)
 			g_chat->load();
 
 			map.spawns.startup();
-
-			mounts.loadFromXml();
 
 			tfs::events::game::onStartup();
 			break;
@@ -3365,82 +3362,6 @@ void Game::playerEditPodium(uint32_t playerId, Outfit_t outfit, const Position& 
 	tfs::events::player::onPodiumEdit(player, item, outfit, podiumVisible, direction);
 }
 
-void Game::playerToggleMount(uint32_t playerId, bool mount)
-{
-	const auto& player = getPlayerByID(playerId);
-	if (!player) {
-		return;
-	}
-
-	player->toggleMount(mount);
-}
-
-void Game::playerChangeOutfit(uint32_t playerId, Outfit_t outfit, bool randomizeMount /* = false*/)
-{
-	if (!getBoolean(ConfigManager::ALLOW_CHANGEOUTFIT)) {
-		return;
-	}
-
-	const auto& player = getPlayerByID(playerId);
-	if (!player) {
-		return;
-	}
-
-	player->setRandomizeMount(randomizeMount);
-
-	const Outfit* playerOutfit = Outfits::getInstance().getOutfitByLookType(player->getSex(), outfit.lookType);
-	if (!playerOutfit) {
-		outfit.lookMount = 0;
-	}
-
-	if (outfit.lookMount != 0) {
-		Mount* mount = mounts.getMountByClientID(outfit.lookMount);
-		if (!mount) {
-			return;
-		}
-
-		if (!player->hasMount(mount)) {
-			return;
-		}
-
-		int32_t speedChange = mount->speed;
-		if (player->isMounted()) {
-			Mount* prevMount = mounts.getMountByID(player->getCurrentMount());
-			if (prevMount) {
-				speedChange -= prevMount->speed;
-			}
-		}
-
-		changeSpeed(player, speedChange);
-		player->setCurrentMount(mount->id);
-	} else {
-		if (player->isMounted()) {
-			player->dismount();
-		}
-
-		player->setWasMounted(false);
-	}
-
-	if (player->canWear(outfit.lookType, outfit.lookAddons)) {
-		player->defaultOutfit = outfit;
-
-		if (player->hasCondition(CONDITION_OUTFIT)) {
-			return;
-		}
-
-		if (player->getRandomizeMount() && player->hasMounts()) {
-			const Mount* mount = mounts.getMountByID(player->getRandomMount());
-			outfit.lookMount = mount->clientId;
-		}
-
-		internalCreatureChangeOutfit(player, outfit);
-	}
-
-	if (player->isMounted()) {
-		player->onChangeZone(player->getZone());
-	}
-}
-
 void Game::playerSay(uint32_t playerId, uint16_t channelId, SpeakClasses type, const std::string& receiver,
                      const std::string& text)
 {
@@ -5563,8 +5484,6 @@ bool Game::reload(ReloadTypes_t reloadType)
 			return Item::items.reload();
 		case RELOAD_TYPE_MONSTERS:
 			return g_monsters.reload();
-		case RELOAD_TYPE_MOUNTS:
-			return mounts.reload();
 		case RELOAD_TYPE_MOVEMENTS:
 			return g_moveEvents->reload();
 		case RELOAD_TYPE_NPCS: {
@@ -5604,7 +5523,6 @@ bool Game::reload(ReloadTypes_t reloadType)
 			/*
 			Npcs::reload();
 			Item::items.reload();
-			mounts.reload();
 			ConfigManager::reload();
 			tfs::events::load();
 			g_chat->load();
@@ -5630,7 +5548,6 @@ bool Game::reload(ReloadTypes_t reloadType)
 			Item::items.reload();
 			g_weapons->clear(true);
 			g_weapons->loadDefaults();
-			mounts.reload();
 			g_globalEvents->reload();
 			tfs::events::reload();
 			g_chat->load();
