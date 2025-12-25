@@ -1,3 +1,25 @@
+do
+    local lastMountToggle = {}
+    function Player.getLastMountToggle(self)
+        return lastMountToggle[self:getId()] or 0
+    end
+
+    function Player.setLastMountToggle(self, time)
+        lastMountToggle[self:getId()] = time
+    end
+end
+
+do
+    local wasMounted = {}
+    function Player.getWasMounted(self)
+        return wasMounted[self:getId()] or false
+    end
+
+    function Player.setWasMounted(self, mounted)
+        wasMounted[self:getId()] = mounted or nil
+    end
+end
+
 function Player.addMount(self, mountId)
     return self:setStorageValue(PlayerStorageKeys.mountsBase + mountId, 1)
 end
@@ -27,49 +49,15 @@ function Player.getRandomizeMount(self)
 end
 
 function Player.setRandomizeMount(self, randomize)
-    if not randomize then
-        self:removeStorageValue(PlayerStorageKeys.randomizeMount)
-    else
+    if randomize then
         self:setStorageValue(PlayerStorageKeys.randomizeMount, 1)
+    else
+        self:removeStorageValue(PlayerStorageKeys.randomizeMount)
     end
-end
-
-local lastMountToggle = {}
-function Player.getLastMountToggle(self)
-    return lastMountToggle[self:getId()] or 0
-end
-function Player.setLastMountToggle(self, time)
-    lastMountToggle[self:getId()] = time
-end
-
-local wasMounted = {}
-function Player.getWasMounted(self)
-    return wasMounted[self:getId()] or false
-end
-function Player.setWasMounted(self, mounted)
-    wasMounted[self:getId()] = mounted or nil
 end
 
 function Player.isMounted(self)
     return self:getOutfit().lookMount ~= 0
-end
-
-local function getRandomMount(player)
-    local mounts = Game.getMounts()
-
-    local availableMounts = {}
-    for _, mount in ipairs(mounts) do
-        if player:hasMount(mount.id) then
-            table.insert(availableMounts, mount.id)
-        end
-    end
-
-    if #availableMounts == 0 then
-        return nil
-    end
-
-    local idx = math.random(1, #availableMounts)
-    return availableMounts[idx]
 end
 
 function Player.mount(self, mount)
@@ -92,6 +80,24 @@ function Player.dismount(self)
     end
 end
 
+local function getRandomMount(player)
+    local mounts = Game.getMounts()
+
+    local availableMounts = {}
+    for _, mount in ipairs(mounts) do
+        if player:hasMount(mount.id) then
+            table.insert(availableMounts, mount.id)
+        end
+    end
+
+    if #availableMounts == 0 then
+        return nil
+    end
+
+    local idx = math.random(1, #availableMounts)
+    return availableMounts[idx]
+end
+
 function Player.toggleMount(self, mounted)
     if os.mtime() - self:getLastMountToggle() < Outfits.ToggleMountCooldown and not self:getWasMounted() then
         return false
@@ -109,21 +115,21 @@ function Player.toggleMount(self, mounted)
         end
 
         local lookMount = self:getCurrentMount()
-        if lookMount == nil then
+        if not lookMount then
             self:sendOutfitWindow()
             return false
         end
 
         if self:getRandomizeMount() then
             lookMount = getRandomMount(self)
-            if lookMount == nil then
+            if not lookMount then
                 self:sendOutfitWindow()
                 return false
             end
         end
 
         local currentMount = Game.getMountByLookType(lookMount)
-        if currentMount == nil then
+        if not currentMount then
             return false
         end
 

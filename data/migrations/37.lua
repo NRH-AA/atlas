@@ -50,6 +50,5 @@ function onUpdateDatabase()
 	if not db.query("ALTER TABLE `players` DROP COLUMN `currentmount`, DROP COLUMN `randomizemount`") then
 		return false
 	end
-
 	return true
 end

@@ -242,7 +242,7 @@ end
 
 function Game.getOutfitByLookType(lookType)
 	local outfit = outfits[lookType]
-	if outfit == nil then
+	if not outfit then
 		return nil
 	end
 

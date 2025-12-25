@@ -212,12 +212,12 @@ local mounts = {
 
 function Game.getMounts()
 	local result = {}
-	for mountId, mountData in pairs(mounts) do
+	for mountId, mount in pairs(mounts) do
 		table.insert(result, {
 			id = mountId,
-			name = mountData.name,
-			speed = mountData.speed,
-			premium = mountData.premium,
+			name = mount.name,
+			speed = mount.speed,
+			premium = mount.premium,
 		})
 	end
 	return result
@@ -225,7 +225,7 @@ end
 
 function Game.getMountByLookType(id)
 	local mount = mounts[id]
-	if mount == nil then
+	if not mount then
 		return nil
 	end
 

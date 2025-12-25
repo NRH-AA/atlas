@@ -104,16 +104,17 @@ function Player.sendOutfitWindow(self)
 	msg:addBool(mounted)
 	msg:addBool(self:getRandomizeMount())
 	msg:sendToPlayer(self)
+	msg:delete()
 end
 
 function Player.sendPodiumWindow(self, item)
     local podium = item:getPodium()
-    if podium == nil then
+    if not podium then
         return
     end
 
     local tile = item:getTile()
-    if tile == nil then
+    if not tile then
         return
     end
 
@@ -207,6 +208,5 @@ function Player.sendPodiumWindow(self, item)
 	msg:addBool(true) -- "outfit" checkbox, ignored by the client
 	msg:addByte(podium:getDirection())
 	msg:sendToPlayer(self)
+	msg:delete()
 end
-
-function Player.sendEditPodium(self, item) return self:sendPodiumWindow(item) end

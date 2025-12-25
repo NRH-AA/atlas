@@ -100,7 +100,7 @@ function Player:onPodiumRequest(item)
 		return
 	end
 
-	self:sendEditPodium(item)
+	self:sendPodiumWindow(item)
 end
 
 function Player:onPodiumEdit(item, outfit, direction, isVisible)

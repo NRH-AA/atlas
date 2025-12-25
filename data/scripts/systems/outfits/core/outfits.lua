@@ -14,10 +14,11 @@ end
 
 function Player.hasOutfit(self, lookType, addons)
     local outfitAddons = self:getStorageValue(PlayerStorageKeys.outfitsBase + lookType)
-    if outfitAddons == nil then
+    if not outfitAddons then
         return false
     end
-    if addons == nil or addons == 0 then
+
+    if not addons or addons == 0 then
         return true
     end
     return outfitAddons & addons == addons
@@ -43,7 +44,7 @@ function Player.canWearOutfit(self, lookType, addons)
     end
 
     local outfit = Game.getOutfitByLookType(lookType)
-    if outfit == nil then
+    if not outfit then
         return false
     end
 

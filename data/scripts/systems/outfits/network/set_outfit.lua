@@ -66,7 +66,7 @@ function handler.onReceive(player, msg)
 		end
 
 		local tile = Tile(position)
-		if tile == nil then
+		if not tile then
 			return
 		end
 
