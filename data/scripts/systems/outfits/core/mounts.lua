@@ -93,7 +93,7 @@ function Player.dismount(self)
 end
 
 function Player.toggleMount(self, mounted)
-    if os.mtime() - self:getLastMountToggle() < Outfits.ToggleMountCooldown or not self:getWasMounted() then
+    if os.mtime() - self:getLastMountToggle() < Outfits.ToggleMountCooldown and not self:getWasMounted() then
         return false
     end
 
