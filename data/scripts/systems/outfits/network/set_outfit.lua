@@ -33,6 +33,10 @@ function handler.onReceive(player, msg)
 		msg:getU16() -- familiar looktype
 		local randomizeMount = msg:getBool()
 
+		if not player:canWearOutfit(outfit.lookType, outfit.lookAddons) or not player:hasMount(outfit.lookMount) then
+			return
+		end
+
 		player:setOutfit(outfit)
 		player:setRandomizeMount(randomizeMount)
 	elseif outfitType == 1 then -- try outfit from store window
@@ -56,6 +60,10 @@ function handler.onReceive(player, msg)
 
 		local direction = msg:getByte()
 		local isVisible = msg:getBool()
+
+		if not player:canWearOutfit(outfit.lookType, outfit.lookAddons) or not player:hasMount(outfit.lookMount) then
+			return
+		end
 
 		local tile = Tile(position)
 		if tile == nil then
