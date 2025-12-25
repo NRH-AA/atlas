@@ -438,7 +438,7 @@ Creature = {}
 ---@field addMount fun(self: Player, mountId: number)
 ---@field removeMount fun(self: Player, mountId: number)
 ---@field hasMount fun(self: Player, mountId: number): boolean
----@field toggleMount fun(self: Player, active: boolean)
+---@field toggleMount fun(self: Player, active: boolean): boolean
 ---@field getPremiumEndsAt fun(self: Player): number
 ---@field setPremiumEndsAt fun(self: Player, timestamp: number)
 ---@field hasBlessing fun(self: Player, blessingId: number): boolean
