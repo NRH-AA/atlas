@@ -1,7 +1,8 @@
 local event = Event()
 
-event.onPlayerJoin = function(self)
+event.onPlayerLogin = function(self)
 	print(self:getName() .. " has logged in.")
+	return true
 end
 
 event:register()

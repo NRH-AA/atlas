@@ -396,8 +396,7 @@ void onChangeHealth(const std::shared_ptr<Creature>& creature, const std::shared
 	tfs::lua::pushThing(L, creature);
 
 	if (attacker) {
-		tfs::lua::pushSharedPtr(L, attacker);
-		tfs::lua::setCreatureMetatable(L, -1, attacker);
+		tfs::lua::pushThing(L, attacker);
 	} else {
 		lua_pushnil(L);
 	}
@@ -631,7 +630,7 @@ namespace tfs::events::party {
 
 bool onJoin(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>& player)
 {
-	// Party:onJoin(player) or Party.onJoin(self, player)
+	// Party:onJoin(player)
 	if (partyHandlers.onJoin == -1) {
 		return true;
 	}
@@ -654,7 +653,7 @@ bool onJoin(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>& 
 
 bool onLeave(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>& player)
 {
-	// Party:onLeave(player) or Party.onLeave(self, player)
+	// Party:onLeave(player)
 	if (partyHandlers.onLeave == -1) {
 		return true;
 	}
@@ -677,7 +676,7 @@ bool onLeave(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>&
 
 bool onDisband(const std::shared_ptr<Party>& party)
 {
-	// Party:onDisband() or Party.onDisband(self)
+	// Party:onDisband()
 	if (partyHandlers.onDisband == -1) {
 		return true;
 	}
@@ -699,7 +698,7 @@ bool onDisband(const std::shared_ptr<Party>& party)
 
 bool onInvite(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>& player)
 {
-	// Party:onInvite(player) or Party.onInvite(self, player)
+	// Party:onInvite(player)
 	if (partyHandlers.onInvite == -1) {
 		return true;
 	}
@@ -722,7 +721,7 @@ bool onInvite(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>
 
 bool onRevokeInvitation(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>& player)
 {
-	// Party:onRevokeInvitation(player) or Party.onRevokeInvitation(self, player)
+	// Party:onRevokeInvitation(player)
 	if (partyHandlers.onRevokeInvitation == -1) {
 		return true;
 	}
@@ -745,7 +744,7 @@ bool onRevokeInvitation(const std::shared_ptr<Party>& party, const std::shared_p
 
 bool onPassLeadership(const std::shared_ptr<Party>& party, const std::shared_ptr<Player>& player)
 {
-	// Party:onPassLeadership(player) or Party.onPassLeadership(self, player)
+	// Party:onPassLeadership(player)
 	if (partyHandlers.onPassLeadership == -1) {
 		return true;
 	}
@@ -768,7 +767,7 @@ bool onPassLeadership(const std::shared_ptr<Party>& party, const std::shared_ptr
 
 void onShareExperience(const std::shared_ptr<Party>& party, uint64_t& exp)
 {
-	// Party:onShareExperience(exp) or Party.onShareExperience(self, exp)
+	// Party:onShareExperience(exp)
 	if (partyHandlers.onShareExperience == -1) {
 		return;
 	}
@@ -803,7 +802,7 @@ namespace tfs::events::player {
 
 bool onBrowseField(const std::shared_ptr<Player>& player, const Position& position)
 {
-	// Player:onBrowseField(position) or Player.onBrowseField(self, position)
+	// Player:onBrowseField(position)
 	if (playerHandlers.onBrowseField == -1) {
 		return true;
 	}
@@ -827,7 +826,7 @@ bool onBrowseField(const std::shared_ptr<Player>& player, const Position& positi
 void onLook(const std::shared_ptr<Player>& player, const Position& position, const std::shared_ptr<Thing>& thing,
             uint8_t stackpos, int32_t lookDistance)
 {
-	// Player:onLook(thing, position, distance) or Player.onLook(self, thing, position, distance)
+	// Player:onLook(thing, position, distance)
 	if (playerHandlers.onLook == -1) {
 		return;
 	}
@@ -844,16 +843,7 @@ void onLook(const std::shared_ptr<Player>& player, const Position& position, con
 	scriptInterface.pushFunction(playerHandlers.onLook);
 
 	tfs::lua::pushThing(L, player);
-
-	if (const auto& creature = thing->asCreature()) {
-		tfs::lua::pushThing(L, creature);
-	} else if (const auto& item = thing->asItem()) {
-		tfs::lua::pushSharedPtr(L, item);
-		tfs::lua::setItemMetatable(L, -1, item);
-	} else {
-		lua_pushnil(L);
-	}
-
+	tfs::lua::pushThing(L, thing);
 	tfs::lua::pushPosition(L, position, stackpos);
 	tfs::lua::pushNumber(L, lookDistance);
 	scriptInterface.callVoidFunction(4);
@@ -862,8 +852,7 @@ void onLook(const std::shared_ptr<Player>& player, const Position& position, con
 void onLookInBattleList(const std::shared_ptr<Player>& player, const std::shared_ptr<Creature>& creature,
                         int32_t lookDistance)
 {
-	// Player:onLookInBattleList(creature, position, distance) or Player.onLookInBattleList(self, creature, position,
-	// distance)
+	// Player:onLookInBattleList(creature, position, distance)
 	if (playerHandlers.onLookInBattleList == -1) {
 		return;
 	}
@@ -888,7 +877,7 @@ void onLookInBattleList(const std::shared_ptr<Player>& player, const std::shared
 void onLookInTrade(const std::shared_ptr<Player>& player, const std::shared_ptr<Player>& partner,
                    const std::shared_ptr<Item>& item, int32_t lookDistance)
 {
-	// Player:onLookInTrade(partner, item, distance) or Player.onLookInTrade(self, partner, item, distance)
+	// Player:onLookInTrade(partner, item, distance)
 	if (playerHandlers.onLookInTrade == -1) {
 		return;
 	}
@@ -913,7 +902,7 @@ void onLookInTrade(const std::shared_ptr<Player>& player, const std::shared_ptr<
 
 void onLookInShop(const std::shared_ptr<Player>& player, const ItemType* itemType, uint8_t count)
 {
-	// Player:onLookInShop(itemType, count) or Player.onLookInShop(self, itemType, count)
+	// Player:onLookInShop(itemType, count)
 	if (playerHandlers.onLookInShop == -1) {
 		return;
 	}
@@ -937,7 +926,7 @@ void onLookInShop(const std::shared_ptr<Player>& player, const ItemType* itemTyp
 
 void onLookInMarket(const std::shared_ptr<Player>& player, const ItemType* itemType)
 {
-	// Player:onLookInMarket(itemType) or Player.onLookInMarket(self, itemType)
+	// Player:onLookInMarket(itemType)
 	if (playerHandlers.onLookInMarket == -1) {
 		return;
 	}
@@ -962,8 +951,7 @@ ReturnValue onMoveItem(const std::shared_ptr<Player>& player, const std::shared_
                        const Position& fromPosition, const Position& toPosition,
                        const std::shared_ptr<Thing>& fromThing, const std::shared_ptr<Thing>& toThing)
 {
-	// Player:onMoveItem(item, count, fromPosition, toPosition) or Player.onMoveItem(self, item, count, fromPosition,
-	// toPosition, fromThing, toThing)
+	// Player:onMoveItem(item, count, fromPosition, toPosition)
 	if (playerHandlers.onMoveItem == -1) {
 		return RETURNVALUE_NOERROR;
 	}
@@ -1004,8 +992,7 @@ void onItemMoved(const std::shared_ptr<Player>& player, const std::shared_ptr<It
                  const Position& fromPosition, const Position& toPosition, const std::shared_ptr<Thing>& fromThing,
                  const std::shared_ptr<Thing>& toThing)
 {
-	// Player:onItemMoved(item, count, fromPosition, toPosition) or Player.onItemMoved(self, item, count, fromPosition,
-	// toPosition, fromThing, toThing)
+	// Player:onItemMoved(item, count, fromPosition, toPosition)
 	if (playerHandlers.onItemMoved == -1) {
 		return;
 	}
@@ -1034,8 +1021,7 @@ void onItemMoved(const std::shared_ptr<Player>& player, const std::shared_ptr<It
 bool onMoveCreature(const std::shared_ptr<Player>& player, const std::shared_ptr<Creature>& creature,
                     const Position& fromPosition, const Position& toPosition)
 {
-	// Player:onMoveCreature(creature, fromPosition, toPosition) or Player.onMoveCreature(self, creature, fromPosition,
-	// toPosition)
+	// Player:onMoveCreature(creature, fromPosition, toPosition)
 	if (playerHandlers.onMoveCreature == -1) {
 		return true;
 	}
@@ -1111,7 +1097,7 @@ void onRotateItem(const std::shared_ptr<Player>& player, const std::shared_ptr<I
 
 bool onTurn(const std::shared_ptr<Player>& player, Direction direction)
 {
-	// Player:onTurn(direction) or Player.onTurn(self, direction)
+	// Player:onTurn(direction)
 	if (playerHandlers.onTurn == -1) {
 		return true;
 	}
@@ -1212,7 +1198,7 @@ void onTradeCompleted(const std::shared_ptr<Player>& player, const std::shared_p
 
 void onPodiumRequest(const std::shared_ptr<Player>& player, const std::shared_ptr<Item>& item)
 {
-	// Player:onPodiumRequest(item) or Player.onPodiumRequest(self, item)
+	// Player:onPodiumRequest(item)
 	if (playerHandlers.onPodiumRequest == -1) {
 		return;
 	}
@@ -1236,8 +1222,7 @@ void onPodiumRequest(const std::shared_ptr<Player>& player, const std::shared_pt
 void onPodiumEdit(const std::shared_ptr<Player>& player, const std::shared_ptr<Item>& item, const Outfit_t& outfit,
                   bool podiumVisible, Direction direction)
 {
-	// Player:onPodiumEdit(item, outfit, direction, isVisible) or Player.onPodiumEdit(self, item, outfit, direction,
-	// isVisible)
+	// Player:onPodiumEdit(item, outfit, direction, isVisible)
 	if (playerHandlers.onPodiumEdit == -1) {
 		return;
 	}
