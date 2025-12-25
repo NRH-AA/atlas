@@ -12,7 +12,7 @@ end
 
 function NetworkMessage:addItemId(itemId)
 	local it = ItemType(itemId)
-	msg:addU16(it:getClientId())
+	self:addU16(it:getClientId())
 end
 
 function NetworkMessage:addOutfit(outfit)
