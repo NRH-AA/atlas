@@ -36,12 +36,20 @@ function onUpdateDatabase()
 				query = query .. ","
 			end
 		end
-		db.asyncQuery(query)
+		if not db.query(query) then
+			return false
+		end
 	end
 
-	db.asyncQuery("DROP TABLE IF EXISTS `player_outfits`")
-	db.asyncQuery("DROP TABLE IF EXISTS `player_mounts`")
-	db.asyncQuery("ALTER TABLE `players` DROP COLUMN `currentmount`, DROP COLUMN `randomizemount`")
+	if not db.query("DROP TABLE IF EXISTS `player_outfits`") then
+		return false
+	end
+	if not db.query("DROP TABLE IF EXISTS `player_mounts`") then
+		return false
+	end
+	if not db.query("ALTER TABLE `players` DROP COLUMN `currentmount`, DROP COLUMN `randomizemount`") then
+		return false
+	end
 
 	return true
 end
