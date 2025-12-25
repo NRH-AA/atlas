@@ -46,8 +46,8 @@ local wasMounted = {}
 function Player.getWasMounted(self)
     return wasMounted[self:getId()] or false
 end
-function Player.setWasMounted(self, value)
-    wasMounted[self:getId()] = value or nil
+function Player.setWasMounted(self, mounted)
+    wasMounted[self:getId()] = mounted or nil
 end
 
 function Player.isMounted(self)
