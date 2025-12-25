@@ -6,12 +6,10 @@ function event.onChangeZone(creature, fromZone, toZone)
     end
 
     local player = creature:getPlayer()
-    if toZone == ZONE_PROTECTION then
-        if not player:getGroup():getAccess() and player:isMounted() then
-            player:toggleMount(false)
-            player:setWasMounted(true)
-        end
-    elseif player:getWasMounted() then
+    if toZone == ZONE_PROTECTION and not player:getGroup():getAccess() and player:isMounted() then
+        player:toggleMount(false)
+        player:setWasMounted(true)
+    elseif fromZone == ZONE_PROTECTION and player:getWasMounted() then
         player:toggleMount(true)
         player:setWasMounted(false)
     end
