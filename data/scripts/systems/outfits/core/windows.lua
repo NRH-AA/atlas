@@ -197,7 +197,7 @@ function Player.sendPodiumWindow(self, item)
 	msg:addU16(0)
 
 	msg:addByte(0x05) -- "set outfit" window mode (5 = podium)
-	msg:addBool((isEmpty and playerOutfit.lookType ~= 0) or podium:hasFlag(PODIUM_SHOW_MOUNT)) -- "mount" checkbox
+	msg:addBool((isEmpty and playerOutfit.lookMount ~= 0) or podium:hasFlag(PODIUM_SHOW_MOUNT)) -- "mount" checkbox
 	msg:addU16(0) -- unknown
 	msg:addPosition(item:getPosition())
 	msg:addU16(it:getClientId())
