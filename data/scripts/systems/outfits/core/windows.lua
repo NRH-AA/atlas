@@ -117,6 +117,11 @@ function Player.sendPodiumWindow(self, item)
         return
     end
 
+	local it = ItemType(item:getId())
+	if not it then
+		return
+	end
+
 	local availableOutfits = getAvailableOutfits(self)
     if #availableOutfits == 0 then
         self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
@@ -195,7 +200,7 @@ function Player.sendPodiumWindow(self, item)
 	msg:addBool((isEmpty and playerOutfit.lookType ~= 0) or podium:hasFlag(PODIUM_SHOW_MOUNT)) -- "mount" checkbox
 	msg:addU16(0) -- unknown
 	msg:addPosition(item:getPosition())
-	msg:addU16(item:getClientID())
+	msg:addU16(it:getClientId())
 	msg:addByte(stackpos)
 
 	msg:addBool(podium:hasFlag(PODIUM_SHOW_PLATFORM)) -- is platform visible
