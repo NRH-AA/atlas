@@ -30,7 +30,8 @@ function Player.hasOutfit(self, lookType, addons)
 end
 
 function Player.hasOutfitAddon(self, lookType, addon)
-    return self:getOutfitAddons(lookType) & addon ~= 0
+    local addons = self:getOutfitAddons(lookType)
+    return addons & (1 << (addon - 1)) ~= 0
 end
 
 function Player.removeOutfit(self, lookType)
@@ -61,5 +62,9 @@ function Player.canWearOutfit(self, lookType, addons)
         return false
     end
 
-    return addons == nil or addons == 0 or self:hasOutfitAddon(lookType, addons)
+    if addons == nil or addons == 0 then
+        return true
+    end
+
+    return self:getOutfitAddons(lookType) & addons == addons
 end
