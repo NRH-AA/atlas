@@ -39,6 +39,7 @@ enum ItemTypes_t
 	ITEM_TYPE_DOOR,
 	ITEM_TYPE_MAGICFIELD,
 	ITEM_TYPE_TELEPORT,
+	ITEM_TYPE_BED, // unused
 	ITEM_TYPE_KEY,
 	ITEM_TYPE_RUNE,
 	ITEM_TYPE_PODIUM,
@@ -286,6 +287,8 @@ public:
 	bool hasSubType() const { return (isFluidContainer() || isSplash() || stackable || charges != 0); }
 	bool isSupply() const { return supply; }
 
+	bool isBed() const { return (type == ITEM_TYPE_BED); }
+
 	Abilities& getAbilities()
 	{
 		if (!abilities) {
@@ -448,6 +451,8 @@ public:
 	bool loadFromXml();
 	void parseItemNode(const pugi::xml_node& itemNode, uint16_t id);
 
+	auto begin() const { return items.begin(); }
+	auto end() const { return items.end(); }
 	size_t size() const { return items.size(); }
 
 	NameMap nameToItems;

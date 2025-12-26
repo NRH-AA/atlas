@@ -43,9 +43,6 @@ function Position:getNextPosition(direction, steps)
 	return self
 end
 
--- ensure userdata instances can call getNextPosition via metatable lookup
-mt.getNextPosition = Position.getNextPosition
-
 function Position:moveUpstairs()
 	local swap = function(lhs, rhs)
 		lhs.x, rhs.x = rhs.x, lhs.x

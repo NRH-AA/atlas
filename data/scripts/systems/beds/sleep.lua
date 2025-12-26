@@ -31,26 +31,18 @@ local function canUse(player, bed)
     return true
 end
 
-local function setSleeper(bed, player)
-    bed:setCustomAttribute(ITEM_ATTRIBUTE_DESCRIPTION, string.format("%s is sleeping there.", player:getName()))
-
-    local sexAttr = player:getSex() == PLAYERSEX_FEMALE and "femaleSleeper" or "maleSleeper"
-    local targetId = bed:getAttribute(sexAttr)
-    if type(targetId) == "number" and targetId > 0 then
-        bed:transform(targetId)
-    end
-end
-
-local function sleep(player, bed)
-    local partner = Bed.getPartnerBed(bed)
-
-    setSleeper(bed, player)
-    if partner then
-        setSleeper(partner, player)
+local function sleep(player, headboard)
+    local footboard = headboard:getPartnerBed()
+    if not footboard then
+        return false
     end
 
-    bed:getPosition():sendMagicEffect(CONST_ME_SLEEP)
-    player:teleportTo(bed:getPosition(), true)
+    headboard:setSleeper(player)
+    footboard:setSleeper(player)
+
+    local headboardPos = headboard:getPosition()
+    headboardPos:sendMagicEffect(CONST_ME_SLEEP)
+    player:teleportTo(headboardPos, true)
 
     addEvent(function(pid)
         local sleeper = Player(pid)
@@ -64,7 +56,7 @@ local function abortOfflineTraining(player)
 	player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Offline training aborted.")
 end
 
-local function sendOfflineTrainingModal(player, bed)
+local function sendOfflineTrainingModal(player, headboard)
     local offlineTrainingModal = ModalWindow{
         title = "Choose a Skill",
         message = "Please choose a skill:",
@@ -88,7 +80,7 @@ local function sendOfflineTrainingModal(player, bed)
         end
 
         player:setOfflineTrainingSkill(selectedSkill)
-        sleep(player, bed)
+        sleep(player, headboard)
         return true
     end)
 
@@ -101,19 +93,33 @@ local function sendOfflineTrainingModal(player, bed)
 end
 
 function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
-    if not canUse(player, item) then
+    local headboard = item:getBed()
+    if not headboard then
+        return false
+    end
+
+    if not canUse(player, headboard) then
         item:getPosition():sendMagicEffect(CONST_ME_POFF)
         return true
     end
 
-    if Bed.OFFLINE_TRAINING_ENABLED then
-        sendOfflineTrainingModal(player, item)
+    if Beds.OfflineTrainingEnabled then
+        sendOfflineTrainingModal(player, headboard)
         return true
     end
 
-    sleep(player, item)
-    return true
+    return sleep(player, headboard)
 end
 
-action:id(table.unpack(Bed.BED_IDS))
+local function getHeadboardIds()
+    local headboards = {}
+    for id, bed in pairs(Game.getBeds()) do
+        if bed.partnerDirection == DIRECTION_SOUTH or bed.partnerDirection == DIRECTION_EAST then
+            table.insert(headboards, id)
+        end
+    end
+    return headboards
+end
+
+action:id(table.unpack(getHeadboardIds()))
 action:register()

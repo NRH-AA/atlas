@@ -1,18 +1,22 @@
 local event = CreatureEvent("BedLogin")
 
-local function findBedOnTile(tile)
+local function findHeadboardOnTile(tile)
     if not tile then
         return nil
     end
+
     local items = tile:getItems()
     if not items then
         return nil
     end
+
     for _, item in ipairs(items) do
-        if Bed.isBed(item:getId()) then
-            return item
+		local bed = item:getBed()
+        if bed ~= nil and bed:isHeadboard() then
+            return bed
         end
     end
+
     return nil
 end
 
@@ -20,9 +24,12 @@ local function findRelevantBed(player)
 	local pos = player:getPosition()
 	local tile = Tile(pos)
 	if tile then
-		local bed = findBedOnTile(tile)
-		if bed then
-			return bed, Bed.getPartnerBed(bed)
+		local headboard = findHeadboardOnTile(tile)
+		if headboard then
+			local footboard = headboard:getPartnerBed()
+			if footboard then
+				return headboard, footboard
+			end
 		end
 	end
 
@@ -30,17 +37,13 @@ local function findRelevantBed(player)
 	for _, dir in ipairs(directions) do
 		local checkPos = Position(pos)
 		checkPos:getNextPosition(dir)
-		local checkTile = Tile(checkPos)
-		if checkTile then
-			local candidate = findBedOnTile(checkTile)
-			if candidate then
-				local partnerDir = Bed.getPartnerDir(candidate)
-				if partnerDir then
-					local candidatePos = Position(candidate:getPosition())
-					candidatePos:getNextPosition(partnerDir)
-					if candidatePos == pos then
-						return candidate, Bed.getPartnerBed(candidate)
-					end
+		local tile = Tile(checkPos)
+		if tile then
+			local headboard = findHeadboardOnTile(tile)
+			if headboard then
+				local footboard = headboard:getPartnerBed()
+				if footboard then
+					return headboard, footboard
 				end
 			end
 		end
@@ -54,31 +57,22 @@ local function regeneratePlayer(player, sleptSeconds)
 		return
 	end
 
-	local regenWindow = math.min(sleptSeconds, Bed.HEALTH_MANA_MAX_SECONDS)
-	local regenTicks = math.floor(regenWindow / Bed.HEALTH_MANA_TICK_SECONDS) * Bed.HEALTH_MANA_PER_TICK
+	local regenWindow = math.min(sleptSeconds, Beds.HealthManaMaxSeconds)
+	local regenTicks = math.floor(regenWindow / Beds.HealthManaTickSeconds) * Beds.HealthManaPerTick
 	if regenTicks > 0 then
 		player:addHealth(regenTicks)
 		player:addMana(regenTicks)
 	end
 
-	local soulTicks = math.floor(sleptSeconds / Bed.SOUL_TICK_SECONDS) * Bed.SOUL_PER_TICK
+	local soulTicks = math.floor(sleptSeconds / Beds.SoulTickSeconds) * Beds.SoulPerTick
 	if soulTicks > 0 then
 		player:addSoul(soulTicks)
 	end
 end
 
-local function clearSleeper(bed)
-    bed:removeCustomAttribute(ITEM_ATTRIBUTE_DESCRIPTION)
-
-    local targetId = bed:getAttribute("transformToFree")
-    if type(targetId) == "number" and targetId > 0 then
-        bed:transform(targetId)
-    end
-end
-
 function event.onLogin(player)
-	local bed, partner = findRelevantBed(player)
-	if not bed then
+	local headboard, footboard = findRelevantBed(player)
+	if not headboard or not footboard or not headboard:getSleeper() ~= player:getId() then
 		return true
 	end
 
@@ -90,10 +84,8 @@ function event.onLogin(player)
 
 	regeneratePlayer(player, sleptSeconds)
 
-	clearSleeper(bed)
-	if partner then
-		clearSleeper(partner)
-	end
+	headboard:removeSleeper(player)
+	footboard:removeSleeper(player)
 
 	return true
 end
