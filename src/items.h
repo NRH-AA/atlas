@@ -155,10 +155,10 @@ enum ItemParseAttributes_t
 	ITEM_PARSE_SUPPRESSCURSE,
 	ITEM_PARSE_FIELD,
 	ITEM_PARSE_REPLACEABLE,
-	ITEM_PARSE_PARTNERDIRECTION,
+	ITEM_PARSE_PARTNERDIRECTION, // unused
 	ITEM_PARSE_LEVELDOOR,
-	ITEM_PARSE_MALETRANSFORMTO,
-	ITEM_PARSE_FEMALETRANSFORMTO,
+	ITEM_PARSE_MALETRANSFORMTO,   // unused
+	ITEM_PARSE_FEMALETRANSFORMTO, // unused
 	ITEM_PARSE_TRANSFORMTO,
 	ITEM_PARSE_DESTROYTO,
 	ITEM_PARSE_ELEMENTICE,
@@ -287,8 +287,6 @@ public:
 	bool hasSubType() const { return (isFluidContainer() || isSplash() || stackable || charges != 0); }
 	bool isSupply() const { return supply; }
 
-	bool isBed() const { return (type == ITEM_TYPE_BED); }
-
 	Abilities& getAbilities()
 	{
 		if (!abilities) {
@@ -357,8 +355,6 @@ public:
 
 	CombatType_t combatType = COMBAT_NONE;
 
-	uint16_t transformToOnUse[2] = {0, 0};
-	uint16_t transformToFree = 0;
 	uint16_t destroyTo = 0;
 	uint16_t maxTextLen = 0;
 	uint16_t writeOnceItemId = 0;
@@ -370,7 +366,6 @@ public:
 	uint16_t wareId = 0;
 
 	MagicEffectClasses magicEffect = CONST_ME_NONE;
-	Direction bedPartnerDir = DIRECTION_NONE;
 	WeaponType_t weaponType = WEAPON_NONE;
 	Ammo_t ammoType = AMMO_NONE;
 	ShootType_t shootType = CONST_ANI_NONE;

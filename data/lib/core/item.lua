@@ -42,6 +42,14 @@ function Item:isItemType()
 	return false
 end
 
+function Item.getSpecialDescription(self)
+	return self:getAttribute(ITEM_ATTRIBUTE_DESCRIPTION)
+end
+
+function Item:setSpecialDescription(self, description)
+	self:setAttribute(ITEM_ATTRIBUTE_DESCRIPTION, description)
+end
+
 do
 	local aux = {
 		["Defense"] = {key = ITEM_ATTRIBUTE_DEFENSE},

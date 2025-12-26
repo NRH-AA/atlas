@@ -78,9 +78,13 @@ function Bed.setSleeper(self, player)
     end
 end
 
+function ItemType.isBed(self)
+    local beds = Game.getBeds()
+    return beds[self:getId()] ~= nil
+end
+
 function Item.getBed(self)
     local beds = Game.getBeds()
-
     local bed = beds[self:getId()]
     if not bed then
         return nil

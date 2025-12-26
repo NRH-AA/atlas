@@ -188,31 +188,6 @@ void mainLoader(ServiceManager* services)
 		return;
 	}
 
-	// for (const auto& item : Item::items) {
-	// 	// print all bed information like partner direction, transform to in both sexes, transform to free
-	// 	constexpr auto getBedPartnerStr = [](Direction dir) -> std::string_view {
-	// 		switch (dir) {
-	// 			case DIRECTION_NORTH:
-	// 				return "North";
-	// 			case DIRECTION_EAST:
-	// 				return "East";
-	// 			case DIRECTION_SOUTH:
-	// 				return "South";
-	// 			case DIRECTION_WEST:
-	// 				return "West";
-	// 			default:
-	// 				return "INVALID";
-	// 		}
-	// 	};
-
-	// 	if (item.isBed()) {
-	// 		std::println(
-	// 		    "> Bed: {:s}, ID: {:d}, Partner Direction: {:s}, TransformToMale: {:d}, TransformToFemale: {:d},
-	// TransformToFree: {:d}", 		    item.name, item.id, getBedPartnerStr(item.bedPartnerDir), item.transformToOnUse[0],
-	// 		    item.transformToOnUse[1], item.transformToFree);
-	// 	}
-	// }
-
 	std::cout << ">> Loading script systems" << std::endl;
 	if (!ScriptingManager::getInstance().loadScriptSystems()) {
 		startupErrorMessage("Failed to load script systems");
