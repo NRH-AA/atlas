@@ -47,7 +47,10 @@ function Item.getSpecialDescription(self)
 end
 
 function Item.setSpecialDescription(self, description)
-	self:setAttribute(ITEM_ATTRIBUTE_DESCRIPTION, description)
+	if description ~= nil then
+		return self:setAttribute(ITEM_ATTRIBUTE_DESCRIPTION, description)
+	end
+	return self:removeAttribute(ITEM_ATTRIBUTE_DESCRIPTION)
 end
 
 do

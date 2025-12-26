@@ -59,7 +59,7 @@ function Bed.removeSleeper(self, player)
         return
     end
 
-    self:removeCustomAttribute(ITEM_ATTRIBUTE_DESCRIPTION)
+    self:setSpecialDescription(nil)
 	self:removeCustomAttribute(Beds.SleeperGuidKey)
 
     local targetId = self:getTransformTo(player:getSex())
@@ -69,7 +69,7 @@ function Bed.removeSleeper(self, player)
 end
 
 function Bed.setSleeper(self, player)
-    self:setCustomAttribute(ITEM_ATTRIBUTE_DESCRIPTION, string.format("%s is sleeping there.", player:getName()))
+    self:setSpecialDescription(string.format("%s is sleeping there.", player:getName()))
     self:setCustomAttribute(Beds.SleeperGuidKey, player:getId())
 
     local targetId = self:getTransformTo(player:getSex())
