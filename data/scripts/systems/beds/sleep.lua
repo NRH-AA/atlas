@@ -50,6 +50,7 @@ local function sleep(player, headboard)
             sleeper:remove()
         end
     end, SCHEDULER_MINTICKS, player:getId())
+    return true
 end
 
 local function abortOfflineTraining(player)
