@@ -106,7 +106,7 @@ function Player.isMounted(self)
 end
 
 function Player.mount(self, mount)
-    if not mount or not mount.lookType then
+    if not mount or not mount.lookType or not mount.speed then
         return false
     end
 
