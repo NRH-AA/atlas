@@ -6,8 +6,8 @@ function event.onCreatureChangeZone(self, fromZone, toZone)
     end
 
     if toZone == ZONE_PROTECTION and not self:getGroup():getAccess() and self:isMounted() then
-        self:toggleMount(false)
         self:setWasMounted(true)
+        self:toggleMount(false)
     elseif fromZone == ZONE_PROTECTION and self:getWasMounted() then
         self:toggleMount(true)
         self:setWasMounted(false)

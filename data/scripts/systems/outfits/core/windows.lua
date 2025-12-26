@@ -59,10 +59,7 @@ function Player.sendOutfitWindow(self)
 		currentOutfit.lookType = availableOutfits[1].lookType
 	end
 
-	local mounted = self:isMounted()
-	if self:getWasMounted() then
-		mounted = currentOutfit.lookMount ~= 0
-	end
+	local mounted = self:isMounted() or self:getWasMounted()
 
 	local availableMounts = getAvailableMounts(self)
 	local availableFamiliars = getAvailableFamiliars(self)
