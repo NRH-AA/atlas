@@ -24,7 +24,7 @@ function talkaction.onSay(player, words, param)
 		return false
 	end
 
-	return target:addOutfit(outfit.lookType, addons)
+	return target:addOutfit(outfit.lookType)
 end
 
 talkaction:separator(" ")
