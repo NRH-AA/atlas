@@ -30,19 +30,26 @@ function Player.hasMount(self, mountId)
 end
 
 function Player.removeMount(self, mountId)
-    local result = self:removeStorageValue(PlayerStorageKeys.mountsBase + mountId)
+    local value = self:removeStorageValue(PlayerStorageKeys.mountsBase + mountId)
     if self:getCurrentMount() == mountId and self:isMounted() then
         self:dismount()
     end
-    return result
+    return value
 end
 
 function Player.getCurrentMount(self)
-    local lookType = self:getOutfit().lookMount
-    if lookType == 0 then
+    local value = self:getStorageValue(PlayerStorageKeys.currentMount)
+    if value == nil or value == -1 then
         return nil
     end
-    return lookType
+    return value
+end
+
+function Player.setCurrentMount(self, mountId)
+    if mountId ~= nil then
+        return self:setStorageValue(PlayerStorageKeys.currentMount, mountId)
+    end
+    return self:removeStorageValue(PlayerStorageKeys.currentMount)
 end
 
 function Player.getRandomizeMount(self)
@@ -52,10 +59,9 @@ end
 
 function Player.setRandomizeMount(self, randomize)
     if randomize then
-        self:setStorageValue(PlayerStorageKeys.randomizeMount, 1)
-    else
-        self:removeStorageValue(PlayerStorageKeys.randomizeMount)
+        return self:setStorageValue(PlayerStorageKeys.randomizeMount, 1)
     end
+    return self:removeStorageValue(PlayerStorageKeys.randomizeMount)
 end
 
 function Player.canRideMount(self, mountId)

@@ -50,7 +50,8 @@ PlayerStorageKeys = {
 	bestiaryTrackerBase = 500000,
 
 	-- Outfits and mounts:
-	randomizeMount = 60000,
+	currentMount = 60000,
+	randomizeMount = 60001,
 	outfitsBase = 600000,
 	mountsBase = 610000,
 }
