@@ -46,7 +46,7 @@ function Item.getSpecialDescription(self)
 	return self:getAttribute(ITEM_ATTRIBUTE_DESCRIPTION)
 end
 
-function Item:setSpecialDescription(self, description)
+function Item.setSpecialDescription(self, description)
 	self:setAttribute(ITEM_ATTRIBUTE_DESCRIPTION, description)
 end
 

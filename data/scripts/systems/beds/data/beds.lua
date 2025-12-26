@@ -244,12 +244,3 @@ local beds = {
 function Game.getBeds()
     return beds
 end
-
-function Game.getFootboardIdFor(headboardId)
-    local data = beds[headboard]
-    if not data then
-        return nil
-    end
-
-    return data.partnerId
-end
