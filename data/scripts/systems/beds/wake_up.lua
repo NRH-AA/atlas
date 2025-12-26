@@ -72,7 +72,7 @@ end
 
 function event.onLogin(player)
 	local headboard, footboard = findRelevantBed(player)
-	if not headboard or not footboard or not headboard:getSleeper() ~= player:getId() then
+	if not headboard or not footboard or headboard:getSleeper() ~= player:getId() then
 		return true
 	end
 
