@@ -19,7 +19,7 @@ function talkaction.onSay(player, words, param)
 		return false
 	end
 
-	if not player:hasOutfit(outfit.lookType) then
+	if not target:hasOutfit(outfit.lookType) then
 		player:sendCancelMessage("Target does not have this outfit.")
 		return false
 	end

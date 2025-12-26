@@ -19,28 +19,12 @@ function talkaction.onSay(player, words, param)
 		return false
 	end
 
-	if #split < 3 then
-		return target:addOutfit(outfit.lookType, addons)
-	end
-
-	local addons = tonumber(split[3])
-	if not addons or addons < 0 or addons > 3 then
-		player:sendCancelMessage("Invalid addons value.")
+	if target:hasOutfit(outfit.lookType) then
+		player:sendCancelMessage("Target already has this outfit.")
 		return false
 	end
 
-	if not player:hasOutfit(outfit.lookType) then
-		if not target:addOutfit(outfit.lookType, addons) then
-			return false
-		end
-	end
-
-	if target:hasOutfitAddon(outfit.lookType, addons) then
-		player:sendCancelMessage("Target already has this outfit with these addons.")
-		return false
-	end
-
-	return target:addOutfitAddon(outfit.lookType, addons)
+	return target:addOutfit(outfit.lookType, addons)
 end
 
 talkaction:separator(" ")

@@ -15,7 +15,7 @@ function talkaction.onSay(player, words, param)
 
 	local outfit = Game.getOutfit(split[2], target:getSex())
 	if not outfit then
-		player:sendCancelMessage("Outfit with look type " .. lookType .. " does not exist.")
+		player:sendCancelMessage("Outfit " .. split[2] .. " does not exist.")
 		return false
 	end
 
