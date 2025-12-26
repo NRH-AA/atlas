@@ -13,6 +13,11 @@ local function canUse(player, bed)
         return false
     end
 
+    local existingSleeper = bed:getSleeper()
+    if existingSleeper and existingSleeper ~= player:getId() then
+        return false
+    end
+
     local premiumEnds = player:getPremiumEndsAt()
     if premiumEnds <= os.time() then
         return false
