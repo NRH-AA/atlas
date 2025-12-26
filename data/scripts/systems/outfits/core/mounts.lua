@@ -47,6 +47,9 @@ end
 
 function Player.setCurrentMount(self, mountId)
     if mountId ~= nil then
+        if not self:hasMount(mountId) then
+            return false
+        end
         return self:setStorageValue(PlayerStorageKeys.currentMount, mountId)
     end
     return self:removeStorageValue(PlayerStorageKeys.currentMount)

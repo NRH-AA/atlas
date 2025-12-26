@@ -65,7 +65,11 @@ function handler.onReceive(player, msg)
 		local direction = msg:getByte()
 		local isVisible = msg:getBool()
 
-		if not player:canWearOutfit(outfit.lookType, outfit.lookAddons) or not player:hasMount(outfit.lookMount) then
+		if not player:canWearOutfit(outfit.lookType, outfit.lookAddons) then
+			return
+		end
+
+		if outfit.lookMount ~= 0 and not player:canRideMount(outfit.lookMount) then
 			return
 		end
 
