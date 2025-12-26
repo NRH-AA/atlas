@@ -190,7 +190,6 @@ std::shared_ptr<Mailbox> Tile::getMailbox() const
 	return nullptr;
 }
 
-
 std::shared_ptr<Creature> Tile::getTopCreature() const
 {
 	if (const CreatureVector* creatures = getCreatures()) {
