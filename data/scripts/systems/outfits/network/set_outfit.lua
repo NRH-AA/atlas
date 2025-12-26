@@ -22,8 +22,8 @@ function handler.onReceive(player, msg)
 		local lookMountLegs = msg:getByte()
 		local lookMountFeet = msg:getByte()
 
-		if lookMount ~= 0 then
-			outfit.lookMount = lookMount
+		outfit.lookMount = lookMount
+		if lookMount ~= 0 then -- only update colors if a mount with colors is selected
 			outfit.lookMountHead = lookMountHead
 			outfit.lookMountBody = lookMountBody
 			outfit.lookMountLegs = lookMountLegs
