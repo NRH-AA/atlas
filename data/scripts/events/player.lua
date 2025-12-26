@@ -123,7 +123,7 @@ function Player:onPodiumEdit(item, outfit, direction, isVisible)
 
 		-- reset mount if unable to ride
 		local mount = Game.getMountByLookType(outfit.lookMount)
-		if not mount or not self:hasMount(mount.id) then
+		if not mount or not self:hasMount(mount.lookType) then
 			outfit.lookMount = 0
 		end
 	end
