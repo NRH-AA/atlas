@@ -24,6 +24,13 @@ function Player.addMount(self, mountId)
     return self:setStorageValue(PlayerStorageKeys.mountsBase + mountId, 1)
 end
 
+function Player.addAllMounts(self)
+	local mounts = Game.getMounts()
+	for _, mount in ipairs(mounts) do
+		self:addMount(mount.lookType)
+	end
+end
+
 function Player.hasMount(self, mountId)
     local value = self:getStorageValue(PlayerStorageKeys.mountsBase + mountId)
     return value ~= nil and value ~= -1
@@ -35,6 +42,16 @@ function Player.removeMount(self, mountId)
         self:dismount()
     end
     return value
+end
+
+function Player.removeAllMounts(self)
+    local mounts = Game.getMounts()
+    for _, mount in ipairs(mounts) do
+        self:removeMount(mount.lookType)
+    end
+    if self:isMounted() then
+        self:dismount()
+    end
 end
 
 function Player.getCurrentMount(self)
@@ -89,11 +106,15 @@ function Player.isMounted(self)
 end
 
 function Player.mount(self, mount)
+    if not mount or not mount.lookType then
+        return false
+    end
+
     local outfit = self:getDefaultOutfit()
     outfit.lookMount = mount.lookType
     self:setOutfit(outfit)
-
     self:changeSpeed(mount.speed)
+    return true
 end
 
 function Player.dismount(self)

@@ -1,11 +1,36 @@
-function Player.addOutfit(self, lookType, addons)
-    return self:setStorageValue(PlayerStorageKeys.outfitsBase + lookType, addons or 0)
+function Player.addOutfit(self, lookType)
+    local addons = self:getStorageValue(PlayerStorageKeys.outfitsBase + lookType)
+    if addons ~= nil and addons ~= -1 then
+        return true
+    end
+    return self:setStorageValue(PlayerStorageKeys.outfitsBase + lookType, 0)
+end
+
+function Player.addAllOutfits(self)
+    local outfits = Game.getOutfits(self:getSex())
+    for _, outfit in ipairs(outfits) do
+        self:addOutfit(outfit.lookType)
+    end
 end
 
 function Player.addOutfitAddon(self, lookType, addon)
-    local addons = self:getOutfitAddons(lookType)
+    local addons = self:getStorageValue(PlayerStorageKeys.outfitsBase + lookType)
+    if addons == nil or addons == -1 then
+        return false
+    end
+
     addons = addons | (1 << (addon - 1))
     return self:setStorageValue(PlayerStorageKeys.outfitsBase + lookType, addons)
+end
+
+function Player.addAddonToAllOutfits(self, addon)
+	for sex = 0, 1 do
+		local outfits = Game.getOutfits(sex)
+		for _, outfit in ipairs(outfits) do
+			self:addOutfit(outfit.lookType)
+			self:addOutfitAddon(outfit.lookType, addon)
+		end
+	end
 end
 
 function Player.getOutfitAddons(self, lookType)
@@ -16,17 +41,18 @@ function Player.getOutfitAddons(self, lookType)
     return outfitAddons
 end
 
-function Player.hasOutfit(self, lookType, addons)
-    local outfitAddons = self:getStorageValue(PlayerStorageKeys.outfitsBase + lookType)
-    if outfitAddons == nil or outfitAddons == -1 then
+function Player.hasOutfit(self, lookType)
+    local addons = self:getStorageValue(PlayerStorageKeys.outfitsBase + lookType)
+    return addons ~= nil and addons ~= -1
+end
+
+function Player.hasOutfitAddons(self, lookType, addons)
+    local currentAddons = self:getStorageValue(PlayerStorageKeys.outfitsBase + lookType)
+    if currentAddons == nil or currentAddons == -1 then
         return false
     end
 
-    if addons == nil or addons == 0 then
-        return true
-    end
-
-    return (outfitAddons & addons) == addons
+    return (currentAddons & addons) == addons
 end
 
 function Player.hasOutfitAddon(self, lookType, addon)
