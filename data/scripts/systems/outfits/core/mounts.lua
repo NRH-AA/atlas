@@ -25,7 +25,8 @@ function Player.addMount(self, mountId)
 end
 
 function Player.hasMount(self, mountId)
-    return self:hasStorageValue(PlayerStorageKeys.mountsBase + mountId)
+    local value = self:getStorageValue(PlayerStorageKeys.mountsBase + mountId)
+    return value ~= nil and value ~= -1
 end
 
 function Player.removeMount(self, mountId)
@@ -45,7 +46,8 @@ function Player.getCurrentMount(self)
 end
 
 function Player.getRandomizeMount(self)
-    return self:hasStorageValue(PlayerStorageKeys.randomizeMount)
+    local randomizeMount = self:getStorageValue(PlayerStorageKeys.randomizeMount)
+    return randomizeMount ~= nil and randomizeMount ~= -1
 end
 
 function Player.setRandomizeMount(self, randomize)
@@ -56,13 +58,30 @@ function Player.setRandomizeMount(self, randomize)
     end
 end
 
+function Player.canRideMount(self, mountId)
+    if self:getGroup():getAccess() then
+        return true
+    end
+
+    local mount = Game.getMountByLookType(mountId)
+    if not mount then
+        return false
+    end
+
+    if mount.premium and not self:isPremium() then
+        return false
+    end
+
+    return self:hasMount(mount.lookType)
+end
+
 function Player.isMounted(self)
     return self:getOutfit().lookMount ~= 0
 end
 
 function Player.mount(self, mount)
     local outfit = self:getDefaultOutfit()
-    outfit.lookMount = mount.id
+    outfit.lookMount = mount.lookType
     self:setOutfit(outfit)
 
     self:changeSpeed(mount.speed)
@@ -85,8 +104,8 @@ local function getRandomMount(player)
 
     local availableMounts = {}
     for _, mount in ipairs(mounts) do
-        if player:hasMount(mount.id) then
-            table.insert(availableMounts, mount.id)
+        if player:hasMount(mount.lookType) then
+            table.insert(availableMounts, mount.lookType)
         end
     end
 

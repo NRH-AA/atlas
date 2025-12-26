@@ -32,10 +32,12 @@ end
 local function getAvailableMounts(player)
 	local mounts = Game.getMounts()
 
+	local isAccessPlayer = player:getGroup():getAccess()
+
 	local availableMounts = {}
 	for _, mount in ipairs(mounts) do
-		if player:hasMount(mount.id) then
-			table.insert(availableMounts, { id = mount.id, name = mount.name })
+		if isAccessPlayer or player:hasMount(mount.lookType) then
+			table.insert(availableMounts, { lookType = mount.lookType, name = mount.name })
 		end
 	end
 	return availableMounts
@@ -88,9 +90,9 @@ function Player.sendOutfitWindow(self)
 
 	msg:addU16(#availableMounts)
 	for _, mount in ipairs(availableMounts) do
-		msg:addU16(mount.id)
+		msg:addU16(mount.lookType)
 		msg:addString(mount.name)
-		msg:addByte(0) -- mode: 0x00 - available, 0x01 store (requires U32 store offerId)
+		msg:addByte(0) -- mode: 0x00 - available, 0x01 store (requires U32 store offerlookType)
 	end
 
 	msg:addU16(#availableFamiliars)
@@ -189,7 +191,7 @@ function Player.sendPodiumWindow(self, item)
 	-- available mounts
 	msg:addU16(#availableMounts)
 	for _, mount in ipairs(availableMounts) do
-		msg:addU16(mount.id)
+		msg:addU16(mount.lookType)
 		msg:addString(mount.name)
 		msg:addByte(0) -- mode: 0x00 - available, 0x01 store (requires U32 store offerId)
 	end

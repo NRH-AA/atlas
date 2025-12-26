@@ -9,23 +9,28 @@ function Player.addOutfitAddon(self, lookType, addon)
 end
 
 function Player.getOutfitAddons(self, lookType)
-    return self:getStorageValue(PlayerStorageKeys.outfitsBase + lookType) or 0
+    local outfitAddons = self:getStorageValue(PlayerStorageKeys.outfitsBase + lookType)
+    if outfitAddons == nil or outfitAddons == -1 then
+        return 0
+    end
+    return outfitAddons
 end
 
 function Player.hasOutfit(self, lookType, addons)
     local outfitAddons = self:getStorageValue(PlayerStorageKeys.outfitsBase + lookType)
-    if not outfitAddons then
+    if outfitAddons == nil or outfitAddons == -1 then
         return false
     end
 
-    if not addons or addons == 0 then
+    if addons == nil or addons == 0 then
         return true
     end
-    return outfitAddons & addons == addons
+
+    return (outfitAddons & addons) == addons
 end
 
 function Player.hasOutfitAddon(self, lookType, addon)
-    return self:getOutfitAddons(lookType) & addon == addon
+    return self:getOutfitAddons(lookType) & addon ~= 0
 end
 
 function Player.removeOutfit(self, lookType)
@@ -56,9 +61,5 @@ function Player.canWearOutfit(self, lookType, addons)
         return false
     end
 
-    if addons ~= nil and addons ~= 0 and not self:hasOutfitAddon(lookType, addons) then
-        return false
-    end
-
-    return true
+    return addons == nil or addons == 0 or self:hasOutfitAddon(lookType, addons)
 end
