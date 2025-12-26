@@ -89,7 +89,7 @@ function handler.onReceive(player, msg)
 		end
 
 		local it = Game.getItemTypeByClientId(clientId)
-		if not it or it:getClientId() ~= clientId then
+		if not it or it:getClientId() ~= clientId or it:getId() ~= item:getId() then
 			return
 		end
 
