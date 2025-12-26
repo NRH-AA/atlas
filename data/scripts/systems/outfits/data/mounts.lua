@@ -212,9 +212,9 @@ local mounts = {
 
 function Game.getMounts()
 	local result = {}
-	for mountId, mount in pairs(mounts) do
+	for lookType, mount in pairs(mounts) do
 		table.insert(result, {
-			id = mountId,
+			lookType = lookType,
 			name = mount.name,
 			speed = mount.speed,
 			premium = mount.premium,
@@ -223,16 +223,39 @@ function Game.getMounts()
 	return result
 end
 
-function Game.getMountByLookType(id)
-	local mount = mounts[id]
+function Game.getMountByLookType(lookType)
+	local mount = mounts[lookType]
 	if not mount then
 		return nil
 	end
 
 	return {
-		id = id,
+		lookType = lookType,
 		name = mount.name,
 		speed = mount.speed,
 		premium = mount.premium,
 	}
+end
+
+function Game.getMountByName(name)
+    for lookType, mount in pairs(mounts) do
+        if mount.name:lower() == name:lower() then
+            return {
+				lookType = lookType,
+				name = mount.name,
+				speed = mount.speed,
+				premium = mount.premium,
+			}
+        end
+    end
+    return nil
+end
+
+function Game.getMount(param)
+	local lookType = tonumber(param)
+	if lookType then
+		return Game.getMountByLookType(lookType)
+	else
+		return Game.getMountByName(param)
+	end
 end

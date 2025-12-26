@@ -254,3 +254,27 @@ function Game.getOutfitByLookType(lookType)
 		unlocked = outfit.unlocked,
 	}
 end
+
+function Game.getOutfitByName(name, sex)
+    for lookType, outfit in pairs(outfits) do
+        if outfit.name:lower() == name:lower() and outfit.sex == sex then
+            return {
+				lookType = lookType,
+				name = outfit.name,
+				sex = outfit.sex,
+				premium = outfit.premium,
+				unlocked = outfit.unlocked,
+			}
+        end
+    end
+    return nil
+end
+
+function Game.getOutfit(param, sex)
+	local lookType = tonumber(param)
+	if lookType then
+		return Game.getOutfitByLookType(lookType)
+	else
+		return Game.getOutfitByName(param, sex)
+	end
+end
