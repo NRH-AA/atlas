@@ -598,6 +598,8 @@ bool Game::removeCreature(const std::shared_ptr<Creature>& creature, bool isLogo
 		summon->setSkillLoss(false);
 		removeCreature(summon);
 	}
+
+	tfs::events::creature::onRemoved(creature);
 	return true;
 }
 
