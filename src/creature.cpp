@@ -478,6 +478,10 @@ void Creature::onDeath()
 
 	if (droppedCorpse) {
 		g_game.removeCreature(asCreature(), false);
+	} else {
+		for (const auto& condition : getConditions()) {
+			removeCondition(condition, true);
+		}
 	}
 }
 
