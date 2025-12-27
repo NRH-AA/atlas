@@ -1007,6 +1007,7 @@ Weapon = {}
 ---@field onCreatureDisappear fun(creature:Creature, target:Creature):nil
 ---@field onCreatureMove fun(creature:Creature, fromPosition:Position, toPosition:Position):nil
 ---@field onCreatureSay fun(creature:Creature, speaker:Creature, words:string, type:integer):nil
+---@field onCreatureHear fun(creature:Creature, speaker:Creature, words:string, type:integer):nil
 ---@field onPartyJoin fun(party:Party, player:Player):boolean
 ---@field onPartyLeave fun(party:Party, player:Player):boolean
 ---@field onPartyDisband fun(party:Party):boolean

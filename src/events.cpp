@@ -17,7 +17,7 @@ namespace {
 LuaScriptInterface scriptInterface{"Event Interface"};
 
 struct CreatureHandlers
-{
+{s
 	int32_t onChangeOutfit = -1;
 	int32_t onAreaCombat = -1;
 	int32_t onTargetCombat = -1;
@@ -674,10 +674,10 @@ void onMove(const std::shared_ptr<Creature>& creature, const Position& oldPositi
 	scriptInterface.callVoidFunction(3);
 }
 
-void onSay(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& target, SpeakClasses type,
+void onSay(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& speaker, SpeakClasses type,
            const std::string& text)
 {
-	// Creature:onSay(target, type, text)
+	// Creature:onSay(speaker, type, text)
 	if (creatureHandlers.onSay == -1) {
 		return;
 	}
@@ -694,9 +694,9 @@ void onSay(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Crea
 	scriptInterface.pushFunction(creatureHandlers.onSay);
 
 	tfs::lua::pushThing(L, creature);
-	tfs::lua::pushThing(L, target);
-	tfs::lua::pushNumber(L, type);
+	tfs::lua::pushThing(L, speaker);
 	tfs::lua::pushString(L, text);
+	tfs::lua::pushNumber(L, type);
 	scriptInterface.callVoidFunction(4);
 }
 

@@ -89,8 +89,14 @@ function Creature:onMove(oldPosition, newPosition)
 	end
 end
 
-function Creature:onSay(target, type, text)
+function Creature:onSay(speaker, words, type)
 	if Event.onCreatureSay then
-		Event.onCreatureSay(self, target, type, text)
+		Event.onCreatureSay(self, speaker, words, type)
+	end
+
+	if self == speaker then
+		if Event.onCreatureHear then
+			Event.onCreatureHear(self, speaker, words, type)
+		end
 	end
 end

@@ -49,7 +49,7 @@ void onKill(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Cre
 void onAppear(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& target);
 void onDisappear(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& target);
 void onMove(const std::shared_ptr<Creature>& creature, const Position& oldPosition, const Position& newPosition);
-void onSay(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& target, SpeakClasses type,
+void onSay(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& speaker, SpeakClasses type,
            const std::string& text);
 
 } // namespace tfs::events::creature
