@@ -116,7 +116,9 @@ struct PlayerHandlers
 	int32_t onJoin = -1;
 	int32_t onLogout = -1;
 	int32_t onReconnect = -1;
+	int32_t onAdvance = -1;
 	int32_t onModalWindow = -1;
+	int32_t onTextEdit = -1;
 	int32_t onExtendedOpcode = -1;
 } playerHandlers;
 
@@ -1249,7 +1251,7 @@ void onPodiumEdit(const std::shared_ptr<Player>& player, const std::shared_ptr<I
 void onGainExperience(const std::shared_ptr<Player>& player, const std::shared_ptr<Creature>& source, uint64_t& exp,
                       uint64_t rawExp, bool sendText)
 {
-	// Player:onGainExperience(source, exp, rawExp, sendText) rawExp gives the original exp which is not multiplied
+	// Player:onGainExperience(source, exp, rawExp, sendText)
 	if (playerHandlers.onGainExperience == -1) {
 		return;
 	}
@@ -1537,8 +1539,8 @@ void onReconnect(const std::shared_ptr<Player>& player)
 
 bool onAdvance(const std::shared_ptr<Player>& player, skills_t skill, uint32_t oldLevel, uint32_t newLevel)
 {
-	// Player:onLogout(skill, oldLevel, newLevel)
-	if (playerHandlers.onLogout == -1) {
+	// Player:onAdvance(skill, oldLevel, newLevel)
+	if (playerHandlers.onAdvance == -1) {
 		return true;
 	}
 
@@ -1548,10 +1550,10 @@ bool onAdvance(const std::shared_ptr<Player>& player, skills_t skill, uint32_t o
 	}
 
 	const auto env = tfs::lua::getScriptEnv();
-	env->setScriptId(playerHandlers.onLogout, &scriptInterface);
+	env->setScriptId(playerHandlers.onAdvance, &scriptInterface);
 
 	const auto L = scriptInterface.getLuaState();
-	scriptInterface.pushFunction(playerHandlers.onLogout);
+	scriptInterface.pushFunction(playerHandlers.onAdvance);
 
 	tfs::lua::pushThing(L, player);
 	tfs::lua::pushNumber(L, static_cast<uint32_t>(skill));
@@ -1588,21 +1590,21 @@ void onModalWindow(const std::shared_ptr<Player>& player, uint32_t modalWindowId
 bool onTextEdit(const std::shared_ptr<Player>& player, const std::shared_ptr<Item>& item, std::string_view text,
                 const uint32_t windowTextId)
 {
-	// Player:onModalWindow(item, text, windowTextId)
-	if (playerHandlers.onModalWindow == -1) {
+	// Player:onTextEdit(item, text, windowTextId)
+	if (playerHandlers.onTextEdit == -1) {
 		return true;
 	}
 
 	if (!tfs::lua::reserveScriptEnv()) {
-		std::cout << "[Error - tfs::events::player::onModalWindow] Call stack overflow" << std::endl;
+		std::cout << "[Error - tfs::events::player::onTextEdit] Call stack overflow" << std::endl;
 		return false;
 	}
 
 	const auto env = tfs::lua::getScriptEnv();
-	env->setScriptId(playerHandlers.onModalWindow, &scriptInterface);
+	env->setScriptId(playerHandlers.onTextEdit, &scriptInterface);
 
 	const auto L = scriptInterface.getLuaState();
-	scriptInterface.pushFunction(playerHandlers.onModalWindow);
+	scriptInterface.pushFunction(playerHandlers.onTextEdit);
 
 	tfs::lua::pushThing(L, player);
 	tfs::lua::pushThing(L, item);
@@ -1672,7 +1674,7 @@ void onDropLoot(const std::shared_ptr<Monster>& monster, const std::shared_ptr<C
 	}
 
 	if (!tfs::lua::reserveScriptEnv()) {
-		std::cout << "[Error - tfs::events::monsteronDropLoot] Call stack overflow" << std::endl;
+		std::cout << "[Error - tfs::events::monster::onDropLoot] Call stack overflow" << std::endl;
 		return;
 	}
 
