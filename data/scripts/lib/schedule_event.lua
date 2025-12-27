@@ -5,7 +5,7 @@ function ScheduleEvent.new(time)
 	local self = setmetatable({}, ScheduleEvent)
 	self.time = time
 	self.callback = nil
-	self._lastTrigger = nil
+	self._lastTrigger = {}
 	return self
 end
 
@@ -85,8 +85,8 @@ function ScheduleEvent:register()
 			local now = os.date("*t")
 			local stamp = now.yday .. "-" .. h .. "-" .. m .. "-" .. s
 
-			if now.hour == h and now.min == m and now.sec == s and self._lastTrigger ~= stamp then
-				self._lastTrigger = stamp
+			if now.hour == h and now.min == m and now.sec == s and not self._lastTrigger[stamp] then
+				self._lastTrigger[stamp] = true
 				local success, err = pcall(self.callback)
 				if not success then
 					print("[Error - ScheduleEvent] Callback failed: " .. tostring(err))
@@ -147,8 +147,8 @@ function ScheduleEvent:register()
 			if today then
 				for _, t in ipairs(today) do
 					local stamp = now.yday .. "-" .. t[1] .. "-" .. t[2] .. "-" .. t[3]
-					if now.hour == t[1] and now.min == t[2] and now.sec == t[3] and self._lastTrigger ~= stamp then
-						self._lastTrigger = stamp
+					if now.hour == t[1] and now.min == t[2] and now.sec == t[3] and not self._lastTrigger[stamp] then
+						self._lastTrigger[stamp] = true
 						local success, err = pcall(self.callback)
 						if not success then
 							print("[Error - ScheduleEvent] Callback failed: " .. tostring(err))
