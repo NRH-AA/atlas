@@ -86,7 +86,7 @@ configManager = {}
 ---@field getClientVersion fun(): string
 ---@field reload fun(reloadType: number): boolean
 ---@field getPlayerRecord fun(): integer
----@field setPlayerRecord fun(record: integer): nil
+---@field setPlayerRecord fun(record: integer): boolean
 Game = {}
 
 ---@class Variant
