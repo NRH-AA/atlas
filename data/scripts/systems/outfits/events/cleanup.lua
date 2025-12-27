@@ -1,10 +1,6 @@
 local event = Event()
 
-function event.onCreatureRemoved(self)
-    if not self:isPlayer() then
-        return
-    end
-
+function event.onPlayerLogout(self)
     self:setLastMountToggle(nil)
     self:setWasMounted(nil)
     return true
