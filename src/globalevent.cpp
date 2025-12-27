@@ -36,7 +36,6 @@ void GlobalEvents::clear(bool fromLua)
 	timerEventId = 0;
 
 	clearMap(thinkMap, fromLua);
-	clearMap(serverMap, fromLua);
 	clearMap(timerMap, fromLua);
 
 	reInitState(fromLua);
@@ -59,11 +58,6 @@ bool GlobalEvents::registerEvent(Event_ptr event, const pugi::xml_node&)
 			if (timerEventId == 0) {
 				timerEventId = g_scheduler.addEvent(createSchedulerTask(SCHEDULER_MINTICKS, [this]() { timer(); }));
 			}
-			return true;
-		}
-	} else if (globalEvent->getEventType() != GLOBALEVENT_NONE) {
-		auto result = serverMap.emplace(globalEvent->getName(), std::move(*globalEvent));
-		if (result.second) {
 			return true;
 		}
 	} else { // think event
@@ -90,11 +84,6 @@ bool GlobalEvents::registerLuaEvent(GlobalEvent* event)
 			if (timerEventId == 0) {
 				timerEventId = g_scheduler.addEvent(createSchedulerTask(SCHEDULER_MINTICKS, [this]() { timer(); }));
 			}
-			return true;
-		}
-	} else if (globalEvent->getEventType() != GLOBALEVENT_NONE) {
-		auto result = serverMap.emplace(globalEvent->getName(), std::move(*globalEvent));
-		if (result.second) {
 			return true;
 		}
 	} else { // think event
@@ -177,15 +166,6 @@ void GlobalEvents::think()
 
 	if (nextScheduledTime != std::numeric_limits<int64_t>::max()) {
 		thinkEventId = g_scheduler.addEvent(createSchedulerTask(nextScheduledTime, [this]() { think(); }));
-	}
-}
-
-void GlobalEvents::execute(GlobalEvent_t type) const
-{
-	for (auto&& globalEvent : serverMap | std::views::values | std::views::as_const) {
-		if (globalEvent.getEventType() == type) {
-			globalEvent.executeEvent();
-		}
 	}
 }
 

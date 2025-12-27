@@ -29,7 +29,6 @@ public:
 
 	void timer();
 	void think();
-	void execute(GlobalEvent_t type) const;
 
 	GlobalEventMap getEventMap(GlobalEvent_t type);
 	static void clearMap(GlobalEventMap& map, bool fromLua);
@@ -46,7 +45,7 @@ private:
 	LuaScriptInterface& getScriptInterface() override { return scriptInterface; }
 	LuaScriptInterface scriptInterface;
 
-	GlobalEventMap thinkMap, serverMap, timerMap;
+	GlobalEventMap thinkMap, timerMap;
 	int32_t thinkEventId = 0, timerEventId = 0;
 };
 
