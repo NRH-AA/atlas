@@ -11,7 +11,6 @@
 #include "creature.h"
 #include "databasetasks.h"
 #include "events.h"
-#include "globalevent.h"
 #include "housetile.h"
 #include "http/http.h"
 #include "iologindata.h"
@@ -36,7 +35,6 @@ extern Actions* g_actions;
 extern Chat* g_chat;
 extern DatabaseTasks g_databaseTasks;
 extern Dispatcher g_dispatcher;
-extern GlobalEvents* g_globalEvents;
 extern Monsters g_monsters;
 extern MoveEvents* g_moveEvents;
 extern Scheduler g_scheduler;
@@ -5557,8 +5555,6 @@ bool Game::reload(ReloadTypes_t reloadType)
 		case RELOAD_TYPE_EVENTS:
 			tfs::events::reload();
 			return true;
-		case RELOAD_TYPE_GLOBALEVENTS:
-			return g_globalEvents->reload();
 		case RELOAD_TYPE_ITEMS:
 			return Item::items.reload();
 		case RELOAD_TYPE_MONSTERS:
@@ -5596,7 +5592,6 @@ bool Game::reload(ReloadTypes_t reloadType)
 			g_actions->clear(true);
 			g_moveEvents->clear(true);
 			g_talkActions->clear(true);
-			g_globalEvents->clear(true);
 			g_weapons->clear(true);
 			g_weapons->loadDefaults();
 			g_spells->clear(true);
@@ -5631,13 +5626,11 @@ bool Game::reload(ReloadTypes_t reloadType)
 			g_weapons->clear(true);
 			g_weapons->loadDefaults();
 			mounts.reload();
-			g_globalEvents->reload();
 			tfs::events::reload();
 			g_chat->load();
 			g_actions->clear(true);
 			g_moveEvents->clear(true);
 			g_talkActions->clear(true);
-			g_globalEvents->clear(true);
 			g_spells->clear(true);
 			g_scripts->loadScripts("scripts", false, true);
 			return true;

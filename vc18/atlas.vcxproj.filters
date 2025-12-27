@@ -149,9 +149,6 @@
     <ClCompile Include="..\src\game.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\globalevent.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\groups.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -285,9 +282,6 @@
       <Filter>Source Files\lua\modules</Filter>
     </ClCompile>
     <ClCompile Include="..\src\lua\modules\weapon.cpp">
-      <Filter>Source Files\lua\modules</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\lua\modules\globalevent.cpp">
       <Filter>Source Files\lua\modules</Filter>
     </ClCompile>
     <ClCompile Include="..\src\lua\modules\moveevent.cpp">
@@ -497,9 +491,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\game.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\globalevent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\groups.h">

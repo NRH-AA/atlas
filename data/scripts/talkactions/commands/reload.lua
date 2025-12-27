@@ -17,9 +17,6 @@ local reloadTypes = {
 
 	["global"] = RELOAD_TYPE_GLOBAL,
 
-	["globalevent"] = RELOAD_TYPE_GLOBALEVENTS,
-	["globalevents"] = RELOAD_TYPE_GLOBALEVENTS,
-
 	["items"] = RELOAD_TYPE_ITEMS,
 
 	["monster"] = RELOAD_TYPE_MONSTERS,

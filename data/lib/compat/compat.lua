@@ -176,21 +176,6 @@ do
 end
 
 do
-	local function GlobalEventNewIndex(self, key, value)
-		if key == "onThink" then
-			self:onThink(value)
-			return
-		elseif key == "onTime" then
-			self:type("timer")
-			self:onTime(value)
-			return
-		end
-		rawset(self, key, value)
-	end
-	rawgetmetatable("GlobalEvent").__newindex = GlobalEventNewIndex
-end
-
-do
 	local function WeaponNewIndex(self, key, value)
 		if key == "onUseWeapon" then
 			self:onUseWeapon(value)
