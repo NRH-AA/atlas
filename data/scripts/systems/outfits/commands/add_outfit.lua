@@ -1,3 +1,5 @@
+-- /addoutfit <player>, <outfitName|lookType>
+-- Grants the outfit to the target player if not already owned.
 local talkaction = TalkAction("/addoutfit")
 
 function talkaction.onSay(player, words, param)

@@ -1,3 +1,8 @@
+-- Handles auto dismount/remount when crossing protection zones.
+--
+-- The flag wasMounted is used to remember the player's intent to stay mounted while
+-- forcibly dismounted in protection zones, and to bypass the normal toggle cooldown
+-- for these forced transitions.
 local event = Event()
 
 function event.onCreatureChangeZone(self, fromZone, toZone)
@@ -9,8 +14,9 @@ function event.onCreatureChangeZone(self, fromZone, toZone)
         self:setWasMounted(true)
         self:toggleMount(false)
     elseif fromZone == ZONE_PROTECTION and self:getWasMounted() then
-        self:toggleMount(true)
-        self:setWasMounted(false)
+        if self:toggleMount(true) then
+            self:setWasMounted(false)
+        end
     end
 end
 

@@ -1,3 +1,5 @@
+-- /addaddon <player>, <outfitName|lookType>, <addon>
+-- Adds addon 1 or 2 to an owned outfit for the target player.
 local talkaction = TalkAction("/addaddon")
 
 function talkaction.onSay(player, words, param)

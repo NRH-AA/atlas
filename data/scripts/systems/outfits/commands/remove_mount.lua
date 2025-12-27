@@ -1,3 +1,5 @@
+-- /removemount <player>, <mountName|lookType>
+-- Removes the mount from the target player; dismounts if currently used.
 local talkaction = TalkAction("/removemount")
 
 function talkaction.onSay(player, words, param)

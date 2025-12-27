@@ -1,3 +1,5 @@
+-- /addmount <player>, <mountName|lookType>
+-- Grants the mount to the target player if not already owned.
 local talkaction = TalkAction("/addmount")
 
 function talkaction.onSay(player, words, param)

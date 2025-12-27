@@ -1,3 +1,9 @@
+-- Outfit and podium window builders.
+--
+-- This file builds outgoing packets:
+-- - 0xC8: Outfit Window (Player.sendOutfitWindow)
+-- - 0xD8: Podium Window (Player.sendPodiumWindow)
+
 local function canWearOutfit(player, outfit)
 	if not outfit.unlocked then
 		return player:hasOutfit(outfit.lookType)
@@ -11,7 +17,7 @@ local function getAvailableOutfits(player)
 
 	local isAccessPlayer = player:getGroup():getAccess()
 	if isAccessPlayer then
-		-- add GM outfit for staff members
+		-- Add GM outfit for staff members.
 		local gamemaster = { name = "Gamemaster", lookType = 75, addons = 0 }
 		table.insert(availableOutfits, gamemaster)
 	end
@@ -47,6 +53,19 @@ local function getAvailableFamiliars(player)
 	return {}
 end
 
+-- player:sendOutfitWindow()
+-- Builds and sends packet 0xC8 (Outfit Window).
+-- Structure:
+-- - 0xC8
+-- - currentOutfit via msg:addOutfit
+-- - if lookMount == 0: four mount color bytes (head/body/legs/feet)
+-- - currentFamiliarLookType:u16 (sent as 0)
+-- - outfits: count:u16 then {lookType:u16, name:string, addons:byte, mode:byte}
+-- - mounts: count:u16 then {lookType:u16, name:string, mode:byte}
+-- - familiars: count:u16 (currently 0)
+-- - tryOutfitMode:byte (0)
+-- - mounted:bool (uses getWasMounted to preserve intent while forcibly dismounted in PZ)
+-- - randomizeMount:bool
 function Player.sendOutfitWindow(self)
 	local availableOutfits = getAvailableOutfits(self)
 	if #availableOutfits == 0 then
@@ -59,6 +78,7 @@ function Player.sendOutfitWindow(self)
 		currentOutfit.lookType = availableOutfits[1].lookType
 	end
 
+	-- If the player was forcibly dismounted (e.g. PZ), keep the checkbox state coherent.
 	local mounted = self:isMounted() or self:getWasMounted()
 
 	local availableMounts = getAvailableMounts(self)
@@ -106,16 +126,31 @@ function Player.sendOutfitWindow(self)
 	msg:delete()
 end
 
+-- player:sendPodiumWindow(item)
+-- Builds and sends packet 0xD8 (Podium Window).
+-- Structure:
+-- - 0xD8
+-- - currentPodiumOutfit via msg:addOutfit
+-- - currentMount block: lookMount:u16 + four mount color bytes
+-- - currentFamiliarLookType:u16 (0)
+-- - outfits list (same layout as 0xC8)
+-- - mounts list (same layout as 0xC8)
+-- - familiar count:u16 (0)
+-- - windowMode:byte (5)
+-- - showMountCheckbox:bool
+-- - unknown:u16 (0)
+-- - position:Position + itemClientId:u16 + stackpos:byte
+-- - showPlatform:bool + outfitCheckbox:bool (ignored by client) + direction:byte
 function Player.sendPodiumWindow(self, item)
-    local podium = item:getPodium()
-    if not podium then
-        return
-    end
+	local podium = item:getPodium()
+	if not podium then
+		return
+	end
 
-    local tile = item:getTile()
-    if not tile then
-        return
-    end
+	local tile = item:getTile()
+	if not tile then
+		return
+	end
 
 	local it = ItemType(item:getId())
 	if not it then
@@ -123,35 +158,35 @@ function Player.sendPodiumWindow(self, item)
 	end
 
 	local availableOutfits = getAvailableOutfits(self)
-    if #availableOutfits == 0 then
-        self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
-        return
-    end
+	if #availableOutfits == 0 then
+		self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
+		return
+	end
 
-    local stackpos = tile:getThingIndex(item)
+	local stackpos = tile:getThingIndex(item)
 
-    local podiumOutfit = podium:getOutfit()
-    local playerOutfit = self:getDefaultOutfit()
-    local isEmpty = podiumOutfit.lookType == 0 and podiumOutfit.lookMount == 0
+	local podiumOutfit = podium:getOutfit()
+	local playerOutfit = self:getDefaultOutfit()
+	local isEmpty = podiumOutfit.lookType == 0 and podiumOutfit.lookMount == 0
 
-    if podiumOutfit.lookType == 0 then
-        -- copy player outfit
-        podiumOutfit.lookType = playerOutfit.lookType
-        podiumOutfit.lookHead = playerOutfit.lookHead
-        podiumOutfit.lookBody = playerOutfit.lookBody
-        podiumOutfit.lookLegs = playerOutfit.lookLegs
-        podiumOutfit.lookFeet = playerOutfit.lookFeet
-        podiumOutfit.lookAddons = playerOutfit.lookAddons
-    end
+	if podiumOutfit.lookType == 0 then
+		-- Copy player outfit.
+		podiumOutfit.lookType = playerOutfit.lookType
+		podiumOutfit.lookHead = playerOutfit.lookHead
+		podiumOutfit.lookBody = playerOutfit.lookBody
+		podiumOutfit.lookLegs = playerOutfit.lookLegs
+		podiumOutfit.lookFeet = playerOutfit.lookFeet
+		podiumOutfit.lookAddons = playerOutfit.lookAddons
+	end
 
-    if podiumOutfit.lookMount == 0 then
-        -- copy player mount
-        podiumOutfit.lookMount = playerOutfit.lookMount
-        podiumOutfit.lookMountHead = playerOutfit.lookMountHead
-        podiumOutfit.lookMountBody = playerOutfit.lookMountBody
-        podiumOutfit.lookMountLegs = playerOutfit.lookMountLegs
-        podiumOutfit.lookMountFeet = playerOutfit.lookMountFeet
-    end
+	if podiumOutfit.lookMount == 0 then
+		-- Copy player mount.
+		podiumOutfit.lookMount = playerOutfit.lookMount
+		podiumOutfit.lookMountHead = playerOutfit.lookMountHead
+		podiumOutfit.lookMountBody = playerOutfit.lookMountBody
+		podiumOutfit.lookMountLegs = playerOutfit.lookMountLegs
+		podiumOutfit.lookMountFeet = playerOutfit.lookMountFeet
+	end
 
 	if not self:canWearOutfit(podiumOutfit.lookType) then
 		-- select first outfit available when the one from podium is not unlocked

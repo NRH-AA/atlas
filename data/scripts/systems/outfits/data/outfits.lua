@@ -1,3 +1,17 @@
+-- Outfit data source for the Outfits & Mounts module.
+--
+-- This file overrides the Game outfit lookup helpers used throughout the module:
+-- - Game.getOutfits(sex)
+-- - Game.getOutfitByLookType(lookType)
+-- - Game.getOutfitByName(name, sex)
+-- - Game.getOutfit(param, sex)
+--
+-- Each entry is keyed by lookType and includes:
+-- - name (string)
+-- - sex (PLAYERSEX_FEMALE / PLAYERSEX_MALE)
+-- - premium (bool)
+-- - unlocked (bool): if false, player must own it to wear
+-- - enabled (bool): if false, excluded from lists
 local outfits = {
     -- Female outfits
     [136] = { name = "Citizen", sex = PLAYERSEX_FEMALE,  premium = false, unlocked = true, enabled = true },
@@ -256,18 +270,18 @@ function Game.getOutfitByLookType(lookType)
 end
 
 function Game.getOutfitByName(name, sex)
-    for lookType, outfit in pairs(outfits) do
-        if outfit.name:lower() == name:lower() and outfit.sex == sex then
-            return {
+	for lookType, outfit in pairs(outfits) do
+		if outfit.name:lower() == name:lower() and outfit.sex == sex then
+			return {
 				lookType = lookType,
 				name = outfit.name,
 				sex = outfit.sex,
 				premium = outfit.premium,
 				unlocked = outfit.unlocked,
 			}
-        end
-    end
-    return nil
+		end
+	end
+	return nil
 end
 
 function Game.getOutfit(param, sex)

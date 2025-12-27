@@ -1,3 +1,5 @@
+-- /removeaddon <player>, <outfitName|lookType>, <addon>
+-- Removes addon 1 or 2 from an owned outfit for the target player.
 local talkaction = TalkAction("/removeaddon")
 
 function talkaction.onSay(player, words, param)

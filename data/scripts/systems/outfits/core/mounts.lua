@@ -1,3 +1,14 @@
+-- Mount ownership, selection, and toggling.
+--
+-- Persistent state:
+-- - PlayerStorageKeys.mountsBase + lookType: mount ownership
+-- - PlayerStorageKeys.currentMount: selected mount lookType (used when mounting)
+-- - PlayerStorageKeys.randomizeMount: whether to select a random owned mount when mounting
+--
+-- Session-only state:
+-- - lastMountToggle[playerId]: used for Outfits.ToggleMountCooldown
+-- - wasMounted[playerId]: remembers intent while forcibly dismounted in protection zones
+
 do
     local lastMountToggle = {}
     function Player.getLastMountToggle(self)
@@ -25,10 +36,10 @@ function Player.addMount(self, mountId)
 end
 
 function Player.addAllMounts(self)
-	local mounts = Game.getMounts()
-	for _, mount in ipairs(mounts) do
-		self:addMount(mount.lookType)
-	end
+    local mounts = Game.getMounts()
+    for _, mount in ipairs(mounts) do
+        self:addMount(mount.lookType)
+    end
 end
 
 function Player.hasMount(self, mountId)
@@ -55,6 +66,7 @@ function Player.removeAllMounts(self)
     end
 end
 
+-- Returns the selected mount lookType stored in PlayerStorageKeys.currentMount, or nil if unset.
 function Player.getCurrentMount(self)
     local value = self:getStorageValue(PlayerStorageKeys.currentMount)
     if value == nil or value == -1 then
@@ -63,6 +75,7 @@ function Player.getCurrentMount(self)
     return value
 end
 
+-- Sets the selected mount lookType (nil clears). For non-staff players, the mount must be owned.
 function Player.setCurrentMount(self, mountId)
     if mountId == nil then
         return self:removeStorageValue(PlayerStorageKeys.currentMount)
@@ -87,6 +100,7 @@ function Player.setRandomizeMount(self, randomize)
     return self:removeStorageValue(PlayerStorageKeys.randomizeMount)
 end
 
+-- Returns whether the player can ride the given mount lookType.
 function Player.canRideMount(self, mountId)
     if self:getGroup():getAccess() then
         return true
@@ -108,6 +122,7 @@ function Player.isMounted(self)
     return self:getOutfit().lookMount ~= 0
 end
 
+-- Mounts the given mount object (from Game.getMountByLookType): updates outfit + speed.
 function Player.mount(self, mount)
     if mount == nil or mount.lookType == nil or mount.speed == nil then
         return false
@@ -120,6 +135,7 @@ function Player.mount(self, mount)
     return true
 end
 
+-- Dismounts the current mount: clears outfit mount + removes speed bonus.
 function Player.dismount(self)
     local outfit = self:getDefaultOutfit()
     local lookMount = outfit.lookMount
@@ -150,6 +166,11 @@ local function getRandomMount(player)
     return availableMounts[idx]
 end
 
+-- player:toggleMount(mounted)
+-- Behavior:
+-- - When mounted is true: mounts using the selected mount (or a random owned mount if randomize is enabled).
+-- - When mounted is false: dismounts.
+-- Enforces cooldown, protection-zone restriction, premium/ownership rules, and CONDITION_OUTFIT.
 function Player.toggleMount(self, mounted)
     if not self:getGroup():getAccess() then
         local lastMountToggle = self:getLastMountToggle()
@@ -212,6 +233,7 @@ function Player.toggleMount(self, mounted)
     return true
 end
 
+-- Deprecated helper; mount lookType is already the identifier.
 function Game.getMountIdByLookType(lookType)
     print("Warning: Game.getMountIdByLookType is deprecated. Mounts are now identified by client ID.")
     return lookType

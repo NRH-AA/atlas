@@ -1,3 +1,5 @@
+-- /removeoutfit <player>, <outfitName|lookType>
+-- Removes the owned outfit from the target player.
 local talkaction = TalkAction("/removeoutfit")
 
 function talkaction.onSay(player, words, param)

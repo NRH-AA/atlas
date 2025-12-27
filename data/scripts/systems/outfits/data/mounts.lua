@@ -1,3 +1,15 @@
+-- Mount data source for the Outfits & Mounts module.
+--
+-- This file overrides the Game mount lookup helpers used throughout the module:
+-- - Game.getMounts()
+-- - Game.getMountByLookType(lookType)
+-- - Game.getMountByName(name)
+-- - Game.getMount(param)
+--
+-- Each entry is keyed by lookType and includes:
+-- - name (string)
+-- - speed (number)
+-- - premium (bool)
 local mounts = {
     [368] = { name = "Widow Queen", speed = 20, premium = true },
 	[369] = { name = "Racing Bird", speed = 20, premium = true },
@@ -238,17 +250,17 @@ function Game.getMountByLookType(lookType)
 end
 
 function Game.getMountByName(name)
-    for lookType, mount in pairs(mounts) do
-        if mount.name:lower() == name:lower() then
-            return {
+	for lookType, mount in pairs(mounts) do
+		if mount.name:lower() == name:lower() then
+			return {
 				lookType = lookType,
 				name = mount.name,
 				speed = mount.speed,
 				premium = mount.premium,
 			}
-        end
-    end
-    return nil
+		end
+	end
+	return nil
 end
 
 function Game.getMount(param)

@@ -1,5 +1,27 @@
 local handler = PacketHandler(0xD3)
 
+-- 0xD3: Set Outfit (client -> server)
+-- Payload:
+-- - outfitType:byte
+-- - outfit (always):
+--   - lookType:u16
+--   - lookHead:byte, lookBody:byte, lookLegs:byte, lookFeet:byte
+--   - lookAddons:byte
+-- - branches:
+--   - outfitType == 0 (Customize/Set outfit):
+--     - lookMount:u16
+--     - lookMountHead:byte, lookMountBody:byte, lookMountLegs:byte, lookMountFeet:byte
+--     - familiarLookType:u16 (ignored)
+--     - randomizeMount:bool
+--   - outfitType == 1 (Store try-on):
+--     - clears lookMount and reads 4 mount color bytes (client preview)
+--   - outfitType == 2 (Podium edit):
+--     - position:Position
+--     - clientId:u16
+--     - stackpos:byte
+--     - lookMount:u16 + 4 mount color bytes
+--     - direction:byte
+--     - isVisible:bool
 function handler.onReceive(player, msg)
 	if not Outfits.AllowChangeOutfit then
 		return
