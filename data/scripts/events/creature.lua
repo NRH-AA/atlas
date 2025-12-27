@@ -52,12 +52,6 @@ function Creature:onChangeMana(attacker, damage)
 	end
 end
 
-function Creature:onUpdateStorage(key, value, oldValue, isSpawn)
-	if Event.onCreatureUpdateStorage then
-		Event.onCreatureUpdateStorage(self, key, value, oldValue, isSpawn)
-	end
-end
-
 function Creature:onThink(interval)
 	if Event.onCreatureThink then
 		Event.onCreatureThink(self, interval)
