@@ -1,5 +1,31 @@
 local Bed = {}
 
+function Bed.isOccupied(self)
+    return self._bed.occupied
+end
+
+function Bed.getPartnerDirection(self)
+    return self._bed.partnerDirection
+end
+
+function Bed.getPartnerId(self)
+    return self._bed.partnerId
+end
+
+function Bed.getTransformToOccupied(self, sex)
+    if self:isOccupied() then
+        return nil
+    end
+    return self._bed.transformToOccupied[sex]
+end
+
+function Bed.getTransformToFree(self)
+    if not self:isOccupied() then
+        return nil
+    end
+    return self._bed.transformToFree
+end
+
 function Bed.getPartnerBed(self)
     local position = self:getPosition()
     local partnerDir = self:getPartnerDirection()
@@ -27,18 +53,6 @@ function Bed.getPartnerBed(self)
     end
 end
 
-function Bed.getPartnerDirection(self)
-    return self._bed.partnerDirection
-end
-
-function Bed.getPartnerId(self)
-    return self._bed.partnerId
-end
-
-function Bed.getTransformTo(self, sex)
-    return self._bed.transformTo[sex]
-end
-
 function Bed.isHeadboard(self)
     local dir = self:getPartnerDirection()
     return dir == DIRECTION_SOUTH or dir == DIRECTION_EAST
@@ -53,29 +67,28 @@ function Bed.getSleeper(self)
     return self:getCustomAttribute(Beds.SleeperGuidKey)
 end
 
-function Bed.removeSleeper(self, player)
-    local sleeper = self:getSleeper()
-    if sleeper ~= player:getId() then
-        return
+function Bed.removeSleeper(self)
+    if not self:isOccupied() then
+        return false
     end
 
     self:setSpecialDescription(nil)
 	self:removeCustomAttribute(Beds.SleeperGuidKey)
 
-    local targetId = self:getTransformTo(player:getSex())
-    if type(targetId) == "number" and targetId > 0 then
-        self:transform(targetId)
-    end
+    local targetId = self:getTransformToFree()
+    return targetId ~= nil and self:transform(targetId)
 end
 
 function Bed.setSleeper(self, player)
+    if self:isOccupied() then
+        return false
+    end
+
     self:setSpecialDescription(string.format("%s is sleeping there.", player:getName()))
     self:setCustomAttribute(Beds.SleeperGuidKey, player:getId())
 
-    local targetId = self:getTransformTo(player:getSex())
-    if type(targetId) == "number" and targetId > 0 then
-        self:transform(targetId)
-    end
+    local targetId = self:getTransformToOccupied(player:getSex())
+    return targetId ~= nil and self:transform(targetId)
 end
 
 function ItemType.isBed(self)

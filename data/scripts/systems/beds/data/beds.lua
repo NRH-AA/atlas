@@ -242,5 +242,24 @@ local beds = {
 }
 
 function Game.getBeds()
-    return beds
+    local allBeds = {}
+    for id, bed in pairs(beds) do
+        allBeds[id] = {
+            occupied = false,
+            partnerId = bed.partnerId,
+            partnerDirection = bed.partnerDirection,
+            transformToOccupied = bed.transformTo,
+        }
+
+        local partner = beds[bed.partnerId]
+        for sex, occupiedId in pairs(bed.transformTo) do
+            allBeds[occupiedId] = {
+                occupied = true,
+                partnerId = partner.transformTo[sex],
+                partnerDirection = bed.partnerDirection,
+                transformToFree = id,
+            }
+        end
+    end
+    return allBeds
 end

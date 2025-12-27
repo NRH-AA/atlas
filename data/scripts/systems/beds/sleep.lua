@@ -13,11 +13,6 @@ local function canUse(player, bed)
         return false
     end
 
-    local existingSleeper = bed:getSleeper()
-    if existingSleeper and existingSleeper ~= player:getId() then
-        return false
-    end
-
     local premiumEnds = player:getPremiumEndsAt()
     if premiumEnds <= os.time() then
         return false
@@ -104,6 +99,10 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
         return false
     end
 
+    if headboard:getSleeper() ~= nil then
+        return self:remove(player, headboard)
+    end
+
     if not canUse(player, headboard) then
         item:getPosition():sendMagicEffect(CONST_ME_POFF)
         return true
@@ -117,15 +116,15 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
     return sleep(player, headboard)
 end
 
-local function getHeadboardIds()
+local function getFreeHeadboardIds()
     local headboards = {}
     for id, bed in pairs(Game.getBeds()) do
-        if bed.partnerDirection == DIRECTION_SOUTH or bed.partnerDirection == DIRECTION_EAST then
+        if not bed.occupied and (bed.partnerDirection == DIRECTION_SOUTH or bed.partnerDirection == DIRECTION_EAST) then
             table.insert(headboards, id)
         end
     end
     return headboards
 end
 
-action:id(table.unpack(getHeadboardIds()))
+action:id(table.unpack(getFreeHeadboardIds()))
 action:register()

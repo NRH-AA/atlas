@@ -82,10 +82,11 @@ function event.onLogin(player)
 		sleptSeconds = math.max(0, os.time() - lastLogout)
 	end
 
-	regeneratePlayer(player, sleptSeconds)
+	-- regeneratePlayer(player, sleptSeconds)
 
-	headboard:removeSleeper(player)
-	footboard:removeSleeper(player)
+	if headboard:getSleeper() == player:getId() then
+		return headboard:removeSleeper() and footboard:removeSleeper()
+	end
 
 	return true
 end
