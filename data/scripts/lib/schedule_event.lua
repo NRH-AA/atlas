@@ -18,7 +18,8 @@ setmetatable(ScheduleEvent, {
 function ScheduleEvent:__newindex(key, value)
 	if key == "onTrigger" then
 		if type(value) ~= "function" then
-			error("[Warning - ScheduleEvent] onTrigger must be a function")
+			print("[Warning - ScheduleEvent] onTrigger must be a function")
+			return
 		end
 		rawset(self, "callback", value)
 	else
@@ -36,7 +37,7 @@ end
 
 function ScheduleEvent:register()
 	if not self.callback then
-		error("[Warning - ScheduleEvent] onTrigger not defined")
+		print("[Warning - ScheduleEvent] onTrigger not defined")
 		return false
 	end
 
@@ -46,8 +47,8 @@ function ScheduleEvent:register()
 		event:register()
 	]]
 	if type(self.time) == "number" then
-		if self.time < 50 then
-			error("[Warning - ScheduleEvent] Interval must be >= 50ms")
+		if self.time < SCHEDULER_MINTICKS then
+			print("[Warning - ScheduleEvent] Interval must be >= ".. SCHEDULER_MINTICKS .."ms")
 			return false
 		end
 
@@ -68,7 +69,7 @@ function ScheduleEvent:register()
 	if type(self.time) == "string" then
 		local h, m, s = parseTime(self.time)
 		if not h then
-			error("[Warning - ScheduleEvent] Invalid time format, expected HH:MM:SS")
+			print("[Warning - ScheduleEvent] Invalid time format, expected HH:MM:SS")
 			return false
 		end
 
@@ -104,7 +105,7 @@ function ScheduleEvent:register()
 
 		for day, value in pairs(self.time) do
 			if type(day) ~= "number" or day < SUNDAY or day > SATURDAY then
-				error("[Warning - ScheduleEvent] Invalid weekday: " .. tostring(day))
+				print("[Warning - ScheduleEvent] Invalid weekday: " .. tostring(day))
 				return false
 			end
 
@@ -113,19 +114,19 @@ function ScheduleEvent:register()
 				for _, timeStr in ipairs(value) do
 					local h, m, s = parseTime(timeStr)
 					if not h then
-						error("[Warning - ScheduleEvent] Invalid time: " .. tostring(timeStr))
+						print("[Warning - ScheduleEvent] Invalid time: " .. tostring(timeStr))
 						return false
 					end
 					table.insert(dayTimes[day], { h, m, s })
 				end
 			elseif type(value) == "number" then
-				if value < 50 then
-					error("[Warning - ScheduleEvent] Interval must be >= 50ms")
+				if value < SCHEDULER_MINTICKS then
+					print("[Warning - ScheduleEvent] Interval must be >= " .. SCHEDULER_MINTICKS .. "ms")
 					return false
 				end
 				dayIntervals[day] = value
 			else
-				error("[Warning - ScheduleEvent] Invalid value for weekday " .. day)
+				print("[Warning - ScheduleEvent] Invalid value for weekday " .. day)
 				return false
 			end
 		end
@@ -164,6 +165,6 @@ function ScheduleEvent:register()
 		return true
 	end
 
-	error("[Warning - ScheduleEvent] Invalid time type")
+	print("[Warning - ScheduleEvent] Invalid time type")
 	return false
 end
