@@ -38,6 +38,7 @@ ec.onCreatureAppear = {}
 ec.onCreatureDisappear = {}
 ec.onCreatureMove = {}
 ec.onCreatureSay = {}
+ec.onCreatureHear = {}
 -- Party
 ec.onPartyJoin = {}
 ec.onPartyLeave = {}
