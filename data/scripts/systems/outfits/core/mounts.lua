@@ -33,7 +33,7 @@ end
 
 function Player.hasMount(self, mountId)
     local value = self:getStorageValue(PlayerStorageKeys.mountsBase + mountId)
-    return value and value ~= -1
+    return value ~= nil and value ~= -1
 end
 
 function Player.removeMount(self, mountId)
@@ -57,26 +57,27 @@ end
 
 function Player.getCurrentMount(self)
     local value = self:getStorageValue(PlayerStorageKeys.currentMount)
-    if not value or value == -1 then
+    if value == nil or value == -1 then
         return nil
     end
     return value
 end
 
 function Player.setCurrentMount(self, mountId)
-    if not mountId then
+    if mountId == nil then
         return self:removeStorageValue(PlayerStorageKeys.currentMount)
     end
-    
+
     if not self:getGroup():getAccess() and not self:hasMount(mountId) then
         return false
     end
+
     return self:setStorageValue(PlayerStorageKeys.currentMount, mountId)
 end
 
 function Player.getRandomizeMount(self)
     local randomizeMount = self:getStorageValue(PlayerStorageKeys.randomizeMount)
-    return randomizeMount and randomizeMount ~= -1
+    return randomizeMount ~= nil and randomizeMount ~= -1
 end
 
 function Player.setRandomizeMount(self, randomize)
@@ -99,6 +100,7 @@ function Player.canRideMount(self, mountId)
     if mount.premium and not self:isPremium() then
         return false
     end
+
     return self:hasMount(mount.lookType)
 end
 
@@ -107,7 +109,7 @@ function Player.isMounted(self)
 end
 
 function Player.mount(self, mount)
-    if not mount or not mount.lookType or not mount.speed then
+    if mount == nil or mount.lookType == nil or mount.speed == nil then
         return false
     end
 
@@ -125,7 +127,7 @@ function Player.dismount(self)
     self:setOutfit(outfit)
 
     local mount = Game.getMountByLookType(lookMount)
-    if mount then
+    if mount ~= nil then
         self:changeSpeed(-mount.speed)
     end
 end
@@ -151,10 +153,8 @@ end
 function Player.toggleMount(self, mounted)
     if not self:getGroup():getAccess() then
         local lastMountToggle = self:getLastMountToggle()
-        if lastMountToggle and lastMountToggle > 0 then
-            if os.mtime() - lastMountToggle < Outfits.ToggleMountCooldown and not self:getWasMounted() then
-                return false
-            end
+        if os.mtime() - lastMountToggle < Outfits.ToggleMountCooldown and not self:getWasMounted() then
+            return false
         end
     end
 
