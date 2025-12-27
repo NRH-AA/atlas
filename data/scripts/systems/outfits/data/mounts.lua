@@ -255,7 +255,6 @@ function Game.getMount(param)
 	local lookType = tonumber(param)
 	if lookType then
 		return Game.getMountByLookType(lookType)
-	else
-		return Game.getMountByName(param)
 	end
+	return Game.getMountByName(param)
 end

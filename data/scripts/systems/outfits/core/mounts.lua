@@ -33,7 +33,7 @@ end
 
 function Player.hasMount(self, mountId)
     local value = self:getStorageValue(PlayerStorageKeys.mountsBase + mountId)
-    return value ~= nil and value ~= -1
+    return value and value ~= -1
 end
 
 function Player.removeMount(self, mountId)
@@ -49,6 +49,7 @@ function Player.removeAllMounts(self)
     for _, mount in ipairs(mounts) do
         self:removeMount(mount.lookType)
     end
+
     if self:isMounted() then
         self:dismount()
     end
@@ -56,25 +57,26 @@ end
 
 function Player.getCurrentMount(self)
     local value = self:getStorageValue(PlayerStorageKeys.currentMount)
-    if value == nil or value == -1 then
+    if not value or value == -1 then
         return nil
     end
     return value
 end
 
 function Player.setCurrentMount(self, mountId)
-    if mountId ~= nil then
-        if not self:hasMount(mountId) then
-            return false
-        end
-        return self:setStorageValue(PlayerStorageKeys.currentMount, mountId)
+    if not mountId then
+        return self:removeStorageValue(PlayerStorageKeys.currentMount)
     end
-    return self:removeStorageValue(PlayerStorageKeys.currentMount)
+    
+    if not self:getGroup():getAccess() and not self:hasMount(mountId) then
+        return false
+    end
+    return self:setStorageValue(PlayerStorageKeys.currentMount, mountId)
 end
 
 function Player.getRandomizeMount(self)
     local randomizeMount = self:getStorageValue(PlayerStorageKeys.randomizeMount)
-    return randomizeMount ~= nil and randomizeMount ~= -1
+    return randomizeMount and randomizeMount ~= -1
 end
 
 function Player.setRandomizeMount(self, randomize)
@@ -97,7 +99,6 @@ function Player.canRideMount(self, mountId)
     if mount.premium and not self:isPremium() then
         return false
     end
-
     return self:hasMount(mount.lookType)
 end
 
@@ -124,7 +125,7 @@ function Player.dismount(self)
     self:setOutfit(outfit)
 
     local mount = Game.getMountByLookType(lookMount)
-    if mount ~= nil then
+    if mount then
         self:changeSpeed(-mount.speed)
     end
 end
@@ -148,8 +149,13 @@ local function getRandomMount(player)
 end
 
 function Player.toggleMount(self, mounted)
-    if os.mtime() - self:getLastMountToggle() < Outfits.ToggleMountCooldown and not self:getWasMounted() then
-        return false
+    if not self:getGroup():getAccess() then
+        local lastMountToggle = self:getLastMountToggle()
+        if lastMountToggle and lastMountToggle > 0 then
+            if os.mtime() - lastMountToggle < Outfits.ToggleMountCooldown and not self:getWasMounted() then
+                return false
+            end
+        end
     end
 
     if mounted then
@@ -182,7 +188,7 @@ function Player.toggleMount(self, mounted)
             return false
         end
 
-        if currentMount.premium and not self:isPremium() then
+        if not self:getGroup():getAccess() and currentMount.premium and not self:isPremium() then
             self:sendCancelMessage(RETURNVALUE_YOUNEEDPREMIUMACCOUNT)
             return false
         end

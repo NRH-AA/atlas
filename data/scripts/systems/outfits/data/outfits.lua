@@ -274,7 +274,6 @@ function Game.getOutfit(param, sex)
 	local lookType = tonumber(param)
 	if lookType then
 		return Game.getOutfitByLookType(lookType)
-	else
-		return Game.getOutfitByName(param, sex)
 	end
+	return Game.getOutfitByName(param, sex)
 end

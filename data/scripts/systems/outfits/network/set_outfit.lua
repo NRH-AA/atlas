@@ -43,6 +43,7 @@ function handler.onReceive(player, msg)
 
 		player:setOutfit(outfit)
 		player:setRandomizeMount(randomizeMount)
+		player:setCurrentMount(outfit.lookMount)
 	elseif outfitType == 1 then -- try outfit from store window
 		outfit.lookMount = 0
 		outfit.lookMountHead = msg:getByte()

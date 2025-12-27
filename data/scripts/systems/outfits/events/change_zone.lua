@@ -1,6 +1,6 @@
 local event = Event()
 
-function event.onCreatureChangeZone(self, fromZone, toZone)
+event.onCreatureChangeZone = function(self, fromZone, toZone)
     if not self:isPlayer() then
         return
     end
