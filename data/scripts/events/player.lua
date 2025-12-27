@@ -302,7 +302,7 @@ function Player:onAdvance(skill, oldLevel, newLevel)
 	return true
 end
 
-function Player:onModalWindow()
+function Player:onModalWindow(modalWindowId, buttonId, choiceId)
 	if Event.onPlayerModalWindow then
 		Event.onPlayerModalWindow(self, modalWindowId, buttonId, choiceId)
 	end
