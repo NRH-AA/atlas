@@ -11,7 +11,7 @@ event.onCreatureDeath = function(self, corpse, killer, mostDamageKiller, lastHit
 	end
 
 	self:say("It seems this was just an illusion.", TALKTYPE_MONSTER_SAY)
-	if mostDamageKiller:isPlayer() then
+	if mostDamageKiller and mostDamageKiller:isPlayer() then
 		mostDamageKiller:addAchievement("Someone's Bored")
 	end
 end

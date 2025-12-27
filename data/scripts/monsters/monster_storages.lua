@@ -24,7 +24,9 @@ end
 local event = Event()
 
 event.onCreatureDeath = function(self, corpse, killer, mostDamageKiller, lastHitUnjustified, mostDamageUnjustified)
-	MonsterStorages[self:getId()] = nil
+	if self:isMonster() then
+		MonsterStorages[self:getId()] = nil
+	end
 end
 
 event:register()
