@@ -37,13 +37,17 @@ function handler.onReceive(player, msg)
 			return
 		end
 
-		if outfit.lookMount ~= 0 and not player:canRideMount(outfit.lookMount) then
-			return
+		if outfit.lookMount ~= 0 then
+			if not player:canRideMount(outfit.lookMount) then
+				player:setCurrentMount(nil)
+				return
+			end
+
+			player:setCurrentMount(outfit.lookMount)
 		end
 
 		player:setOutfit(outfit)
 		player:setRandomizeMount(randomizeMount)
-		player:setCurrentMount(outfit.lookMount)
 	elseif outfitType == 1 then -- try outfit from store window
 		outfit.lookMount = 0
 		outfit.lookMountHead = msg:getByte()
