@@ -15,8 +15,6 @@ enum GlobalEvent_t
 {
 	GLOBALEVENT_NONE,
 	GLOBALEVENT_TIMER,
-
-	GLOBALEVENT_RECORD,
 };
 
 class GlobalEvents final : public BaseEvents
@@ -59,7 +57,6 @@ public:
 
 	bool configureEvent(const pugi::xml_node& node) override;
 
-	bool executeRecord(uint32_t current, uint32_t old);
 	bool executeEvent() const;
 
 	GlobalEvent_t getEventType() const { return eventType; }
