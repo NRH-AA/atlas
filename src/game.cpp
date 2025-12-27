@@ -599,7 +599,6 @@ bool Game::removeCreature(const std::shared_ptr<Creature>& creature, bool isLogo
 		removeCreature(summon);
 	}
 
-	tfs::events::creature::onRemoved(creature);
 	return true;
 }
 
