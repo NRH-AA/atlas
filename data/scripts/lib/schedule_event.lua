@@ -32,7 +32,12 @@ local function parseTime(str)
 	if not h then
 		return nil
 	end
-	return tonumber(h), tonumber(m), tonumber(s)
+
+	h, m, s = tonumber(h), tonumber(m), tonumber(s)
+	if h > 23 or m > 59 or s > 59 then
+		return nil
+	end
+	return h, m, s
 end
 
 function ScheduleEvent:register()
@@ -53,7 +58,10 @@ function ScheduleEvent:register()
 		end
 
 		local function loop()
-			self.callback()
+			local success, err = pcall(self.callback)
+			if not success then
+				print("[Error - ScheduleEvent] Callback failed: " .. tostring(err))
+			end
 			addEvent(loop, self.time)
 		end
 
@@ -77,10 +85,12 @@ function ScheduleEvent:register()
 			local now = os.date("*t")
 			local stamp = now.yday .. "-" .. h .. "-" .. m .. "-" .. s
 
-			if now.hour == h and now.min == m and now.sec == s
-				and self._lastTrigger ~= stamp then
+			if now.hour == h and now.min == m and now.sec == s and self._lastTrigger ~= stamp then
 				self._lastTrigger = stamp
-				self.callback()
+				local success, err = pcall(self.callback)
+				if not success then
+					print("[Error - ScheduleEvent] Callback failed: " .. tostring(err))
+				end
 			end
 
 			addEvent(check, 1000)
@@ -134,14 +144,15 @@ function ScheduleEvent:register()
 		local function checkTimes()
 			local now = os.date("*t")
 			local today = dayTimes[now.wday]
-
 			if today then
 				for _, t in ipairs(today) do
 					local stamp = now.yday .. "-" .. t[1] .. "-" .. t[2] .. "-" .. t[3]
-					if now.hour == t[1] and now.min == t[2] and now.sec == t[3]
-						and self._lastTrigger ~= stamp then
+					if now.hour == t[1] and now.min == t[2] and now.sec == t[3] and self._lastTrigger ~= stamp then
 						self._lastTrigger = stamp
-						self.callback()
+						local success, err = pcall(self.callback)
+						if not success then
+							print("[Error - ScheduleEvent] Callback failed: " .. tostring(err))
+						end
 					end
 				end
 			end
@@ -154,7 +165,10 @@ function ScheduleEvent:register()
 		for dayIndex, interval in pairs(dayIntervals) do
 			local function loop()
 				if os.date("*t").wday == dayIndex then
-					self.callback()
+					local success, err = pcall(self.callback)
+					if not success then
+						print("[Error - ScheduleEvent] Callback failed: " .. tostring(err))
+					end
 				end
 				addEvent(loop, interval)
 			end

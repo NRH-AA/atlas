@@ -1036,7 +1036,7 @@ EventCallback = Event()
 
 -- MARK: ScheduleEvent
 ---@class ScheduleEvent
----@field time number|string|table<number, number|table<string>> Interval(ms), "HH:MM:SS" string, or table with day → interval/times
+---@field time number|string|table<number, number|string[]> Interval(ms), "HH:MM:SS" string, or table mapping weekday constants to intervals or time string arrays
 ---@field onTrigger fun():nil Callback function executed when the event triggers
 ---@field register fun(self:ScheduleEvent):boolean Registers the event, returns true if successful
 ---@operator call(number|string|table):ScheduleEvent Creates a new ScheduleEvent instance
