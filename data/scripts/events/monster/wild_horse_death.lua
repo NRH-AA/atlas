@@ -6,7 +6,7 @@ event.onCreatureDeath = function(self, corpse, killer, mostDamageKiller, lastHit
 	end
 
 	local mType = self:getType()
-	if mType:monsterName() ~= "Wild Horse" then
+	if mType:monsterName() ~= "wild horse" then
 		return
 	end
 
