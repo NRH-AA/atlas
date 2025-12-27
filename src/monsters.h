@@ -187,6 +187,7 @@ public:
 
 	std::string name;
 	std::string nameDescription;
+	std::string monsterName;
 
 	MonsterInfo info;
 	BestiaryInfo bestiaryInfo;
