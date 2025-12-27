@@ -5,6 +5,7 @@ do
 		local resultId = db.storeQuery("SELECT `value` FROM `server_config` WHERE `config` = 'players_record'")
 		if resultId then
 			Game.setPlayerRecord(result.getNumber(resultId, "value"))
+			result.free(resultId)
 		else
 			db.query("INSERT INTO `server_config` (`config`, `value`) VALUES ('players_record', '0')")
 		end
