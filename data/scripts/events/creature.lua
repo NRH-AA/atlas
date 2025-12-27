@@ -22,12 +22,6 @@ function Creature:onTargetCombat(target)
 	return RETURNVALUE_NOERROR
 end
 
-function Creature:onHear(speaker, words, type)
-	if Event.onCreatureHear then
-		Event.onCreatureHear(self, speaker, words, type)
-	end
-end
-
 function Creature:onChangeZone(fromZone, toZone)
 	if Event.onCreatureChangeZone then
 		Event.onCreatureChangeZone(self, fromZone, toZone)
@@ -74,5 +68,29 @@ end
 function Creature:onKill(target)
 	if Event.onCreatureKill then
 		Event.onCreatureKill(self, target)
+	end
+end
+
+function Creature:onAppear(target)
+	if Event.onCreatureAppear then
+		Event.onCreatureAppear(self, target)
+	end
+end
+
+function Creature:onDisappear(target)
+	if Event.onCreatureDisappear then
+		Event.onCreatureDisappear(self, target)
+	end
+end
+
+function Creature:onMove(oldPosition, newPosition)
+	if Event.onCreatureMove then
+		Event.onCreatureMove(self, oldPosition, newPosition)
+	end
+end
+
+function Creature:onSay(target, type, text)
+	if Event.onCreatureSay then
+		Event.onCreatureSay(self, target, type, text)
 	end
 end

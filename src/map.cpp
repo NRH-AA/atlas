@@ -7,6 +7,7 @@
 
 #include "combat.h"
 #include "creature.h"
+#include "events.h"
 #include "game.h"
 #include "iomap.h"
 #include "iomapserialize.h"
@@ -361,6 +362,7 @@ void Map::moveCreature(const std::shared_ptr<Creature>& creature, const std::sha
 	// event method
 	for (const auto& spectator : spectators) {
 		spectator->onCreatureMove(creature, newTile, newPos, oldTile, oldPos, teleport);
+		tfs::events::creature::onMove(creature, oldPos, newPos);
 	}
 
 	oldTile->postRemoveNotification(creature, newTile, 0);

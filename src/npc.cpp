@@ -5,6 +5,7 @@
 
 #include "npc.h"
 
+#include "events.h"
 #include "game.h"
 #include "lua/env.h"
 #include "lua/error.h"
@@ -232,7 +233,7 @@ void Npc::onCreatureAppear(const std::shared_ptr<Creature>& creature, bool, Magi
 {
 	if (creature.get() == this) {
 		setLastPosition(getPosition());
-
+		
 		SpectatorVec players;
 		g_game.map.getSpectators(players, getPosition(), true, true);
 		for (const auto& player : players) {
@@ -346,6 +347,7 @@ void Npc::doSayToPlayer(const std::shared_ptr<Player>& player, const std::string
 	if (player) {
 		player->sendCreatureSay(asNpc(), TALKTYPE_PRIVATE_NP, text);
 		player->onCreatureSay(asNpc(), TALKTYPE_PRIVATE_NP, text);
+		tfs::events::creature::onSay(player, asNpc(), TALKTYPE_PRIVATE_NP, text);
 	}
 }
 

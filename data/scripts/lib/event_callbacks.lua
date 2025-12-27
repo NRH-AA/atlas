@@ -26,7 +26,6 @@ ec.onCreatureChangeOutfit = {}
 ec.onCreatureChangeMount = {}
 ec.onCreatureAreaCombat = {returnValue=true}
 ec.onCreatureTargetCombat = {returnValue=true}
-ec.onCreatureHear = {}
 ec.onCreatureChangeZone = {}
 ec.onCreatureUpdateStorage = {}
 ec.onCreatureChangeHealth = {}
@@ -35,6 +34,10 @@ ec.onCreatureThink = {}
 ec.onCreaturePrepareDeath = {}
 ec.onCreatureDeath = {}
 ec.onCreatureKill = {}
+ec.onCreatureAppear = {}
+ec.onCreatureDisappear = {}
+ec.onCreatureMove = {}
+ec.onCreatureSay = {}
 -- Party
 ec.onPartyJoin = {}
 ec.onPartyLeave = {}

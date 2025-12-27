@@ -85,7 +85,6 @@ public:
 	void onCreatureMove(const std::shared_ptr<Creature>& creature, const std::shared_ptr<const Tile>& newTile,
 	                    const Position& newPos, const std::shared_ptr<const Tile>& oldTile, const Position& oldPos,
 	                    bool teleport) override;
-	void onCreatureSay(const std::shared_ptr<Creature>& creature, SpeakClasses type, const std::string& text) override;
 
 	void drainHealth(const std::shared_ptr<Creature>& attacker, int32_t damage) override;
 	void changeHealth(int32_t healthChange, bool sendHealthChange = true) override;

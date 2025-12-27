@@ -103,30 +103,30 @@ monster.immunities = {
 	{type = "invisible", condition = true}
 }
 
-mType.onThink = function(monster, interval)
+mType.onThink = function(self, interval)
 	print("I'm thinking")
 end
 
-mType.onAppear = function(monster, creature)
-	if monster:getId() == creature:getId() then
-		print(monster:getId(), creature:getId())
+mType.onAppear = function(self, creature)
+	if self:getId() == creature:getId() then
+		print(self:getId(), creature:getId())
 	end
 end
 
-mType.onDisappear = function(monster, creature)
-	if monster:getId() == creature:getId() then
-		print(monster:getId(), creature:getId())
+mType.onDisappear = function(self, creature)
+	if self:getId() == creature:getId() then
+		print(self:getId(), creature:getId())
 	end
 end
 
-mType.onMove = function(monster, creature, fromPosition, toPosition)
-	if monster:getId() == creature:getId() then
-		print(monster:getId(), creature:getId(), fromPosition, toPosition)
+mType.onMove = function(self, creature, fromPosition, toPosition)
+	if self:getId() == creature:getId() then
+		print(self:getId(), creature:getId(), fromPosition, toPosition)
 	end
 end
 
-mType.onSay = function(monster, creature, type, message)
-	print(monster:getId(), creature:getId(), type, message)
+mType.onSay = function(self, creature, type, message)
+	print(self:getId(), creature:getId(), type, message)
 end
 
 mType:register(monster)

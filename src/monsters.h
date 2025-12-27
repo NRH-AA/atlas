@@ -114,8 +114,6 @@ class MonsterType
 {
 	struct MonsterInfo
 	{
-		LuaScriptInterface* scriptInterface;
-
 		std::map<CombatType_t, int32_t> elementMap;
 
 		std::vector<voiceBlock_t> voiceVector;
@@ -144,11 +142,6 @@ class MonsterType
 		uint32_t damageImmunities = 0;
 		uint32_t baseSpeed = 200;
 
-		int32_t creatureAppearEvent = -1;
-		int32_t creatureDisappearEvent = -1;
-		int32_t creatureMoveEvent = -1;
-		int32_t creatureSayEvent = -1;
-		int32_t thinkEvent = -1;
 		int32_t targetDistance = 1;
 		int32_t runAwayHealth = 0;
 		int32_t health = 100;
@@ -172,8 +165,6 @@ class MonsterType
 		bool canWalkOnEnergy = true;
 		bool canWalkOnFire = true;
 		bool canWalkOnPoison = true;
-
-		MonstersEvent_t eventType = MONSTERS_EVENT_NONE;
 	};
 
 public:
@@ -182,8 +173,6 @@ public:
 	// non-copyable
 	MonsterType(const MonsterType&) = delete;
 	MonsterType& operator=(const MonsterType&) = delete;
-
-	bool loadCallback(LuaScriptInterface* scriptInterface);
 
 	std::string name;
 	std::string nameDescription;

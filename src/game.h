@@ -295,8 +295,7 @@ public:
 	 * \param text The text to say
 	 */
 	bool internalCreatureSay(const std::shared_ptr<Creature>& creature, SpeakClasses type, const std::string& text,
-	                         bool ghostMode, SpectatorVec* spectatorsPtr = nullptr, const Position* pos = nullptr,
-	                         bool echo = false);
+	                         bool ghostMode, SpectatorVec* spectatorsPtr = nullptr, const Position* pos = nullptr);
 
 	void loadPlayersRecord();
 	void checkPlayersRecord();

@@ -16,9 +16,6 @@ class Tile;
 
 enum class EventInfoId
 {
-	// Creature
-	CREATURE_ONHEAR,
-
 	// Monster
 	MONSTER_ONSPAWN
 };
@@ -36,8 +33,6 @@ namespace tfs::events::creature {
 bool onChangeOutfit(const std::shared_ptr<Creature>& creature, const Outfit_t& outfit);
 ReturnValue onAreaCombat(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Tile>& tile, bool aggressive);
 ReturnValue onTargetCombat(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& target);
-void onHear(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& speaker,
-            const std::string& words, SpeakClasses type);
 void onChangeZone(const std::shared_ptr<Creature>& creature, ZoneType_t fromZone, ZoneType_t toZone);
 void onChangeHealth(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& attacker,
                     CombatDamage& damage);
@@ -51,6 +46,11 @@ void onDeath(const std::shared_ptr<Creature>& creature, const std::shared_ptr<It
              const std::shared_ptr<Creature>& killer, const std::shared_ptr<Creature>& mostDamageKiller,
              bool lastHitUnjustified, bool mostDamageUnjustified);
 void onKill(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& target);
+void onAppear(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& target);
+void onDisappear(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& target);
+void onMove(const std::shared_ptr<Creature>& creature, const Position& oldPosition, const Position& newPosition);
+void onSay(const std::shared_ptr<Creature>& creature, const std::shared_ptr<Creature>& target, SpeakClasses type,
+           const std::string& text);
 
 } // namespace tfs::events::creature
 

@@ -531,6 +531,7 @@ bool Game::placeCreature(const std::shared_ptr<Creature>& creature, const Positi
 	map.getSpectators(spectators, position, true);
 	for (const auto& spectator : spectators) {
 		spectator->onCreatureAppear(creature, true, magicEffect);
+		tfs::events::creature::onAppear(spectator, creature);
 	}
 
 	tile->postAddNotification(creature, nullptr, 0);
@@ -571,6 +572,7 @@ bool Game::removeCreature(const std::shared_ptr<Creature>& creature, bool isLogo
 	// event method
 	for (const auto& spectator : spectators) {
 		spectator->onRemoveCreature(creature, isLogout);
+		tfs::events::creature::onDisappear(spectator, creature);
 	}
 
 	const auto& master = creature->getMaster();
@@ -3549,6 +3551,7 @@ void Game::playerWhisper(const std::shared_ptr<Player>& player, const std::strin
 	// event method
 	for (const auto& spectator : spectators) {
 		spectator->onCreatureSay(player, TALKTYPE_WHISPER, text);
+		tfs::events::creature::onSay(spectator, player, TALKTYPE_WHISPER, text);
 	}
 }
 
@@ -3625,6 +3628,7 @@ bool Game::playerSpeakTo(const std::shared_ptr<Player>& player, SpeakClasses typ
 
 	toPlayer->sendPrivateMessage(player, type, text);
 	toPlayer->onCreatureSay(player, type, text);
+	tfs::events::creature::onSay(toPlayer, player, type, text);
 
 	if (toPlayer->isInGhostMode() && !player->canSeeGhostMode(toPlayer)) {
 		player->sendTextMessage(MESSAGE_STATUS_SMALL, "A player with this name is not online.");
@@ -3641,6 +3645,7 @@ void Game::playerSpeakToNpc(const std::shared_ptr<Player>& player, const std::st
 	for (const auto& spectator : spectators) {
 		if (spectator->asNpc()) {
 			spectator->onCreatureSay(player, TALKTYPE_PRIVATE_PN, text);
+			tfs::events::creature::onSay(spectator, player, TALKTYPE_PRIVATE_PN, text);
 		}
 	}
 }
@@ -3678,7 +3683,7 @@ bool Game::internalCreatureTurn(const std::shared_ptr<Creature>& creature, Direc
 
 bool Game::internalCreatureSay(const std::shared_ptr<Creature>& creature, SpeakClasses type, const std::string& text,
                                bool ghostMode, SpectatorVec* spectatorsPtr /* = nullptr*/,
-                               const Position* pos /* = nullptr*/, bool echo /* = false*/)
+                               const Position* pos /* = nullptr*/)
 {
 	if (text.empty()) {
 		return false;
@@ -3717,13 +3722,9 @@ bool Game::internalCreatureSay(const std::shared_ptr<Creature>& creature, SpeakC
 	}
 
 	// event method
-	if (!echo) {
-		for (const auto& spectator : spectators) {
-			spectator->onCreatureSay(creature, type, text);
-			if (creature != spectator) {
-				tfs::events::creature::onHear(spectator, creature, text, type);
-			}
-		}
+	for (const auto& spectator : spectators) {
+		spectator->onCreatureSay(creature, type, text);
+		tfs::events::creature::onSay(spectator, creature, type, text);
 	}
 	return true;
 }

@@ -864,26 +864,6 @@ MonsterType* Monsters::loadMonster(const std::string& file, const std::string& m
 		mType->bestiaryInfo.raceId = attr.as_uint();
 	}
 
-	if ((attr = monsterNode.attribute("script"))) {
-		if (!scriptInterface) {
-			scriptInterface.reset(new LuaScriptInterface("Monster Interface"));
-			scriptInterface->initState();
-		}
-
-		std::string script = attr.as_string();
-		if (scriptInterface->loadFile("data/monster/scripts/" + script) == 0) {
-			mType->info.scriptInterface = scriptInterface.get();
-			mType->info.creatureAppearEvent = scriptInterface->getEvent("onCreatureAppear");
-			mType->info.creatureDisappearEvent = scriptInterface->getEvent("onCreatureDisappear");
-			mType->info.creatureMoveEvent = scriptInterface->getEvent("onCreatureMove");
-			mType->info.creatureSayEvent = scriptInterface->getEvent("onCreatureSay");
-			mType->info.thinkEvent = scriptInterface->getEvent("onThink");
-		} else {
-			std::cout << "[Warning - Monsters::loadMonster] Can not load script: " << script << std::endl;
-			std::cout << scriptInterface->getLastLuaError() << std::endl;
-		}
-	}
-
 	pugi::xml_node node;
 	if ((node = monsterNode.child("health"))) {
 		if ((attr = node.attribute("now"))) {
@@ -1450,29 +1430,6 @@ MonsterType* Monsters::loadMonster(const std::string& file, const std::string& m
 	mType->info.defenseSpells.shrink_to_fit();
 	mType->info.voiceVector.shrink_to_fit();
 	return mType;
-}
-
-bool MonsterType::loadCallback(LuaScriptInterface* scriptInterface)
-{
-	int32_t id = scriptInterface->getEvent();
-	if (id == -1) {
-		std::cout << "[Warning - MonsterType::loadCallback] Event not found. " << std::endl;
-		return false;
-	}
-
-	info.scriptInterface = scriptInterface;
-	if (info.eventType == MONSTERS_EVENT_THINK) {
-		info.thinkEvent = id;
-	} else if (info.eventType == MONSTERS_EVENT_APPEAR) {
-		info.creatureAppearEvent = id;
-	} else if (info.eventType == MONSTERS_EVENT_DISAPPEAR) {
-		info.creatureDisappearEvent = id;
-	} else if (info.eventType == MONSTERS_EVENT_MOVE) {
-		info.creatureMoveEvent = id;
-	} else if (info.eventType == MONSTERS_EVENT_SAY) {
-		info.creatureSayEvent = id;
-	}
-	return true;
 }
 
 bool Monsters::loadLootItem(const pugi::xml_node& node, LootBlock& lootBlock)

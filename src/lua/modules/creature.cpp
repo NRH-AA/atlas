@@ -819,13 +819,10 @@ int luaCreatureSay(lua_State* L)
 		spectators.emplace(target);
 	}
 
-	// Prevent infinity echo on event onHear
-	bool echo = tfs::lua::getScriptEnv()->getScriptId() == tfs::events::getScriptId(EventInfoId::CREATURE_ONHEAR);
-
 	if (position.x != 0) {
-		tfs::lua::pushBoolean(L, g_game.internalCreatureSay(creature, type, text, ghost, &spectators, &position, echo));
+		tfs::lua::pushBoolean(L, g_game.internalCreatureSay(creature, type, text, ghost, &spectators, &position));
 	} else {
-		tfs::lua::pushBoolean(L, g_game.internalCreatureSay(creature, type, text, ghost, &spectators, nullptr, echo));
+		tfs::lua::pushBoolean(L, g_game.internalCreatureSay(creature, type, text, ghost, &spectators, nullptr));
 	}
 	return 1;
 }

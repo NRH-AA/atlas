@@ -1074,39 +1074,6 @@ int luaMonsterTypeAddLoot(lua_State* L)
 	return 1;
 }
 
-int luaMonsterTypeEventOnCallback(lua_State* L)
-{
-	// monsterType:onThink(callback)
-	// monsterType:onAppear(callback)
-	// monsterType:onDisappear(callback)
-	// monsterType:onMove(callback)
-	// monsterType:onSay(callback)
-	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
-	if (monsterType) {
-		if (monsterType->loadCallback(&g_scripts->getScriptInterface())) {
-			tfs::lua::pushBoolean(L, true);
-			return 1;
-		}
-		tfs::lua::pushBoolean(L, false);
-	} else {
-		lua_pushnil(L);
-	}
-	return 1;
-}
-
-int luaMonsterTypeEventType(lua_State* L)
-{
-	// monstertype:eventType(event)
-	MonsterType* monsterType = tfs::lua::getUserdata<MonsterType>(L, 1);
-	if (monsterType) {
-		monsterType->info.eventType = tfs::lua::getNumber<MonstersEvent_t>(L, 2);
-		tfs::lua::pushBoolean(L, true);
-	} else {
-		lua_pushnil(L);
-	}
-	return 1;
-}
-
 int luaMonsterTypeGetSummonList(lua_State* L)
 {
 	// monsterType:getSummonList()
@@ -1616,12 +1583,6 @@ int luaLootAddChildLoot(lua_State* L)
 
 void tfs::lua::registerMonsters(LuaScriptInterface& lsi)
 {
-	registerEnum(lsi, MONSTERS_EVENT_THINK);
-	registerEnum(lsi, MONSTERS_EVENT_APPEAR);
-	registerEnum(lsi, MONSTERS_EVENT_DISAPPEAR);
-	registerEnum(lsi, MONSTERS_EVENT_MOVE);
-	registerEnum(lsi, MONSTERS_EVENT_SAY);
-
 	registerEnum(lsi, MAX_LOOTCHANCE);
 
 	lsi.registerClass("MonsterSpell", "", luaCreateMonsterSpell);
@@ -1700,13 +1661,6 @@ void tfs::lua::registerMonsters(LuaScriptInterface& lsi)
 
 	lsi.registerMethod("MonsterType", "getLoot", luaMonsterTypeGetLoot);
 	lsi.registerMethod("MonsterType", "addLoot", luaMonsterTypeAddLoot);
-
-	lsi.registerMethod("MonsterType", "eventType", luaMonsterTypeEventType);
-	lsi.registerMethod("MonsterType", "onThink", luaMonsterTypeEventOnCallback);
-	lsi.registerMethod("MonsterType", "onAppear", luaMonsterTypeEventOnCallback);
-	lsi.registerMethod("MonsterType", "onDisappear", luaMonsterTypeEventOnCallback);
-	lsi.registerMethod("MonsterType", "onMove", luaMonsterTypeEventOnCallback);
-	lsi.registerMethod("MonsterType", "onSay", luaMonsterTypeEventOnCallback);
 
 	lsi.registerMethod("MonsterType", "getSummonList", luaMonsterTypeGetSummonList);
 	lsi.registerMethod("MonsterType", "addSummon", luaMonsterTypeAddSummon);

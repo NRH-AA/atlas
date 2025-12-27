@@ -756,7 +756,6 @@ Outfit = {}
 ---@field addVoice fun(self: MonsterType, voice: table)
 ---@field getLoot fun(self: MonsterType): table
 ---@field addLoot fun(self: MonsterType, loot: table)
----@field eventType fun(self: MonsterType): string
 ---@field onThink fun(self: MonsterType, callback: function)
 ---@field onAppear fun(self: MonsterType, callback: function)
 ---@field onDisappear fun(self: MonsterType, callback: function)
@@ -996,7 +995,6 @@ Weapon = {}
 ---@field onCreatureChangeOutfit fun(creature:Creature, outfit: Outfit_t):boolean
 ---@field onCreatureAreaCombat fun(creature:Creature, tile:Tile, aggresive:boolean): integer
 ---@field onCreatureTargetCombat fun(creature:Creature, target:Creature): integer
----@field onCreatureHear fun(creature:Creature, speaker:Creature, words:string, type:integer):nil
 ---@field onCreatureChangeZone fun(creature:Creature, fromZone:integer, toZone:integer):nil
 ---@field onCreatureChangeHealth fun(creature:Creature, attacker:Creature, primaryDamage:integer, primaryType:integer, secondaryDamage:integer, secondaryType:integer, origin:integer);
 ---@field onCreatureChangeMana fun(creature:Creature, attacker:Creature, primaryDamage:integer, primaryType:integer, secondaryDamage:integer, secondaryType:integer, origin:integer);
@@ -1005,6 +1003,10 @@ Weapon = {}
 ---@field onCreaturePrepareDeath fun(creature:Creature, killer:Creature):boolean
 ---@field onCreatureDeath fun(creature:Creature, corpse?:Container, killer?:Creature, mostDamageKiller?:Creature, lastHitUnjustified:boolean, mostDamageUnjustified:boolean):nil
 ---@field onCreatureKill fun(creature:Creature, target:Creature):nil
+---@field onCreatureAppear fun(creature:Creature, target:Creature):nil
+---@field onCreatureDisappear fun(creature:Creature, target:Creature):nil
+---@field onCreatureMove fun(creature:Creature, fromPosition:Position, toPosition:Position):nil
+---@field onCreatureSay fun(creature:Creature, speaker:Creature, words:string, type:integer):nil
 ---@field onPartyJoin fun(party:Party, player:Player):boolean
 ---@field onPartyLeave fun(party:Party, player:Player):boolean
 ---@field onPartyDisband fun(party:Party):boolean
@@ -2237,13 +2239,6 @@ STAT_SOULPOINTS = 2 -- unused
 STAT_MAGICPOINTS = 3
 STAT_FIRST = STAT_MAXHITPOINTS
 STAT_LAST = STAT_MAGICPOINTS
-
-MONSTERS_EVENT_NONE = 0
-MONSTERS_EVENT_THINK = 1
-MONSTERS_EVENT_APPEAR = 2
-MONSTERS_EVENT_DISAPPEAR = 3
-MONSTERS_EVENT_MOVE = 4
-MONSTERS_EVENT_SAY = 5
 
 CREATURETYPE_PLAYER = 0
 CREATURETYPE_MONSTER = 1

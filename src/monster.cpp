@@ -96,33 +96,8 @@ void Monster::onAttackedCreatureDisappear(bool) { attackTicks = 0; }
 
 void Monster::onCreatureAppear(const std::shared_ptr<Creature>& creature, bool, MagicEffectClasses)
 {
-	if (creature.get() == this) {
+		if (creature.get() == this) {
 		setLastPosition(getPosition());
-	}
-
-	if (mType->info.creatureAppearEvent != -1) {
-		// onCreatureAppear(self, creature)
-		LuaScriptInterface* scriptInterface = mType->info.scriptInterface;
-		if (!tfs::lua::reserveScriptEnv()) {
-			std::cout << "[Error - Monster::onCreatureAppear] Call stack overflow" << std::endl;
-			return;
-		}
-
-		const auto env = tfs::lua::getScriptEnv();
-		env->setScriptId(mType->info.creatureAppearEvent, scriptInterface);
-
-		lua_State* L = scriptInterface->getLuaState();
-		scriptInterface->pushFunction(mType->info.creatureAppearEvent);
-
-		tfs::lua::pushSharedPtr(L, asMonster());
-		tfs::lua::setMetatable(L, -1, "Monster");
-
-		tfs::lua::pushSharedPtr(L, creature);
-		tfs::lua::setCreatureMetatable(L, -1, creature);
-
-		if (scriptInterface->callFunction(2)) {
-			return;
-		}
 	}
 
 	if (creature.get() == this) {
@@ -142,31 +117,6 @@ void Monster::onRemoveCreature(const std::shared_ptr<Creature>& creature, bool i
 {
 	Creature::onRemoveCreature(creature, isLogout);
 
-	if (mType->info.creatureDisappearEvent != -1) {
-		// onCreatureDisappear(self, creature)
-		LuaScriptInterface* scriptInterface = mType->info.scriptInterface;
-		if (!tfs::lua::reserveScriptEnv()) {
-			std::cout << "[Error - Monster::onCreatureDisappear] Call stack overflow" << std::endl;
-			return;
-		}
-
-		const auto env = tfs::lua::getScriptEnv();
-		env->setScriptId(mType->info.creatureDisappearEvent, scriptInterface);
-
-		lua_State* L = scriptInterface->getLuaState();
-		scriptInterface->pushFunction(mType->info.creatureDisappearEvent);
-
-		tfs::lua::pushSharedPtr(L, asMonster());
-		tfs::lua::setMetatable(L, -1, "Monster");
-
-		tfs::lua::pushSharedPtr(L, creature);
-		tfs::lua::setCreatureMetatable(L, -1, creature);
-
-		if (scriptInterface->callFunction(2)) {
-			return;
-		}
-	}
-
 	if (creature.get() == this) {
 		if (spawn) {
 			spawn->startSpawnCheck();
@@ -183,34 +133,6 @@ void Monster::onCreatureMove(const std::shared_ptr<Creature>& creature, const st
                              bool teleport)
 {
 	Creature::onCreatureMove(creature, newTile, newPos, oldTile, oldPos, teleport);
-
-	if (mType->info.creatureMoveEvent != -1) {
-		// onCreatureMove(self, creature, oldPosition, newPosition)
-		LuaScriptInterface* scriptInterface = mType->info.scriptInterface;
-		if (!tfs::lua::reserveScriptEnv()) {
-			std::cout << "[Error - Monster::onCreatureMove] Call stack overflow" << std::endl;
-			return;
-		}
-
-		const auto env = tfs::lua::getScriptEnv();
-		env->setScriptId(mType->info.creatureMoveEvent, scriptInterface);
-
-		lua_State* L = scriptInterface->getLuaState();
-		scriptInterface->pushFunction(mType->info.creatureMoveEvent);
-
-		tfs::lua::pushSharedPtr(L, asMonster());
-		tfs::lua::setMetatable(L, -1, "Monster");
-
-		tfs::lua::pushSharedPtr(L, creature);
-		tfs::lua::setCreatureMetatable(L, -1, creature);
-
-		tfs::lua::pushPosition(L, oldPos);
-		tfs::lua::pushPosition(L, newPos);
-
-		if (scriptInterface->callFunction(4)) {
-			return;
-		}
-	}
 
 	if (creature.get() == this) {
 		if (isSummon()) {
@@ -259,37 +181,6 @@ void Monster::onCreatureMove(const std::shared_ptr<Creature>& creature, const st
 				selectTarget(creature);
 			}
 		}
-	}
-}
-
-void Monster::onCreatureSay(const std::shared_ptr<Creature>& creature, SpeakClasses type, const std::string& text)
-{
-	Creature::onCreatureSay(creature, type, text);
-
-	if (mType->info.creatureSayEvent != -1) {
-		// onCreatureSay(self, creature, type, message)
-		LuaScriptInterface* scriptInterface = mType->info.scriptInterface;
-		if (!tfs::lua::reserveScriptEnv()) {
-			std::cout << "[Error - Monster::onCreatureSay] Call stack overflow" << std::endl;
-			return;
-		}
-
-		const auto env = tfs::lua::getScriptEnv();
-		env->setScriptId(mType->info.creatureSayEvent, scriptInterface);
-
-		lua_State* L = scriptInterface->getLuaState();
-		scriptInterface->pushFunction(mType->info.creatureSayEvent);
-
-		tfs::lua::pushSharedPtr(L, asMonster());
-		tfs::lua::setMetatable(L, -1, "Monster");
-
-		tfs::lua::pushSharedPtr(L, creature);
-		tfs::lua::setCreatureMetatable(L, -1, creature);
-
-		tfs::lua::pushNumber(L, type);
-		tfs::lua::pushString(L, text);
-
-		scriptInterface->callVoidFunction(4);
 	}
 }
 
@@ -684,30 +575,6 @@ void Monster::onEndCondition(ConditionType_t type)
 void Monster::onThink(uint32_t interval)
 {
 	Creature::onThink(interval);
-
-	if (mType->info.thinkEvent != -1) {
-		// onThink(self, interval)
-		if (!tfs::lua::reserveScriptEnv()) {
-			std::cout << "[Error - Monster::onThink] Call stack overflow" << std::endl;
-			return;
-		}
-
-		LuaScriptInterface* scriptInterface = mType->info.scriptInterface;
-		const auto env = tfs::lua::getScriptEnv();
-		env->setScriptId(mType->info.thinkEvent, scriptInterface);
-
-		lua_State* L = scriptInterface->getLuaState();
-		scriptInterface->pushFunction(mType->info.thinkEvent);
-
-		tfs::lua::pushSharedPtr(L, asMonster());
-		tfs::lua::setMetatable(L, -1, "Monster");
-
-		tfs::lua::pushNumber(L, interval);
-
-		if (scriptInterface->callFunction(2)) {
-			return;
-		}
-	}
 
 	if (!isInSpawnRange(getPosition())) {
 		if (getBoolean(ConfigManager::MONSTER_OVERSPAWN)) {
