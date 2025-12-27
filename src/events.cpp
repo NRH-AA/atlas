@@ -513,13 +513,13 @@ void onUpdateStorage(const std::shared_ptr<Creature>& creature, uint32_t key, st
 
 void onThink(const std::shared_ptr<Creature>& creature, uint32_t interval)
 {
-	// Player:onThink(interval)
+	// Creature:onThink(interval)
 	if (creatureHandlers.onThink == -1) {
 		return;
 	}
 
 	if (!tfs::lua::reserveScriptEnv()) {
-		std::cout << "[Error - tfs::events::player::onThink] Call stack overflow" << std::endl;
+		std::cout << "[Error - tfs::events::creature::onThink] Call stack overflow" << std::endl;
 		return;
 	}
 
