@@ -233,7 +233,7 @@ void Npc::onCreatureAppear(const std::shared_ptr<Creature>& creature, bool, Magi
 {
 	if (creature.get() == this) {
 		setLastPosition(getPosition());
-		
+
 		SpectatorVec players;
 		g_game.map.getSpectators(players, getPosition(), true, true);
 		for (const auto& player : players) {

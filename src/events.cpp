@@ -17,7 +17,7 @@ namespace {
 LuaScriptInterface scriptInterface{"Event Interface"};
 
 struct CreatureHandlers
-{s
+{
 	int32_t onChangeOutfit = -1;
 	int32_t onAreaCombat = -1;
 	int32_t onTargetCombat = -1;
