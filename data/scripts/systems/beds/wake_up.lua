@@ -1,35 +1,17 @@
 local event = CreatureEvent("BedLogin")
 
-local function findHeadboardOnTile(tile)
-    if not tile then
-        return nil
-    end
-
-    local items = tile:getItems()
-    if not items then
-        return nil
-    end
-
-    for _, item in ipairs(items) do
-		local bed = item:getBed()
-        if bed ~= nil and bed:isHeadboard() then
-            return bed
-        end
-    end
-
-    return nil
-end
-
 local function findRelevantBed(player)
 	local pos = player:getPosition()
 	local tile = Tile(pos)
-	if tile then
-		local headboard = findHeadboardOnTile(tile)
-		if headboard then
-			local footboard = headboard:getPartnerBed()
-			if footboard then
-				return headboard, footboard
-			end
+	if not tile then
+		return nil, nil
+	end
+
+	local headboard = tile:getHeadboard()
+	if headboard then
+		local footboard = headboard:getPartnerBed()
+		if footboard and footboard:isFootboard() then
+			return headboard, footboard
 		end
 	end
 
@@ -39,10 +21,10 @@ local function findRelevantBed(player)
 		checkPos:getNextPosition(dir)
 		local tile = Tile(checkPos)
 		if tile then
-			local headboard = findHeadboardOnTile(tile)
+			local headboard = tile:getHeadboard()
 			if headboard then
 				local footboard = headboard:getPartnerBed()
-				if footboard then
+				if footboard and footboard:isFootboard() then
 					return headboard, footboard
 				end
 			end
@@ -82,7 +64,7 @@ function event.onLogin(player)
 		sleptSeconds = math.max(0, os.time() - lastLogout)
 	end
 
-	-- regeneratePlayer(player, sleptSeconds)
+	regeneratePlayer(player, sleptSeconds)
 
 	if headboard:getSleeper() == player:getId() then
 		return headboard:removeSleeper() and footboard:removeSleeper()

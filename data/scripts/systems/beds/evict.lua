@@ -1,23 +1,50 @@
 local action = Action()
 
-function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
-    local headboard = item:getBed()
-    if not headboard then
+local function getBedParts(item)
+    local headboard = item and item:getBed()
+    if not headboard or not headboard:isHeadboard() then
+        return nil, nil
+    end
+
+    local footboard = headboard:getPartnerBed()
+    if not footboard or not footboard:isFootboard() then
+        return nil, nil
+    end
+
+    return headboard, footboard
+end
+
+local function canEvictSleeper(player, house)
+    if not house then
         return false
+    end
+
+    return player:getGroup():getAccess() or house:getOwnerGuid() == player:getId()
+end
+
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
+    local headboard, footboard = getBedParts(item)
+    if not headboard or not footboard then
+        return true
     end
 
     local tile = Tile(headboard:getPosition())
     if not tile then
-        return false
+        return true
     end
 
     local house = tile:getHouse()
-    if not house or (house:getOwnerGuid() ~= player:getId() and not player:getGroup():getAccess()) then
-        return false
+    if not house then
+        return true
     end
 
-    local footboard = headboard:getPartnerBed()
-    return footboard ~= nil and headboard:removeSleeper() and footboard:removeSleeper()
+    if not canEvictSleeper(player, house) then
+		return true
+	end
+
+	headboard:removeSleeper()
+	footboard:removeSleeper()
+    return true
 end
 
 local function getOccupiedHeadboardIds()

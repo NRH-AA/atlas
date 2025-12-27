@@ -26,6 +26,14 @@ function Bed.getTransformToFree(self)
     return self._bed.transformToFree
 end
 
+function Bed.getBedParts(self)
+    local partner = self:getPartnerBed()
+    if not partner then return nil, nil end
+    if self:isHeadboard() and partner:isFootboard() then return self, partner end
+    if self:isFootboard() and partner:isHeadboard() then return partner, self end
+    return nil, nil
+end
+
 function Bed.getPartnerBed(self)
     local position = self:getPosition()
     local partnerDir = self:getPartnerDirection()
@@ -94,6 +102,22 @@ end
 function ItemType.isBed(self)
     local beds = Game.getBeds()
     return beds[self:getId()] ~= nil
+end
+
+function Tile.getHeadboard(self)
+    local items = self:getItems()
+    if not items then
+        return nil
+    end
+
+    for _, item in ipairs(items) do
+		local bed = item:getBed()
+        if bed ~= nil and bed:isHeadboard() then
+            return bed
+        end
+    end
+
+    return nil
 end
 
 function Item.getBed(self)

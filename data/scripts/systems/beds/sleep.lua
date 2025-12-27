@@ -13,9 +13,11 @@ local function canUse(player, bed)
         return false
     end
 
-    local premiumEnds = player:getPremiumEndsAt()
-    if premiumEnds <= os.time() then
-        return false
+    if Beds.RequiresPremium then
+        local premiumEnds = player:getPremiumEndsAt()
+        if premiumEnds <= os.time() then
+            return false
+        end
     end
 
     local tile = bed:getTile()
@@ -31,23 +33,37 @@ local function canUse(player, bed)
     return true
 end
 
-local function sleep(player, headboard)
+local function sleep(player, headboardPos)
+    local tile = Tile(headboardPos)
+    if not tile then
+        return false
+    end
+
+    local headboard = tile:getHeadboard()
+    if not headboard then
+        return false
+    end
+
     local footboard = headboard:getPartnerBed()
-    if not footboard then
+    if not footboard or not footboard:isFootboard() then
         return false
     end
 
     headboard:setSleeper(player)
     footboard:setSleeper(player)
 
-    local headboardPos = headboard:getPosition()
     headboardPos:sendMagicEffect(CONST_ME_SLEEP)
-    player:teleportTo(headboardPos, true)
+
+    if not player:teleportTo(headboardPos, true) then
+        headboard:removeSleeper()
+        footboard:removeSleeper()
+        return false
+    end
 
     addEvent(function(pid)
-        local sleeper = Player(pid)
-        if sleeper then
-            sleeper:remove()
+        local player = Player(pid)
+        if player then
+            player:remove()
         end
     end, SCHEDULER_MINTICKS, player:getId())
     return true
@@ -57,7 +73,7 @@ local function abortOfflineTraining(player)
 	player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Offline training aborted.")
 end
 
-local function sendOfflineTrainingModal(player, headboard)
+local function sendOfflineTrainingModal(player, headboardPos)
     local offlineTrainingModal = ModalWindow{
         title = "Choose a Skill",
         message = "Please choose a skill:",
@@ -81,8 +97,7 @@ local function sendOfflineTrainingModal(player, headboard)
         end
 
         player:setOfflineTrainingSkill(selectedSkill)
-        sleep(player, headboard)
-        return true
+        return sleep(player, headboardPos)
     end)
 
     offlineTrainingModal:addButton("Cancel", function(player, button, choice)
@@ -94,13 +109,15 @@ local function sendOfflineTrainingModal(player, headboard)
 end
 
 function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
-    local headboard = item:getBed()
-    if not headboard then
-        return false
+    local bed = item:getBed()
+    if not bed then
+        return true
     end
 
-    if headboard:getSleeper() ~= nil then
-        return self:remove(player, headboard)
+    local headboard, footboard = bed:getBedParts()
+    if not headboard or not footboard then
+        -- invalid bed parts placement
+        return true
     end
 
     if not canUse(player, headboard) then
@@ -109,11 +126,11 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
     end
 
     if Beds.OfflineTrainingEnabled then
-        sendOfflineTrainingModal(player, headboard)
+        sendOfflineTrainingModal(player, headboard:getPosition())
         return true
     end
 
-    return sleep(player, headboard)
+    return sleep(player, headboard:getPosition())
 end
 
 local function getFreeHeadboardIds()
