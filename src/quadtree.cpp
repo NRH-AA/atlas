@@ -5,6 +5,7 @@
 
 namespace {
 
+bool new_leaf = false;
 std::array<Node*, 4> root_nodes = {};
 
 uint8_t create_index(uint32_t x, uint32_t y) { return ((x & 0x8000) >> 15) | ((y & 0x8000) >> 14); }
@@ -24,9 +25,23 @@ Leaf* find_leaf(Node* current_node, uint32_t x, uint32_t y)
 
 Leaf* find_leaf_in_root(uint32_t x, uint32_t y)
 {
-	const auto index = create_index(x, y);
-	if (auto node = root_nodes[index]) {
-		return find_leaf(node, x, y);
+	auto node = root_nodes[create_index(x, y)];
+	if (!node) {
+		return nullptr;
+	}
+
+	while (node) {
+		if (auto leaf = node->asLeaf()) {
+			return leaf;
+		}
+
+		node = node->getChild(create_index(x, y));
+		if (!node) {
+			return nullptr;
+		}
+
+		x <<= 1;
+		y <<= 1;
 	}
 	return nullptr;
 }
@@ -73,39 +88,50 @@ void update_leaf_neighbors(Leaf* leaf, uint32_t x, uint32_t y)
 
 Leaf* create_leaf_node(Node* current_node, uint32_t x, uint32_t y, uint8_t z)
 {
-	if (const auto leaf = current_node->asLeaf()) {
-		return leaf;
-	}
-
-	const auto index = create_index(x, y);
-	auto child_node = current_node->getChild(index);
-	if (!child_node) {
-		if (z == TILE_GRID_BITS) {
-			/*
-			 * Stop subdividing and create a Leaf when z reaches TILE_GRID_BITS.
-			 * Each Leaf stores a TILE_GRID_SIZE × TILE_GRID_SIZE tile block (TILE_GRID_SIZE = 2^TILE_GRID_BITS)
-			 * and contains creatures, allowing direct indexing with x & TILE_INDEX_MASK and y & TILE_INDEX_MASK.
-			 */
-			child_node = new Leaf();
-		} else {
-			child_node = new Branch();
+	while (true) {
+		if (const auto leaf = current_node->asLeaf()) {
+			return leaf;
 		}
 
-		current_node->setChild(index, child_node);
-	}
+		const auto index = create_index(x, y);
+		auto child_node = current_node->getChild(index);
+		if (!child_node) {
+			if (z == TILE_GRID_BITS) {
+				/*
+				 * Stop subdividing and create a Leaf when z reaches TILE_GRID_BITS.
+				 * Each Leaf stores a TILE_GRID_SIZE × TILE_GRID_SIZE tile block (TILE_GRID_SIZE = 2^TILE_GRID_BITS)
+				 * and contains creatures, allowing direct indexing with x & TILE_INDEX_MASK and y & TILE_INDEX_MASK.
+				 */
+				child_node = new Leaf();
+				new_leaf = true;
+			} else {
+				child_node = new Branch();
+			}
 
-	return create_leaf_node(child_node, x * 2, y * 2, z - 1);
+			current_node->setChild(index, child_node);
+		}
+
+		x <<= 1;
+		y <<= 1;
+		z--;
+
+		current_node = child_node;
+	}
 }
 
 Leaf* create_leaf_in_root(uint32_t x, uint32_t y)
 {
+	new_leaf = false;
+
 	const auto index = create_index(x, y);
 	if (!root_nodes[index]) {
 		root_nodes[index] = new Branch();
 	}
 
 	const auto leaf = create_leaf_node(root_nodes[index], x, y, (MAP_MAX_LAYERS - 1));
-	update_leaf_neighbors(leaf, x, y);
+	if (new_leaf) {
+		update_leaf_neighbors(leaf, x, y);
+	}
 	return leaf;
 }
 

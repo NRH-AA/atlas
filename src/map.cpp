@@ -406,11 +406,9 @@ void Map::getSpectators(SpectatorVec& spectators, const Position& centerPos, boo
 		uint16_t y2 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (max_y + maxoffset)));
 
 		for (const auto& creature :
-		     tfs::map::quadtree::find_creature_in_range(x1, y1, x2, y2) | tfs::views::lock_weak_ptrs) {
-			if (onlyPlayers && !creature->asPlayer()) {
-				continue;
-			}
-
+		     tfs::map::quadtree::find_creature_in_range(x1, y1, x2, y2) | tfs::views::lock_weak_ptrs |
+		         std::views::filter([&](const auto& creature) { return !onlyPlayers || creature->asPlayer(); }) |
+		         std::ranges::to<std::vector>()) {
 			const auto& position = creature->getPosition();
 			if (minRangeZ > position.z || maxRangeZ < position.z) {
 				continue;
