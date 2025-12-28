@@ -83,15 +83,22 @@ function ScheduleEvent:register()
 
 		local function check()
 			local now = os.date("*t")
+			-- Clear all stamps on year change
+			if not self._lastYear or self._lastYear ~= now.year then
+				self._lastTrigger = {}
+				self._lastYear = now.year
+			end
+
 			-- Clean up old entries (keep only today's stamps)
 			for stamp in pairs(self._lastTrigger) do
-				local stampDay = tonumber(stamp:match("^(%d+)%-"))
-				if stampDay and stampDay ~= now.yday then
+				local stampYear, stampDay = stamp:match("^(%d+)%-(%d+)%-")
+				stampYear, stampDay = tonumber(stampYear), tonumber(stampDay)
+				if stampYear and stampDay and (stampYear ~= now.year or stampDay ~= now.yday) then
 					self._lastTrigger[stamp] = nil
 				end
 			end
 			
-			local stamp = now.yday .. "-" .. h .. "-" .. m .. "-" .. s
+			local stamp = now.year .. "-" .. now.yday .. "-" .. h .. "-" .. m .. "-" .. s
 
 			if now.hour == h and now.min == m and now.sec == s and not self._lastTrigger[stamp] then
 				self._lastTrigger[stamp] = true
@@ -151,10 +158,17 @@ function ScheduleEvent:register()
 
 		local function checkTimes()
 			local now = os.date("*t")
+			-- Clear all stamps on year change
+			if not self._lastYear or self._lastYear ~= now.year then
+				self._lastTrigger = {}
+				self._lastYear = now.year
+			end
+
 			-- Clean up old entries (keep only today's stamps)
 			for stamp in pairs(self._lastTrigger) do
-				local stampDay = tonumber(stamp:match("^(%d+)%-"))
-				if stampDay and stampDay ~= now.yday then
+				local stampYear, stampDay = stamp:match("^(%d+)%-(%d+)%-")
+				stampYear, stampDay = tonumber(stampYear), tonumber(stampDay)
+				if stampYear and stampDay and (stampYear ~= now.year or stampDay ~= now.yday) then
 					self._lastTrigger[stamp] = nil
 				end
 			end
@@ -189,7 +203,18 @@ function ScheduleEvent:register()
 				addEvent(loop, interval)
 			end
 
-			addEvent(loop, interval)
+			local function scheduleInitial()
+				local now = os.date("*t")
+				if now.wday == dayIndex then
+					-- Start the interval loop immediately on the correct weekday
+					addEvent(loop, interval)
+				else
+					-- Wait until a future interval to re-check the weekday without running the callback
+					addEvent(scheduleInitial, interval)
+				end
+			end
+
+			scheduleInitial()
 		end
 
 		return true
