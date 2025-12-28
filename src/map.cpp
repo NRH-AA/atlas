@@ -158,22 +158,10 @@ void Map::removeTile(uint16_t x, uint16_t y, uint8_t z)
 
 	if (const CreatureVector* creatures = tile->getCreatures()) {
 		for (int32_t i = creatures->size(); --i >= 0;) {
-			if (const auto& player = (*creatures)[i]->getPlayer()) {
+			if (const auto& player = (*creatures)[i]->asPlayer()) {
 				g_game.internalTeleport(player, player->getTown()->templePosition, false, FLAG_NOLIMIT);
 			} else {
 				g_game.removeCreature((*creatures)[i]);
-			}
-		}
-	}
-
-	if (const auto& tile = floor->tiles[x & FLOOR_MASK][y & FLOOR_MASK]) {
-		if (const CreatureVector* creatures = tile->getCreatures()) {
-			for (int32_t i = creatures->size(); --i >= 0;) {
-				if (const auto& player = (*creatures)[i]->asPlayer()) {
-					g_game.internalTeleport(player, player->getTown()->templePosition, false, FLAG_NOLIMIT);
-				} else {
-					g_game.removeCreature((*creatures)[i]);
-				}
 			}
 		}
 	}
@@ -323,67 +311,6 @@ void Map::moveCreature(const std::shared_ptr<Creature>& creature, const std::sha
 	newTile->postAddNotification(creature, oldTile, 0);
 }
 
-void Map::getSpectatorsInternal(SpectatorVec& spectators, const Position& centerPos, int32_t minRangeX,
-                                int32_t maxRangeX, int32_t minRangeY, int32_t maxRangeY, int32_t minRangeZ,
-                                int32_t maxRangeZ, bool onlyPlayers) const
-{
-	auto min_y = centerPos.y + minRangeY;
-	auto min_x = centerPos.x + minRangeX;
-	auto max_y = centerPos.y + maxRangeY;
-	auto max_x = centerPos.x + maxRangeX;
-
-	int32_t minoffset = centerPos.getZ() - maxRangeZ;
-	uint16_t x1 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (min_x + minoffset)));
-	uint16_t y1 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (min_y + minoffset)));
-
-	int32_t maxoffset = centerPos.getZ() - minRangeZ;
-	uint16_t x2 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (max_x + maxoffset)));
-	uint16_t y2 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (max_y + maxoffset)));
-
-	int32_t startx1 = x1 - (x1 % FLOOR_SIZE);
-	int32_t starty1 = y1 - (y1 % FLOOR_SIZE);
-	int32_t endx2 = x2 - (x2 % FLOOR_SIZE);
-	int32_t endy2 = y2 - (y2 % FLOOR_SIZE);
-
-	const QTreeLeafNode* startLeaf =
-	    QTreeNode::getLeafStatic<const QTreeLeafNode*, const QTreeNode*>(&root, startx1, starty1);
-	const QTreeLeafNode* leafS = startLeaf;
-	const QTreeLeafNode* leafE;
-
-	for (int_fast32_t ny = starty1; ny <= endy2; ny += FLOOR_SIZE) {
-		leafE = leafS;
-		for (int_fast32_t nx = startx1; nx <= endx2; nx += FLOOR_SIZE) {
-			if (leafE) {
-				for (auto&& creature : leafE->creatures | std::views::filter([onlyPlayers](const auto& creature) {
-					                       return !onlyPlayers || creature->asPlayer() != nullptr;
-				                       })) {
-					const Position& cpos = creature->getPosition();
-					if (minRangeZ > cpos.z || maxRangeZ < cpos.z) {
-						continue;
-					}
-
-					int16_t offsetZ = centerPos.getOffsetZ(cpos);
-					if ((min_y + offsetZ) > cpos.y || (max_y + offsetZ) < cpos.y || (min_x + offsetZ) > cpos.x ||
-					    (max_x + offsetZ) < cpos.x) {
-						continue;
-					}
-
-					spectators.emplace(creature);
-				}
-				leafE = leafE->leafE;
-			} else {
-				leafE = QTreeNode::getLeafStatic<const QTreeLeafNode*, const QTreeNode*>(&root, nx + FLOOR_SIZE, ny);
-			}
-		}
-
-		if (leafS) {
-			leafS = leafS->leafS;
-		} else {
-			leafS = QTreeNode::getLeafStatic<const QTreeLeafNode*, const QTreeNode*>(&root, startx1, ny + FLOOR_SIZE);
-		}
-	}
-}
-
 void Map::getSpectators(SpectatorVec& spectators, const Position& centerPos, bool multifloor /*= false*/,
                         bool onlyPlayers /*= false*/, int32_t minRangeX /*= 0*/, int32_t maxRangeX /*= 0*/,
                         int32_t minRangeY /*= 0*/, int32_t maxRangeY /*= 0*/)
@@ -480,7 +407,7 @@ void Map::getSpectators(SpectatorVec& spectators, const Position& centerPos, boo
 
 		for (const auto& creature :
 		     tfs::map::quadtree::find_creature_in_range(x1, y1, x2, y2) | tfs::views::lock_weak_ptrs) {
-			if (onlyPlayers && !creature->getPlayer()) {
+			if (onlyPlayers && !creature->asPlayer()) {
 				continue;
 			}
 
