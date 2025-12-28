@@ -916,7 +916,7 @@ bool ConditionRegeneration::executeCondition(const std::shared_ptr<Creature>& cr
 				if (!spectators.empty()) {
 					message.type = MESSAGE_HEALED_OTHERS;
 					message.text = player->getName() + " was healed for " + healString;
-					for (const auto& spectator : spectators) {
+					for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 						assert(spectator->asPlayer() != nullptr);
 						std::static_pointer_cast<Player>(spectator)->sendTextMessage(message);
 					}
@@ -948,7 +948,7 @@ bool ConditionRegeneration::executeCondition(const std::shared_ptr<Creature>& cr
 				if (!spectators.empty()) {
 					message.type = MESSAGE_HEALED_OTHERS;
 					message.text = player->getName() + " gained " + manaGainString + " mana.";
-					for (const auto& spectator : spectators) {
+					for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 						assert(spectator->asPlayer() != nullptr);
 						std::static_pointer_cast<Player>(spectator)->sendTextMessage(message);
 					}

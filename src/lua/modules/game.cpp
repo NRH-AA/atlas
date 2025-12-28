@@ -45,7 +45,7 @@ int luaGameGetSpectators(lua_State* L)
 	lua_createtable(L, spectators.size(), 0);
 
 	int index = 0;
-	for (const auto& creature : spectators) {
+	for (const auto& creature : spectators | tfs::views::lock_weak_ptrs) {
 		tfs::lua::pushSharedPtr(L, creature);
 		tfs::lua::setCreatureMetatable(L, -1, creature);
 		lua_rawseti(L, -2, ++index);

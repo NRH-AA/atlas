@@ -287,7 +287,7 @@ void Creature::updateIcons() const
 {
 	SpectatorVec spectators;
 	g_game.map.getSpectators(spectators, position, true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendUpdateCreatureIcons(asCreature());
 	}
@@ -935,7 +935,7 @@ void Creature::onGainExperience(uint64_t gainExp, const std::shared_ptr<Creature
 	message.primary.color = TEXTCOLOR_WHITE_EXP;
 	message.primary.value = gainExp;
 
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendTextMessage(message);
 	}

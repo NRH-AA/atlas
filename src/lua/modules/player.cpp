@@ -2041,7 +2041,7 @@ int luaPlayerSetGhostMode(lua_State* L)
 
 	SpectatorVec spectators;
 	g_game.map.getSpectators(spectators, position, true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 
 		const auto& spectatorPlayer = std::static_pointer_cast<Player>(spectator);

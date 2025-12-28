@@ -146,13 +146,13 @@ void Container::onAddContainerItem(const std::shared_ptr<Item>& item)
 	g_game.map.getSpectators(spectators, getPosition(), false, true, 1, 1, 1, 1);
 
 	// send to client
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendAddContainerItem(getContainer(), item);
 	}
 
 	// event methods
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->onAddContainerItem(item);
 	}
@@ -165,13 +165,13 @@ void Container::onUpdateContainerItem(uint32_t index, const std::shared_ptr<Item
 	g_game.map.getSpectators(spectators, getPosition(), false, true, 1, 1, 1, 1);
 
 	// send to client
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendUpdateContainerItem(getContainer(), index, newItem);
 	}
 
 	// event methods
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->onUpdateContainerItem(getContainer(), oldItem, newItem);
 	}
@@ -183,13 +183,13 @@ void Container::onRemoveContainerItem(uint32_t index, const std::shared_ptr<Item
 	g_game.map.getSpectators(spectators, getPosition(), false, true, 1, 1, 1, 1);
 
 	// send change to client
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendRemoveContainerItem(getContainer(), index);
 	}
 
 	// event methods
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->onRemoveContainerItem(getContainer(), item);
 	}

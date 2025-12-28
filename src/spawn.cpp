@@ -248,7 +248,7 @@ bool Spawn::findPlayer(const Position& pos)
 {
 	SpectatorVec spectators;
 	g_game.map.getSpectators(spectators, pos, false, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		if (!std::static_pointer_cast<Player>(spectator)->hasFlag(PlayerFlag_IgnoredByMonsters)) {
 			return true;

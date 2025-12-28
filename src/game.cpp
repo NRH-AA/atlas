@@ -527,7 +527,7 @@ bool Game::placeCreature(const std::shared_ptr<Creature>& creature, const Positi
 
 	SpectatorVec spectators;
 	map.getSpectators(spectators, position, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		spectator->onCreatureAppear(creature, true, magicEffect);
 	}
 
@@ -547,7 +547,7 @@ bool Game::removeCreature(const std::shared_ptr<Creature>& creature, bool isLogo
 
 	SpectatorVec spectators;
 	map.getSpectators(spectators, tile->getPosition(), true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& player = spectator->asPlayer()) {
 			oldStackPosVector.push_back(
 			    player->canSeeCreature(creature) ? tile->getClientIndexOfCreature(player, creature) : -1);
@@ -560,14 +560,14 @@ bool Game::removeCreature(const std::shared_ptr<Creature>& creature, bool isLogo
 
 	// send to client
 	size_t i = 0;
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& player = spectator->asPlayer()) {
 			player->sendRemoveTileCreature(creature, tilePosition, oldStackPosVector[i++]);
 		}
 	}
 
 	// event method
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		spectator->onRemoveCreature(creature, isLogout);
 	}
 
@@ -2012,7 +2012,7 @@ void Game::playerCloseNpcChannel(uint32_t playerId)
 
 	SpectatorVec spectators;
 	map.getSpectators(spectators, player->getPosition());
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& npc = spectator->asNpc()) {
 			npc->onPlayerCloseChannel(player);
 		}
@@ -3534,7 +3534,7 @@ void Game::playerWhisper(const std::shared_ptr<Player>& player, const std::strin
 	                  Map::maxClientViewportY, Map::maxClientViewportY);
 
 	// send to client
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& spectatorPlayer = spectator->asPlayer()) {
 			if (!player->getPosition().isInRange(spectatorPlayer->getPosition(), 1, 1)) {
 				spectatorPlayer->sendCreatureSay(player, TALKTYPE_WHISPER, "pspsps");
@@ -3545,7 +3545,7 @@ void Game::playerWhisper(const std::shared_ptr<Player>& player, const std::strin
 	}
 
 	// event method
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		spectator->onCreatureSay(player, TALKTYPE_WHISPER, text);
 	}
 }
@@ -3636,7 +3636,7 @@ void Game::playerSpeakToNpc(const std::shared_ptr<Player>& player, const std::st
 {
 	SpectatorVec spectators;
 	map.getSpectators(spectators, player->getPosition());
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (spectator->asNpc()) {
 			spectator->onCreatureSay(player, TALKTYPE_PRIVATE_PN, text);
 		}
@@ -3667,7 +3667,7 @@ bool Game::internalCreatureTurn(const std::shared_ptr<Creature>& creature, Direc
 	// send to client
 	SpectatorVec spectators;
 	map.getSpectators(spectators, creature->getPosition(), true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendCreatureTurn(creature);
 	}
@@ -3706,7 +3706,7 @@ bool Game::internalCreatureSay(const std::shared_ptr<Creature>& creature, SpeakC
 	}
 
 	// send to client
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& tmpPlayer = spectator->asPlayer()) {
 			if (!ghostMode || tmpPlayer->canSeeCreature(creature)) {
 				tmpPlayer->sendCreatureSay(creature, type, text, pos);
@@ -3716,7 +3716,7 @@ bool Game::internalCreatureSay(const std::shared_ptr<Creature>& creature, SpeakC
 
 	// event method
 	if (!echo) {
-		for (const auto& spectator : spectators) {
+		for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 			spectator->onCreatureSay(creature, type, text);
 			if (creature != spectator) {
 				tfs::events::creature::onHear(spectator, creature, text, type);
@@ -3825,7 +3825,7 @@ void Game::changeSpeed(const std::shared_ptr<Creature>& creature, int32_t varSpe
 	// send to clients
 	SpectatorVec spectators;
 	map.getSpectators(spectators, creature->getPosition(), false, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendChangeSpeed(creature, creature->getStepSpeed());
 	}
@@ -3846,7 +3846,7 @@ void Game::internalCreatureChangeOutfit(const std::shared_ptr<Creature>& creatur
 	// send to clients
 	SpectatorVec spectators;
 	map.getSpectators(spectators, creature->getPosition(), true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendCreatureChangeOutfit(creature, outfit);
 	}
@@ -3857,7 +3857,7 @@ void Game::internalCreatureChangeVisible(const std::shared_ptr<Creature>& creatu
 	// send to clients
 	SpectatorVec spectators;
 	map.getSpectators(spectators, creature->getPosition(), true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendCreatureChangeVisible(creature, visible);
 	}
@@ -3868,7 +3868,7 @@ void Game::changeLight(const std::shared_ptr<const Creature>& creature)
 	// send to clients
 	SpectatorVec spectators;
 	map.getSpectators(spectators, creature->getPosition(), true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendCreatureLight(creature);
 	}
@@ -4120,7 +4120,7 @@ bool Game::combatChangeHealth(const std::shared_ptr<Creature>& attacker, const s
 
 			SpectatorVec spectators;
 			map.getSpectators(spectators, targetPos, false, true);
-			for (const auto& spectator : spectators) {
+			for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 				assert(spectator->asPlayer() != nullptr);
 
 				const auto& spectatorPlayer = std::static_pointer_cast<Player>(spectator);
@@ -4225,7 +4225,7 @@ bool Game::combatChangeHealth(const std::shared_ptr<Creature>& attacker, const s
 				message.primary.value = manaDamage;
 				message.primary.color = TEXTCOLOR_BLUE;
 
-				for (const auto& spectator : spectators) {
+				for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 					assert(spectator->asPlayer() != nullptr);
 
 					const auto& spectatorPlayer = std::static_pointer_cast<Player>(spectator);
@@ -4369,7 +4369,7 @@ bool Game::combatChangeHealth(const std::shared_ptr<Creature>& attacker, const s
 
 			std::string spectatorMessage;
 
-			for (const auto& spectator : spectators) {
+			for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 				assert(spectator->asPlayer() != nullptr);
 
 				const auto& spectatorPlayer = std::static_pointer_cast<Player>(spectator);
@@ -4506,7 +4506,7 @@ bool Game::combatChangeMana(const std::shared_ptr<Creature>& attacker, const std
 
 		SpectatorVec spectators;
 		map.getSpectators(spectators, targetPos, false, true);
-		for (const auto& spectator : spectators) {
+		for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 			assert(spectator->asPlayer() != nullptr);
 
 			const auto& spectatorPlayer = std::static_pointer_cast<Player>(spectator);
@@ -4559,7 +4559,7 @@ void Game::addCreatureHealth(const std::shared_ptr<const Creature>& target)
 
 void Game::addCreatureHealth(const SpectatorVec& spectators, const std::shared_ptr<const Creature>& target)
 {
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& tmpPlayer = spectator->asPlayer()) {
 			tmpPlayer->sendCreatureHealth(target);
 		}
@@ -4575,7 +4575,7 @@ void Game::addMagicEffect(const Position& pos, uint8_t effect)
 
 void Game::addMagicEffect(const SpectatorVec& spectators, const Position& pos, uint8_t effect)
 {
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& tmpPlayer = spectator->asPlayer()) {
 			tmpPlayer->sendMagicEffect(pos, effect);
 		}
@@ -4595,7 +4595,7 @@ void Game::addDistanceEffect(const Position& fromPos, const Position& toPos, uin
 void Game::addDistanceEffect(const SpectatorVec& spectators, const Position& fromPos, const Position& toPos,
                              uint8_t effect)
 {
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& tmpPlayer = spectator->asPlayer()) {
 			tmpPlayer->sendDistanceShoot(fromPos, toPos, effect);
 		}
@@ -4732,7 +4732,7 @@ void Game::updateCreatureWalkthrough(const std::shared_ptr<const Creature>& crea
 	// send to clients
 	SpectatorVec spectators;
 	map.getSpectators(spectators, creature->getPosition(), true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 
 		const auto& spectatorPlayer = std::static_pointer_cast<Player>(spectator);
@@ -4745,7 +4745,7 @@ void Game::updateKnownCreature(const std::shared_ptr<const Creature>& creature)
 	// send to clients
 	SpectatorVec spectators;
 	map.getSpectators(spectators, creature->getPosition(), true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendUpdateTileCreature(creature);
 	}
@@ -4759,7 +4759,7 @@ void Game::updateCreatureSkull(const std::shared_ptr<const Creature>& creature)
 
 	SpectatorVec spectators;
 	map.getSpectators(spectators, creature->getPosition(), true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendCreatureSkull(creature);
 	}
@@ -4769,7 +4769,7 @@ void Game::updatePlayerShield(const std::shared_ptr<Player>& player)
 {
 	SpectatorVec spectators;
 	map.getSpectators(spectators, player->getPosition(), true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendCreatureShield(player);
 	}
@@ -5521,7 +5521,7 @@ void Game::updatePodium(const std::shared_ptr<Podium>& podium)
 	// send to clients
 	SpectatorVec spectators;
 	map.getSpectators(spectators, podium->getPosition(), true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendUpdateTileItem(tile, podium->getPosition(), podium);
 	}

@@ -1792,7 +1792,7 @@ void Player::removeExperience(uint64_t exp, bool sendText /* = false*/)
 		if (!spectators.empty()) {
 			message.type = MESSAGE_EXPERIENCE_OTHERS;
 			message.text = getName() + " lost " + expString;
-			for (const auto& spectator : spectators) {
+			for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 				assert(spectator->asPlayer() != nullptr);
 				std::static_pointer_cast<Player>(spectator)->sendTextMessage(message);
 			}

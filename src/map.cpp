@@ -306,7 +306,7 @@ void Map::moveCreature(const std::shared_ptr<Creature>& creature, const std::sha
 	spectators.insert(newPosSpectators.begin(), newPosSpectators.end());
 
 	std::vector<int32_t> oldStackPosVector;
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& tmpPlayer = spectator->asPlayer()) {
 			if (tmpPlayer->canSeeCreature(creature)) {
 				oldStackPosVector.push_back(oldTile->getClientIndexOfCreature(tmpPlayer, creature));
@@ -347,7 +347,7 @@ void Map::moveCreature(const std::shared_ptr<Creature>& creature, const std::sha
 
 	// send to client
 	size_t i = 0;
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& tmpPlayer = spectator->asPlayer()) {
 			// Use the correct stackpos
 			int32_t stackpos = oldStackPosVector[i++];
@@ -359,7 +359,7 @@ void Map::moveCreature(const std::shared_ptr<Creature>& creature, const std::sha
 	}
 
 	// event method
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		spectator->onCreatureMove(creature, newTile, newPos, oldTile, oldPos, teleport);
 	}
 
@@ -471,7 +471,7 @@ void Map::getSpectators(SpectatorVec& spectators, const Position& centerPos, boo
 					}
 				} else {
 					const SpectatorVec& cachedSpectators = it->second;
-					for (const auto& spectator : cachedSpectators) {
+					for (const auto& spectator : cachedSpectators | tfs::views::lock_weak_ptrs) {
 						if (spectator->asPlayer()) {
 							spectators.emplace(spectator);
 						}

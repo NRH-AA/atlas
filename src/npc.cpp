@@ -79,7 +79,7 @@ void Npc::reload()
 
 	SpectatorVec players;
 	g_game.map.getSpectators(players, getPosition(), true, true);
-	for (const auto& player : players) {
+	for (const auto& player : players | tfs::views::lock_weak_ptrs) {
 		assert(player->asPlayer() != nullptr);
 		spectators.insert(std::static_pointer_cast<Player>(player));
 	}
@@ -235,7 +235,7 @@ void Npc::onCreatureAppear(const std::shared_ptr<Creature>& creature, bool, Magi
 
 		SpectatorVec players;
 		g_game.map.getSpectators(players, getPosition(), true, true);
-		for (const auto& player : players) {
+		for (const auto& player : players | tfs::views::lock_weak_ptrs) {
 			assert(player->asPlayer() != nullptr);
 			spectators.insert(std::static_pointer_cast<Player>(player));
 		}

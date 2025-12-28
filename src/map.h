@@ -17,7 +17,7 @@ static constexpr int32_t MAP_MAX_LAYERS = 16;
 static constexpr uint16_t MAP_NORMALWALKCOST = 10;
 static constexpr uint16_t MAP_DIAGONALWALKCOST = 25;
 
-using SpectatorVec = boost::container::flat_set<std::shared_ptr<Creature>, std::owner_less<std::shared_ptr<Creature>>>;
+using SpectatorVec = boost::container::flat_set<std::weak_ptr<Creature>, std::owner_less<std::weak_ptr<Creature>>>;
 
 struct FindPathParams;
 struct AStarNode

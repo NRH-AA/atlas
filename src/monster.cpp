@@ -330,7 +330,7 @@ void Monster::updateTargetList()
 	SpectatorVec spectators;
 	g_game.map.getSpectators(spectators, getPosition(), true);
 	spectators.erase(asMonster());
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		onCreatureFound(spectator);
 	}
 }

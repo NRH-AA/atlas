@@ -357,7 +357,7 @@ void Tile::onAddTileItem(const std::shared_ptr<Item>& item)
 	g_game.map.getSpectators(spectators, tilePos, true);
 
 	// send to client
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& spectatorPlayer = spectator->asPlayer()) {
 			spectatorPlayer->sendAddTileItem(asTile(), tilePos, item);
 		}
@@ -396,14 +396,14 @@ void Tile::onUpdateTileItem(const std::shared_ptr<Item>& oldItem, const ItemType
 	g_game.map.getSpectators(spectators, tilePos, true);
 
 	// send to client
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& spectatorPlayer = spectator->asPlayer()) {
 			spectatorPlayer->sendUpdateTileItem(asTile(), tilePos, newItem);
 		}
 	}
 
 	// event methods
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		spectator->onUpdateTileItem(asTile(), tilePos, oldItem, oldType, newItem, newType);
 	}
 }
@@ -424,14 +424,14 @@ void Tile::onRemoveTileItem(const SpectatorVec& spectators, const std::vector<in
 
 	// send to client
 	size_t i = 0;
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		if (const auto& spectatorPlayer = spectator->asPlayer()) {
 			spectatorPlayer->sendRemoveTileThing(tilePos, oldStackPosVector[i++]);
 		}
 	}
 
 	// event methods
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		spectator->onRemoveTileItem(asTile(), tilePos, iType, item);
 	}
 
@@ -1059,7 +1059,7 @@ void Tile::removeThing(const std::shared_ptr<Thing>& thing, uint32_t count)
 
 		SpectatorVec spectators;
 		g_game.map.getSpectators(spectators, getPosition(), true);
-		for (const auto& spectator : spectators) {
+		for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 			if (const auto& spectatorPlayer = spectator->asPlayer()) {
 				oldStackPosVector.push_back(getStackposOfItem(spectatorPlayer, item));
 			}
@@ -1080,7 +1080,7 @@ void Tile::removeThing(const std::shared_ptr<Thing>& thing, uint32_t count)
 
 			SpectatorVec spectators;
 			g_game.map.getSpectators(spectators, getPosition(), true);
-			for (const auto& spectator : spectators) {
+			for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 				if (const auto& spectatorPlayer = spectator->asPlayer()) {
 					oldStackPosVector.push_back(getStackposOfItem(spectatorPlayer, item));
 				}
@@ -1287,7 +1287,7 @@ void Tile::postAddNotification(const std::shared_ptr<Thing>& thing, const std::s
 {
 	SpectatorVec spectators;
 	g_game.map.getSpectators(spectators, getPosition(), true, true);
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->postAddNotification(thing, oldParent, index, LINK_NEAR);
 	}
@@ -1324,7 +1324,7 @@ void Tile::postRemoveNotification(const std::shared_ptr<Thing>& thing, const std
 	SpectatorVec spectators;
 	g_game.map.getSpectators(spectators, tilePos, true, true);
 
-	for (const auto& spectator : spectators) {
+	for (const auto& spectator : spectators | tfs::views::lock_weak_ptrs) {
 		assert(spectator->asPlayer() != nullptr);
 
 		if (thingCount > TILE_UPDATE_THRESHOLD) {
