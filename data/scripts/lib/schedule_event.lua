@@ -83,6 +83,14 @@ function ScheduleEvent:register()
 
 		local function check()
 			local now = os.date("*t")
+			-- Clean up old entries (keep only today's stamps)
+			for stamp in pairs(self._lastTrigger) do
+				local stampDay = tonumber(stamp:match("^(%d+)%-"))
+				if stampDay and stampDay ~= now.yday then
+					self._lastTrigger[stamp] = nil
+				end
+			end
+			
 			local stamp = now.yday .. "-" .. h .. "-" .. m .. "-" .. s
 
 			if now.hour == h and now.min == m and now.sec == s and not self._lastTrigger[stamp] then
@@ -143,6 +151,14 @@ function ScheduleEvent:register()
 
 		local function checkTimes()
 			local now = os.date("*t")
+			-- Clean up old entries (keep only today's stamps)
+			for stamp in pairs(self._lastTrigger) do
+				local stampDay = tonumber(stamp:match("^(%d+)%-"))
+				if stampDay and stampDay ~= now.yday then
+					self._lastTrigger[stamp] = nil
+				end
+			end
+
 			local today = dayTimes[now.wday]
 			if today then
 				for _, t in ipairs(today) do
