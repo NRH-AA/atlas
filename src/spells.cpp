@@ -9,14 +9,17 @@
 #include "configmanager.h"
 #include "events.h"
 #include "game.h"
-#include "luavariant.h"
+#include "lua/env.h"
+#include "lua/meta.h"
+#include "lua/variant.h"
 #include "monsters.h"
 #include "pugicast.h"
 
 extern Game g_game;
-extern Spells* g_spells;
-extern Monsters g_monsters;
 extern LuaEnvironment g_luaEnvironment;
+extern Monsters g_monsters;
+extern Spells* g_spells;
+extern Vocations g_vocations;
 
 Spells::Spells() { scriptInterface.initState(); }
 
@@ -328,7 +331,7 @@ bool CombatSpell::executeCastSpell(const std::shared_ptr<Creature>& creature, co
 		return false;
 	}
 
-	ScriptEnvironment* env = tfs::lua::getScriptEnv();
+	const auto env = tfs::lua::getScriptEnv();
 	env->setScriptId(scriptId, scriptInterface);
 
 	lua_State* L = scriptInterface->getLuaState();
@@ -720,7 +723,7 @@ bool Spell::playerRuneSpellCheck(const std::shared_ptr<Player>& player, const Po
 	}
 
 	if (aggressive && needTarget && topVisibleCreature && player->hasSecureMode()) {
-		if (const auto& targetPlayer = topVisibleCreature->getPlayer()) {
+		if (const auto& targetPlayer = topVisibleCreature->asPlayer()) {
 			if (targetPlayer != player && player->getCombatSkull(targetPlayer) == SKULL_NONE &&
 			    !Combat::isInPvpZone(player, targetPlayer)) {
 				player->sendCancelMessage(RETURNVALUE_TURNSECUREMODETOATTACKUNMARKEDPLAYERS);
@@ -793,6 +796,14 @@ uint32_t Spell::getManaCost(const std::shared_ptr<const Player>& player) const
 	}
 
 	return 0;
+}
+
+void Spell::addVocationSpellMap(std::string_view vocationName, bool showInDescription)
+{
+	int32_t vocationId = g_vocations.getVocationId(vocationName);
+	if (vocationId != -1) {
+		vocationSpellMap[vocationId] = showInDescription;
+	}
 }
 
 bool InstantSpell::configureEvent(const pugi::xml_node& node)
@@ -1031,7 +1042,7 @@ bool InstantSpell::executeCastSpell(const std::shared_ptr<Creature>& creature, c
 		return false;
 	}
 
-	ScriptEnvironment* env = tfs::lua::getScriptEnv();
+	const auto env = tfs::lua::getScriptEnv();
 	env->setScriptId(scriptId, scriptInterface);
 
 	lua_State* L = scriptInterface->getLuaState();
@@ -1210,7 +1221,7 @@ bool RuneSpell::executeCastSpell(const std::shared_ptr<Creature>& creature, cons
 		return false;
 	}
 
-	ScriptEnvironment* env = tfs::lua::getScriptEnv();
+	const auto env = tfs::lua::getScriptEnv();
 	env->setScriptId(scriptId, scriptInterface);
 
 	lua_State* L = scriptInterface->getLuaState();

@@ -13,9 +13,6 @@ local reloadTypes = {
 	["config"] = RELOAD_TYPE_CONFIG,
 	["configuration"] = RELOAD_TYPE_CONFIG,
 
-	["creaturescript"] = RELOAD_TYPE_CREATURESCRIPTS,
-	["creaturescripts"] = RELOAD_TYPE_CREATURESCRIPTS,
-
 	["events"] = RELOAD_TYPE_EVENTS,
 
 	["global"] = RELOAD_TYPE_GLOBAL,
@@ -56,14 +53,6 @@ local reloadTypes = {
 }
 
 function talkaction.onSay(player, words, param)
-	if not player:getGroup():getAccess() then
-		return true
-	end
-
-	if player:getAccountType() < ACCOUNT_TYPE_GOD then
-		return false
-	end
-
 	logCommand(player, words, param)
 
 	local reloadType = reloadTypes[param:lower()]
@@ -89,4 +78,6 @@ function talkaction.onSay(player, words, param)
 end
 
 talkaction:separator(" ")
+talkaction:access(true)
+talkaction:accountType(ACCOUNT_TYPE_GOD)
 talkaction:register()

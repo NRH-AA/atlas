@@ -5,7 +5,8 @@
 #define FS_ITEM_H
 
 #include "items.h"
-#include "luascript.h"
+#include "lua/api.h"
+#include "lua/script.h"
 #include "thing.h"
 
 class BedItem;
@@ -873,6 +874,7 @@ public:
 	std::shared_ptr<const Thing> getTopParent() const;
 	std::shared_ptr<Tile> getTile() override final;
 	std::shared_ptr<const Tile> getTile() const override final;
+	const Position& getPosition() const override final;
 	bool isRemoved() const override { return !getParent() || getParent()->isRemoved(); }
 
 protected:

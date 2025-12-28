@@ -11,8 +11,9 @@
 #include "pugicast.h"
 #include "scheduler.h"
 
-extern Monsters g_monsters;
 extern Game g_game;
+extern Monsters g_monsters;
+extern Scheduler g_scheduler;
 
 static constexpr int32_t MINSPAWN_INTERVAL = 10 * 1000;           // 10 seconds to match RME
 static constexpr int32_t MAXSPAWN_INTERVAL = 24 * 60 * 60 * 1000; // 1 day
@@ -238,7 +239,7 @@ void Spawn::startSpawnCheck()
 
 Spawn::~Spawn()
 {
-	for (auto&& monster : spawnedMap | std::views::values | tfs::views::lock_weak_ptrs | std::views::as_const) {
+	for (const auto& monster : spawnedMap | std::views::values | tfs::views::lock_weak_ptrs) {
 		monster->setSpawn(nullptr);
 	}
 }
@@ -248,7 +249,7 @@ bool Spawn::findPlayer(const Position& pos)
 	SpectatorVec spectators;
 	g_game.map.getSpectators(spectators, pos, false, true);
 	for (const auto& spectator : spectators) {
-		assert(spectator->getPlayer() != nullptr);
+		assert(spectator->asPlayer() != nullptr);
 		if (!std::static_pointer_cast<Player>(spectator)->hasFlag(PlayerFlag_IgnoredByMonsters)) {
 			return true;
 		}

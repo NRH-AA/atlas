@@ -15,7 +15,8 @@
 
 extern Game g_game;
 extern Spells* g_spells;
-extern Monsters g_monsters;
+
+Monsters g_monsters;
 
 spellBlock_t::~spellBlock_t()
 {
@@ -813,6 +814,7 @@ MonsterType* Monsters::loadMonster(const std::string& file, const std::string& m
 		mType->info = {};
 	}
 
+	mType->monsterName = monsterName;
 	mType->name = attr.as_string();
 
 	if ((attr = monsterNode.attribute("nameDescription"))) {
@@ -1442,22 +1444,11 @@ MonsterType* Monsters::loadMonster(const std::string& file, const std::string& m
 		}
 	}
 
-	if ((node = monsterNode.child("script"))) {
-		for (auto eventNode : node.children()) {
-			if ((attr = eventNode.attribute("name"))) {
-				mType->info.scripts.emplace_back(attr.as_string());
-			} else {
-				std::cout << "[Warning - Monsters::loadMonster] Missing name for script event. " << file << std::endl;
-			}
-		}
-	}
-
 	mType->info.summons.shrink_to_fit();
 	mType->info.lootItems.shrink_to_fit();
 	mType->info.attackSpells.shrink_to_fit();
 	mType->info.defenseSpells.shrink_to_fit();
 	mType->info.voiceVector.shrink_to_fit();
-	mType->info.scripts.shrink_to_fit();
 	return mType;
 }
 

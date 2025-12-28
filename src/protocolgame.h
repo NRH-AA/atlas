@@ -25,8 +25,6 @@ enum SessionEndTypes_t : uint8_t
 
 using ProtocolGame_ptr = std::shared_ptr<ProtocolGame>;
 
-extern Game g_game;
-
 struct TextMessage
 {
 	MessageClasses type = MESSAGE_STATUS_DEFAULT;
@@ -64,7 +62,8 @@ public:
 	explicit ProtocolGame(Connection_ptr connection) : Protocol(connection) {}
 
 	void login(uint32_t characterId, uint32_t accountId, OperatingSystem_t operatingSystem);
-	void logout(bool displayEffect, bool forced);
+	void forceLogout(bool displayEffect);
+	void logout(bool displayEffect);
 
 	uint16_t getVersion() const { return version; }
 
@@ -172,8 +171,6 @@ private:
 	void sendMagicEffect(const Position& pos, uint8_t type);
 	void sendCreatureHealth(const std::shared_ptr<const Creature>& creature);
 	void sendSkills();
-	void sendPing();
-	void sendPingBack();
 	void sendCreatureTurn(const std::shared_ptr<const Creature>& creature, uint32_t stackpos);
 	void sendCreatureSay(const std::shared_ptr<const Creature>& creature, SpeakClasses type, const std::string& text,
 	                     const Position* pos = nullptr);

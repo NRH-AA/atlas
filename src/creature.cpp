@@ -16,8 +16,9 @@ double Creature::speedA = 857.36;
 double Creature::speedB = 261.29;
 double Creature::speedC = -4795.01;
 
+extern Dispatcher g_dispatcher;
 extern Game g_game;
-extern CreatureEvents* g_creatureEvents;
+extern Scheduler g_scheduler;
 
 Creature::Creature() { onIdleStatus(); }
 
@@ -122,11 +123,7 @@ void Creature::onThink(uint32_t interval)
 		blockTicks = 0;
 	}
 
-	// scripting event - onThink
-	const CreatureEventList& thinkEvents = getCreatureEvents(CREATURE_EVENT_THINK);
-	for (CreatureEvent* thinkEvent : thinkEvents) {
-		thinkEvent->executeOnThink(asCreature(), interval);
-	}
+	tfs::events::creature::onThink(asCreature(), interval);
 }
 
 void Creature::forceUpdatePath()
@@ -155,7 +152,7 @@ void Creature::onWalk()
 		if (getNextStep(dir, flags)) {
 			ReturnValue ret = g_game.internalMoveCreature(asCreature(), dir, flags);
 			if (ret != RETURNVALUE_NOERROR) {
-				if (const auto& player = getPlayer()) {
+				if (const auto& player = asPlayer()) {
 					player->sendCancelMessage(ret);
 					player->sendCancelWalk();
 				}
@@ -169,7 +166,6 @@ void Creature::onWalk()
 		}
 	}
 
-	removeFollowers();
 	updateFollowersPaths();
 
 	if (cancelNextWalk) {
@@ -220,7 +216,7 @@ bool Creature::getNextStep(Direction& dir, uint32_t&)
 
 void Creature::startAutoWalk()
 {
-	if (const auto& player = getPlayer(); player && player->isMovementBlocked()) {
+	if (const auto& player = asPlayer(); player && player->isMovementBlocked()) {
 		player->sendCancelWalk();
 		return;
 	}
@@ -230,7 +226,7 @@ void Creature::startAutoWalk()
 
 void Creature::startAutoWalk(Direction direction)
 {
-	if (const auto& player = getPlayer(); player && player->isMovementBlocked()) {
+	if (const auto& player = asPlayer(); player && player->isMovementBlocked()) {
 		player->sendCancelWalk();
 		return;
 	}
@@ -245,7 +241,7 @@ void Creature::startAutoWalk(const std::vector<Direction>& listDir)
 		return;
 	}
 
-	if (const auto& player = getPlayer(); player && player->isMovementBlocked()) {
+	if (const auto& player = asPlayer(); player && player->isMovementBlocked()) {
 		player->sendCancelWalk();
 		return;
 	}
@@ -292,7 +288,7 @@ void Creature::updateIcons() const
 	SpectatorVec spectators;
 	g_game.map.getSpectators(spectators, position, true, true);
 	for (const auto& spectator : spectators) {
-		assert(spectator->getPlayer() != nullptr);
+		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendUpdateCreatureIcons(asCreature());
 	}
 }
@@ -432,13 +428,15 @@ void Creature::onDeath()
 
 			if (attacker.get() != this) {
 				uint64_t gainExp = getGainedExperience(attacker);
-				if (const auto& attackerPlayer = attacker->getPlayer()) {
-					attackerPlayer->removeAttacked(getPlayer());
+				if (const auto& attackerPlayer = attacker->asPlayer()) {
+					attackerPlayer->removeAttacked(asPlayer());
 
-					Party* party = attackerPlayer->getParty();
-					if (party && party->getLeader() && party->isSharedExperienceActive() &&
-					    party->isSharedExperienceEnabled()) {
-						attacker = party->getLeader();
+					if (const auto& party = attackerPlayer->getParty()) {
+						if (party->isSharedExperienceActive() && party->isSharedExperienceEnabled()) {
+							if (const auto& leader = party->getLeader()) {
+								attacker = leader;
+							}
+						}
 					}
 				}
 
@@ -482,14 +480,10 @@ bool Creature::dropCorpse(const std::shared_ptr<Creature>& lastHitCreature,
                           const std::shared_ptr<Creature>& mostDamageCreature, bool lastHitUnjustified,
                           bool mostDamageUnjustified)
 {
-	if (!lootDrop && getMonster()) {
+	if (!lootDrop && asMonster()) {
 		if (!master.expired()) {
-			// scripting event - onDeath
-			const CreatureEventList& deathEvents = getCreatureEvents(CREATURE_EVENT_DEATH);
-			for (CreatureEvent* deathEvent : deathEvents) {
-				deathEvent->executeOnDeath(asCreature(), nullptr, lastHitCreature, mostDamageCreature,
-				                           lastHitUnjustified, mostDamageUnjustified);
-			}
+			tfs::events::creature::onDeath(asCreature(), nullptr, lastHitCreature, mostDamageCreature,
+			                               lastHitUnjustified, mostDamageUnjustified);
 		}
 
 		g_game.addMagicEffect(getPosition(), CONST_ME_POFF);
@@ -526,11 +520,8 @@ bool Creature::dropCorpse(const std::shared_ptr<Creature>& lastHitCreature,
 			g_game.startDecay(corpse);
 		}
 
-		// scripting event - onDeath
-		for (CreatureEvent* deathEvent : getCreatureEvents(CREATURE_EVENT_DEATH)) {
-			deathEvent->executeOnDeath(asCreature(), corpse, lastHitCreature, mostDamageCreature, lastHitUnjustified,
-			                           mostDamageUnjustified);
-		}
+		tfs::events::creature::onDeath(asCreature(), corpse, lastHitCreature, mostDamageCreature, lastHitUnjustified,
+		                               mostDamageUnjustified);
 
 		if (corpse) {
 			dropLoot(corpse->getContainer(), lastHitCreature);
@@ -639,7 +630,7 @@ BlockType_t Creature::blockHit(const std::shared_ptr<Creature>& attacker, Combat
 	}
 
 	if (attacker) {
-		if (const auto& attackerPlayer = attacker->getPlayer()) {
+		if (const auto& attackerPlayer = attacker->asPlayer()) {
 			for (int32_t slot = CONST_SLOT_FIRST; slot <= CONST_SLOT_LAST; ++slot) {
 				if (!attackerPlayer->isItemAbilityEnabled(static_cast<slots_t>(slot))) {
 					continue;
@@ -666,7 +657,7 @@ BlockType_t Creature::blockHit(const std::shared_ptr<Creature>& attacker, Combat
 			attacker->onAttackedCreature(asCreature());
 			attacker->onAttackedCreatureBlockHit(blockType);
 			if (const auto& master = attacker->getMaster()) {
-				if (const auto& masterPlayer = master->getPlayer()) {
+				if (const auto& masterPlayer = master->asPlayer()) {
 					masterPlayer->onAttackedCreature(asCreature());
 				}
 			}
@@ -674,7 +665,7 @@ BlockType_t Creature::blockHit(const std::shared_ptr<Creature>& attacker, Combat
 	}
 
 	if (combatType != COMBAT_HEALING) {
-		if (const auto& player = getPlayer()) {
+		if (const auto& player = asPlayer()) {
 			player->addInFightTicks();
 		}
 	}
@@ -696,7 +687,7 @@ void Creature::setAttackedCreature(const std::shared_ptr<Creature>& creature)
 	creature->addFollower(asCreature());
 	onAttackedCreature(creature);
 
-	if (const auto& player = creature->getPlayer()) {
+	if (const auto& player = creature->asPlayer()) {
 		player->addInFightTicks();
 	}
 
@@ -778,35 +769,24 @@ void Creature::onFollowCreature(const std::shared_ptr<const Creature>&)
 void Creature::onUnfollowCreature() { hasFollowPath = false; }
 
 // Pathfinding Events
-void Creature::removeFollowers()
-{
-	const Position& position = getPosition();
-
-	followers = followers | tfs::views::lock_weak_ptrs | std::views::filter([&position](const auto& creature) {
-		            const Position& followerPosition = creature->getPosition();
-		            uint16_t distance =
-		                position.getDistanceX(followerPosition) + position.getDistanceY(followerPosition);
-		            return distance >= Map::maxViewportX + Map::maxViewportY || position.z != followerPosition.z;
-	            }) |
-	            std::ranges::to<decltype(followers)>();
-}
-
 void Creature::updateFollowersPaths()
 {
 	if (followers.empty()) {
 		return;
 	}
 
-	const Position& thisPosition = getPosition();
+	followers = followers | tfs::views::lock_weak_ptrs | std::views::filter([this](const auto& creature) {
+		            if (position.z != creature->position.z) {
+			            return false;
+		            }
+
+		            return position.getDistanceX(creature->position) < Map::maxViewportX &&
+		                   position.getDistanceY(creature->position) < Map::maxViewportY;
+	            }) |
+	            std::ranges::to<decltype(followers)>();
+
 	for (const auto& follower : followers | tfs::views::lock_weak_ptrs) {
-		const Position& followerPosition = follower->getPosition();
-
 		if (follower->lastPathUpdate < OTSYS_TIME()) {
-			continue;
-		}
-
-		if (thisPosition.getDistanceX(followerPosition) >= Map::maxViewportX ||
-		    thisPosition.getDistanceY(followerPosition) >= Map::maxViewportY) {
 			continue;
 		}
 
@@ -928,11 +908,7 @@ bool Creature::onKilledCreature(const std::shared_ptr<Creature>& target, bool)
 		master->onKilledCreature(target);
 	}
 
-	// scripting event - onKill
-	const CreatureEventList& killEvents = getCreatureEvents(CREATURE_EVENT_KILL);
-	for (CreatureEvent* killEvent : killEvents) {
-		killEvent->executeOnKill(asCreature(), target);
-	}
+	tfs::events::creature::onKill(asCreature(), target);
 	return false;
 }
 
@@ -960,7 +936,7 @@ void Creature::onGainExperience(uint64_t gainExp, const std::shared_ptr<Creature
 	message.primary.value = gainExp;
 
 	for (const auto& spectator : spectators) {
-		assert(spectator->getPlayer() != nullptr);
+		assert(spectator->asPlayer() != nullptr);
 		std::static_pointer_cast<Player>(spectator)->sendTextMessage(message);
 	}
 }
@@ -1236,7 +1212,7 @@ int64_t Creature::getStepDuration() const
 	double duration = std::floor(1000 * groundSpeed / calculatedStepSpeed);
 	int64_t stepDuration = std::ceil(duration / 50) * 50;
 
-	const auto& monster = this->getMonster();
+	const auto& monster = this->asMonster();
 	if (monster && monster->isTargetNearby() && !monster->isFleeing() && !monster->getMaster()) {
 		stepDuration *= 2;
 	}
@@ -1263,83 +1239,6 @@ LightInfo Creature::getCreatureLight() const { return internalLight; }
 void Creature::setCreatureLight(LightInfo lightInfo) { internalLight = std::move(lightInfo); }
 
 void Creature::setNormalCreatureLight() { internalLight = {}; }
-
-bool Creature::registerCreatureEvent(const std::string& name)
-{
-	CreatureEvent* event = g_creatureEvents->getEventByName(name);
-	if (!event) {
-		return false;
-	}
-
-	CreatureEventType_t type = event->getEventType();
-	if (hasEventRegistered(type)) {
-		for (CreatureEvent* creatureEvent : eventsList) {
-			if (creatureEvent == event) {
-				return false;
-			}
-		}
-	} else {
-		scriptEventsBitField |= static_cast<uint32_t>(1) << type;
-	}
-
-	eventsList.push_back(event);
-	return true;
-}
-
-bool Creature::unregisterCreatureEvent(const std::string& name)
-{
-	CreatureEvent* event = g_creatureEvents->getEventByName(name);
-	if (!event) {
-		return false;
-	}
-
-	CreatureEventType_t type = event->getEventType();
-	if (!hasEventRegistered(type)) {
-		return false;
-	}
-
-	bool resetTypeBit = true;
-
-	auto it = eventsList.begin();
-	while (it != eventsList.end()) {
-		CreatureEvent* curEvent = *it;
-		if (curEvent == event) {
-			it = eventsList.erase(it);
-			continue;
-		}
-
-		if (curEvent->getEventType() == type) {
-			resetTypeBit = false;
-		}
-		++it;
-	}
-
-	if (resetTypeBit) {
-		scriptEventsBitField &= ~(static_cast<uint32_t>(1) << type);
-	}
-	return true;
-}
-
-CreatureEventList Creature::getCreatureEvents(CreatureEventType_t type)
-{
-	CreatureEventList tmpEventList;
-
-	if (!hasEventRegistered(type)) {
-		return tmpEventList;
-	}
-
-	for (CreatureEvent* creatureEvent : eventsList) {
-		if (!creatureEvent->isLoaded()) {
-			continue;
-		}
-
-		if (creatureEvent->getEventType() == type) {
-			tmpEventList.push_back(creatureEvent);
-		}
-	}
-
-	return tmpEventList;
-}
 
 bool FrozenPathingConditionCall::isInRange(const Position& startPos, const Position& testPos,
                                            const FindPathParams& fpp) const

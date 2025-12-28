@@ -10,6 +10,7 @@
 #include "outputmessage.h"
 #include "tasks.h"
 
+extern Dispatcher g_dispatcher;
 extern Game g_game;
 
 std::map<Connection::Address, int64_t> ProtocolStatus::ipConnectMap;
@@ -110,7 +111,7 @@ void ProtocolStatus::sendStatusString()
 	uint32_t maxPlayersPerIp = getNumber(ConfigManager::STATUS_COUNT_MAX_PLAYERS_PER_IP);
 	if (maxPlayersPerIp > 0) {
 		std::map<Connection::Address, uint32_t> playersPerIp;
-		for (auto&& player : g_game.getPlayers() | tfs::views::lock_weak_ptrs | std::views::as_const) {
+		for (const auto& player : g_game.getPlayers() | tfs::views::lock_weak_ptrs) {
 			if (!player->getIP().is_unspecified()) {
 				++playersPerIp[player->getIP()];
 			}
@@ -125,7 +126,7 @@ void ProtocolStatus::sendStatusString()
 
 	players.append_attribute("online") = std::to_string(reportableOnlinePlayerCount).c_str();
 	players.append_attribute("max") = std::to_string(getNumber(ConfigManager::MAX_PLAYERS)).c_str();
-	players.append_attribute("peak") = std::to_string(g_game.getPlayersRecord()).c_str();
+	players.append_attribute("peak") = std::to_string(g_game.getPlayerRecord()).c_str();
 
 	pugi::xml_node monsters = tsqp.append_child("monsters");
 	monsters.append_attribute("total") = std::to_string(g_game.getMonstersOnline()).c_str();
@@ -190,7 +191,7 @@ void ProtocolStatus::sendInfo(uint16_t requestedInfo, const std::string& charact
 		output->addByte(0x20);
 		output->add<uint32_t>(g_game.getPlayersOnline());
 		output->add<uint32_t>(getNumber(ConfigManager::MAX_PLAYERS));
-		output->add<uint32_t>(g_game.getPlayersRecord());
+		output->add<uint32_t>(g_game.getPlayerRecord());
 	}
 
 	if (requestedInfo & REQUEST_MAP_INFO) {
@@ -208,7 +209,7 @@ void ProtocolStatus::sendInfo(uint16_t requestedInfo, const std::string& charact
 
 		const auto& players = g_game.getPlayers() | tfs::views::lock_weak_ptrs | std::ranges::to<std::vector>();
 		output->add<uint32_t>(players.size());
-		for (auto&& player : players) {
+		for (const auto& player : players) {
 			output->addString(player->getName());
 			output->add<uint32_t>(player->getLevel());
 		}

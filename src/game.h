@@ -210,7 +210,6 @@ public:
 	size_t getPlayersOnline() const { return players.size(); }
 	size_t getMonstersOnline() const { return monsters.size(); }
 	size_t getNpcsOnline() const { return npcs.size(); }
-	uint32_t getPlayersRecord() const { return playersRecord; }
 
 	ReturnValue internalMoveCreature(const std::shared_ptr<Creature>& creature, Direction direction,
 	                                 uint32_t flags = 0);
@@ -298,9 +297,6 @@ public:
 	                         bool ghostMode, SpectatorVec* spectatorsPtr = nullptr, const Position* pos = nullptr,
 	                         bool echo = false);
 
-	void loadPlayersRecord();
-	void checkPlayersRecord();
-
 	void sendGuildMotd(uint32_t playerId);
 	void kickPlayer(uint32_t playerId, bool displayEffect);
 	void playerDebugAssert(uint32_t playerId, const std::string& assertLine, const std::string& date,
@@ -337,8 +333,6 @@ public:
 	void playerCloseChannel(uint32_t playerId, uint16_t channelId);
 	void playerOpenPrivateChannel(uint32_t playerId, std::string receiver);
 	void playerCloseNpcChannel(uint32_t playerId);
-	void playerReceivePing(uint32_t playerId);
-	void playerReceivePingBack(uint32_t playerId);
 	void playerAutoWalk(uint32_t playerId, const std::vector<Direction>& listDir);
 	void playerStopAutoWalk(uint32_t playerId);
 	void playerUseItemEx(uint32_t playerId, const Position& fromPos, uint8_t fromStackPos, uint16_t fromSpriteId,
@@ -400,7 +394,7 @@ public:
 	void playerCancelMarketOffer(uint32_t playerId, uint32_t timestamp, uint16_t counter);
 	void playerAcceptMarketOffer(uint32_t playerId, uint32_t timestamp, uint16_t counter, uint16_t amount);
 
-	void parsePlayerExtendedOpcode(uint32_t playerId, uint8_t opcode, const std::string& buffer);
+	void parsePlayerExtendedOpcode(uint32_t playerId, uint8_t opcode, std::string_view buffer);
 	void parsePlayerNetworkMessage(uint32_t playerId, uint8_t recvByte, NetworkMessage_ptr msg);
 
 	std::vector<std::shared_ptr<Item>> getMarketItemList(uint16_t wareId, uint16_t sufficientCount, Player& player);
@@ -494,6 +488,19 @@ public:
 	void removeTileToClean(const std::shared_ptr<Tile>& tile) { tilesToClean.erase(tile); }
 	void clearTilesToClean() { tilesToClean.clear(); }
 
+	std::shared_ptr<House> addHouse(uint32_t id);
+	std::shared_ptr<House> getHouseById(uint32_t id);
+	std::shared_ptr<House> getHouseByPlayerId(uint32_t playerId);
+	auto getHouses() const { return houses | std::views::values; }
+	void payHouses(RentPeriod_t rentPeriod) const;
+
+	const auto& getParties() const { return parties; }
+	void addParty(const std::shared_ptr<Party>& party) { parties.insert(party); }
+	void removeParty(const std::shared_ptr<Party>& party) { parties.erase(party); }
+
+	auto getPlayerRecord() const { return playerRecord; }
+	void setPlayerRecord(uint32_t record) { playerRecord = record; }
+
 private:
 	bool playerSaySpell(const std::shared_ptr<Player>& player, SpeakClasses type, const std::string& text);
 	void playerWhisper(const std::shared_ptr<Player>& player, const std::string& text);
@@ -518,6 +525,8 @@ private:
 
 	WildcardTreeNode wildcardTree{false};
 
+	boost::container::flat_map<uint32_t, std::shared_ptr<House>> houses;
+
 	std::map<uint32_t, std::weak_ptr<Npc>> npcs;
 	std::map<uint32_t, std::weak_ptr<Monster>> monsters;
 
@@ -528,15 +537,16 @@ private:
 
 	std::unordered_set<std::shared_ptr<Tile>> tilesToClean;
 
+	std::set<std::shared_ptr<Party>> parties;
+
 	ModalWindow offlineTrainingWindow{std::numeric_limits<uint32_t>::max(), "Choose a Skill", "Please choose a skill:"};
 
 	GameState_t gameState = GAME_STATE_NORMAL;
 	WorldType_t worldType = WORLD_TYPE_PVP;
 
-	ServiceManager* serviceManager = nullptr;
+	uint32_t playerRecord = 0;
 
-	void updatePlayersRecord() const;
-	uint32_t playersRecord = 0;
+	ServiceManager* serviceManager = nullptr;
 };
 
 #endif // FS_GAME_H

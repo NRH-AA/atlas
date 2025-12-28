@@ -10,6 +10,7 @@
 #include "game.h"
 #include "iomap.h"
 #include "iomapserialize.h"
+#include "pugicast.h"
 #include "quadtree.h"
 
 extern Game g_game;
@@ -25,6 +26,48 @@ uint16_t calculateHeuristic(const Position& p1, const Position& p2)
 	return dx * dx + dy * dy;
 }
 
+bool loadHousesXML(const std::filesystem::path& filename)
+{
+	pugi::xml_document doc;
+	pugi::xml_parse_result result = doc.load_file(filename.c_str());
+	if (!result) {
+		printXMLError("Error - loadHousesXML", filename.string(), result);
+		return false;
+	}
+
+	for (auto houseNode : doc.child("houses").children()) {
+		pugi::xml_attribute houseIdAttribute = houseNode.attribute("houseid");
+		if (!houseIdAttribute) {
+			return false;
+		}
+
+		int32_t houseId = pugi::cast<int32_t>(houseIdAttribute.value());
+
+		const auto& house = g_game.getHouseById(houseId);
+		if (!house) {
+			std::cout << "Error: [loadHousesXML] Unknown house, id = " << houseId << std::endl;
+			return false;
+		}
+
+		house->setName(houseNode.attribute("name").as_string());
+
+		Position entryPos(pugi::cast<uint16_t>(houseNode.attribute("entryx").value()),
+		                  pugi::cast<uint16_t>(houseNode.attribute("entryy").value()),
+		                  pugi::cast<uint16_t>(houseNode.attribute("entryz").value()));
+		if (entryPos.x == 0 && entryPos.y == 0 && entryPos.z == 0) {
+			std::cout << "[Warning - loadHousesXML] House entry not set - Name: " << house->getName()
+			          << " - House id: " << houseId << std::endl;
+		}
+		house->setEntryPos(entryPos);
+
+		house->setRent(pugi::cast<uint32_t>(houseNode.attribute("rent").value()));
+		house->setTownId(pugi::cast<uint32_t>(houseNode.attribute("townid").value()));
+
+		house->setOwner(0, false);
+	}
+	return true;
+}
+
 } // namespace
 
 void Map::loadMap(const std::string& identifier, bool loadHouses, bool isCalledByLua)
@@ -38,7 +81,7 @@ void Map::loadMap(const std::string& identifier, bool loadHouses, bool isCalledB
 	}
 
 	if (loadHouses && !isCalledByLua) {
-		if (!houses.loadHousesXML(attributes.houses)) {
+		if (!loadHousesXML(attributes.houses)) {
 			std::cout << "[Warning - Map::loadMap] Failed to load house data." << std::endl;
 		}
 
@@ -123,9 +166,15 @@ void Map::removeTile(uint16_t x, uint16_t y, uint8_t z)
 		}
 	}
 
-	if (TileItemVector* items = tile->getItemList()) {
-		for (auto it = items->begin(), end = items->end(); it != end; ++it) {
-			g_game.internalRemoveItem(*it);
+	if (const auto& tile = floor->tiles[x & FLOOR_MASK][y & FLOOR_MASK]) {
+		if (const CreatureVector* creatures = tile->getCreatures()) {
+			for (int32_t i = creatures->size(); --i >= 0;) {
+				if (const auto& player = (*creatures)[i]->asPlayer()) {
+					g_game.internalTeleport(player, player->getTown()->templePosition, false, FLAG_NOLIMIT);
+				} else {
+					g_game.removeCreature((*creatures)[i]);
+				}
+			}
 		}
 	}
 
@@ -221,7 +270,7 @@ void Map::moveCreature(const std::shared_ptr<Creature>& creature, const std::sha
 
 	std::vector<int32_t> oldStackPosVector;
 	for (const auto& spectator : spectators) {
-		if (const auto& tmpPlayer = spectator->getPlayer()) {
+		if (const auto& tmpPlayer = spectator->asPlayer()) {
 			if (tmpPlayer->canSeeCreature(creature)) {
 				oldStackPosVector.push_back(oldTile->getClientIndexOfCreature(tmpPlayer, creature));
 			} else {
@@ -255,7 +304,7 @@ void Map::moveCreature(const std::shared_ptr<Creature>& creature, const std::sha
 	// send to client
 	size_t i = 0;
 	for (const auto& spectator : spectators) {
-		if (const auto& tmpPlayer = spectator->getPlayer()) {
+		if (const auto& tmpPlayer = spectator->asPlayer()) {
 			// Use the correct stackpos
 			int32_t stackpos = oldStackPosVector[i++];
 			if (stackpos != -1) {
@@ -272,6 +321,67 @@ void Map::moveCreature(const std::shared_ptr<Creature>& creature, const std::sha
 
 	oldTile->postRemoveNotification(creature, newTile, 0);
 	newTile->postAddNotification(creature, oldTile, 0);
+}
+
+void Map::getSpectatorsInternal(SpectatorVec& spectators, const Position& centerPos, int32_t minRangeX,
+                                int32_t maxRangeX, int32_t minRangeY, int32_t maxRangeY, int32_t minRangeZ,
+                                int32_t maxRangeZ, bool onlyPlayers) const
+{
+	auto min_y = centerPos.y + minRangeY;
+	auto min_x = centerPos.x + minRangeX;
+	auto max_y = centerPos.y + maxRangeY;
+	auto max_x = centerPos.x + maxRangeX;
+
+	int32_t minoffset = centerPos.getZ() - maxRangeZ;
+	uint16_t x1 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (min_x + minoffset)));
+	uint16_t y1 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (min_y + minoffset)));
+
+	int32_t maxoffset = centerPos.getZ() - minRangeZ;
+	uint16_t x2 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (max_x + maxoffset)));
+	uint16_t y2 = std::min<uint32_t>(0xFFFF, std::max<int32_t>(0, (max_y + maxoffset)));
+
+	int32_t startx1 = x1 - (x1 % FLOOR_SIZE);
+	int32_t starty1 = y1 - (y1 % FLOOR_SIZE);
+	int32_t endx2 = x2 - (x2 % FLOOR_SIZE);
+	int32_t endy2 = y2 - (y2 % FLOOR_SIZE);
+
+	const QTreeLeafNode* startLeaf =
+	    QTreeNode::getLeafStatic<const QTreeLeafNode*, const QTreeNode*>(&root, startx1, starty1);
+	const QTreeLeafNode* leafS = startLeaf;
+	const QTreeLeafNode* leafE;
+
+	for (int_fast32_t ny = starty1; ny <= endy2; ny += FLOOR_SIZE) {
+		leafE = leafS;
+		for (int_fast32_t nx = startx1; nx <= endx2; nx += FLOOR_SIZE) {
+			if (leafE) {
+				for (auto&& creature : leafE->creatures | std::views::filter([onlyPlayers](const auto& creature) {
+					                       return !onlyPlayers || creature->asPlayer() != nullptr;
+				                       })) {
+					const Position& cpos = creature->getPosition();
+					if (minRangeZ > cpos.z || maxRangeZ < cpos.z) {
+						continue;
+					}
+
+					int16_t offsetZ = centerPos.getOffsetZ(cpos);
+					if ((min_y + offsetZ) > cpos.y || (max_y + offsetZ) < cpos.y || (min_x + offsetZ) > cpos.x ||
+					    (max_x + offsetZ) < cpos.x) {
+						continue;
+					}
+
+					spectators.emplace(creature);
+				}
+				leafE = leafE->leafE;
+			} else {
+				leafE = QTreeNode::getLeafStatic<const QTreeLeafNode*, const QTreeNode*>(&root, nx + FLOOR_SIZE, ny);
+			}
+		}
+
+		if (leafS) {
+			leafS = leafS->leafS;
+		} else {
+			leafS = QTreeNode::getLeafStatic<const QTreeLeafNode*, const QTreeNode*>(&root, startx1, ny + FLOOR_SIZE);
+		}
+	}
 }
 
 void Map::getSpectators(SpectatorVec& spectators, const Position& centerPos, bool multifloor /*= false*/,
@@ -318,7 +428,7 @@ void Map::getSpectators(SpectatorVec& spectators, const Position& centerPos, boo
 				} else {
 					const SpectatorVec& cachedSpectators = it->second;
 					for (const auto& spectator : cachedSpectators) {
-						if (spectator->getPlayer()) {
+						if (spectator->asPlayer()) {
 							spectators.emplace(spectator);
 						}
 					}
@@ -567,7 +677,7 @@ const std::shared_ptr<Tile> Map::canWalkTo(const std::shared_ptr<const Creature>
 		}
 
 		uint32_t flags = FLAG_PATHFINDING;
-		if (!creature->getPlayer()) {
+		if (!creature->asPlayer()) {
 			flags |= FLAG_IGNOREFIELDDAMAGE;
 		}
 
@@ -865,7 +975,7 @@ uint16_t AStarNodes::getTileWalkCost(const std::shared_ptr<const Creature>& crea
 
 	if (const auto& field = tile->getFieldItem()) {
 		CombatType_t combatType = field->getCombatType();
-		const auto& monster = creature->getMonster();
+		const auto& monster = creature->asMonster();
 		if (!creature->isImmune(combatType) && !creature->hasCondition(DamageToConditionType(combatType)) &&
 		    (monster && !monster->canWalkOnFieldType(combatType))) {
 			cost += MAP_NORMALWALKCOST * 18;

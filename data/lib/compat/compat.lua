@@ -144,66 +144,6 @@ do
 end
 
 do
-	local function CreatureEventNewIndex(self, key, value)
-		if key == "onLogin" then
-			self:type("login")
-			self:onLogin(value)
-			return
-		elseif key == "onLogout" then
-			self:type("logout")
-			self:onLogout(value)
-			return
-		elseif key == "onReconnect" then
-			self:type("reconnect")
-			self:onReconnect(value)
-			return
-		elseif key == "onThink" then
-			self:type("think")
-			self:onThink(value)
-			return
-		elseif key == "onPrepareDeath" then
-			self:type("preparedeath")
-			self:onPrepareDeath(value)
-			return
-		elseif key == "onDeath" then
-			self:type("death")
-			self:onDeath(value)
-			return
-		elseif key == "onKill" then
-			self:type("kill")
-			self:onKill(value)
-			return
-		elseif key == "onAdvance" then
-			self:type("advance")
-			self:onAdvance(value)
-			return
-		elseif key == "onModalWindow" then
-			self:type("modalwindow")
-			self:onModalWindow(value)
-			return
-		elseif key == "onTextEdit" then
-			self:type("textedit")
-			self:onTextEdit(value)
-			return
-		elseif key == "onHealthChange" then
-			self:type("healthchange")
-			self:onHealthChange(value)
-			return
-		elseif key == "onManaChange" then
-			self:type("manachange")
-			self:onManaChange(value)
-			return
-		elseif key == "onExtendedOpcode" then
-			self:type("extendedopcode")
-			self:onExtendedOpcode(value)
-			return
-		end
-		rawset(self, key, value)
-	end
-	rawgetmetatable("CreatureEvent").__newindex = CreatureEventNewIndex
-end
-
-do
 	local function MoveEventNewIndex(self, key, value)
 		if key == "onEquip" then
 			self:type("equip")
@@ -243,22 +183,6 @@ do
 		elseif key == "onTime" then
 			self:type("timer")
 			self:onTime(value)
-			return
-		elseif key == "onStartup" then
-			self:type("startup")
-			self:onStartup(value)
-			return
-		elseif key == "onShutdown" then
-			self:type("shutdown")
-			self:onShutdown(value)
-			return
-		elseif key == "onRecord" then
-			self:type("record")
-			self:onRecord(value)
-			return
-		elseif key == "onSave" then
-			self:type("save")
-			self:onSave(value)
 			return
 		end
 		rawset(self, key, value)
@@ -347,6 +271,10 @@ setCombatArea = Combat.setArea
 setCombatCallback = Combat.setCallback
 setCombatFormula = Combat.setFormula
 setCombatParam = Combat.setParameter
+
+Combat.delete = function(...)
+	print("[Warning - " .. debug.getinfo(2).source:match("@?(.*)") .. "] Function Combat.delete is deprecated and will be removed in the future")
+end
 
 Combat.setCondition = function(...)
 	print("[Warning - " .. debug.getinfo(2).source:match("@?(.*)") .. "] Function Combat.setCondition was renamed to Combat.addCondition and will be removed in the future")
@@ -450,9 +378,6 @@ function getCreatureCondition(cid, type, subId) local c = Creature(cid) return c
 
 doCreatureSetLookDirection = doCreatureSetLookDir
 doSetCreatureDirection = doCreatureSetLookDir
-
-function registerCreatureEvent(cid, name) local c = Creature(cid) return c and c:registerEvent(name) or false end
-function unregisterCreatureEvent(cid, name) local c = Creature(cid) return c and c:unregisterEvent(name) or false end
 
 function getPlayerByName(name) local p = Player(name) return p and p:getId() or false end
 function getIPByPlayerName(name) local p = Player(name) return p and p:getIp() or false end
@@ -620,12 +545,11 @@ function getPlayersByIPAddress(ip, mask)
 	print("[Warning - " .. debug.getinfo(2).source:match("@?(.*)") .. "] Invoking getPlayersByIPAddress with a numeric IP is deprecated and will be removed in the future. Please use the string representation of the IP.")
 
 	if not mask then mask = 0xFFFFFFFF end
-	local masked = bit.band(ip, mask)
-	local lshift = bit.lshift
+	local masked = ip & mask
 	local players = {}
 	for _, player in ipairs(Game.getPlayers()) do
 		local a, b, c, d = player:getIp():match("(%d*)%.(%d*)%.(%d*)%.(%d*)")
-		if a and b and c and d and bit.band(lshift(a, 24) + lshift(b, 16) + lshift(c, 8) + d, mask) == masked then
+		if a and b and c and d and (((a << 24) + (b << 16) + (c << 8) + d) & mask) == masked then
 			players[#players + 1] = player:getId()
 		end
 	end
@@ -1027,11 +951,11 @@ function getItemRWInfo(uid)
 	local rwFlags = 0
 	local itemType = ItemType(item:getId())
 	if itemType:isReadable() then
-		rwFlags = bit.bor(rwFlags, 1)
+		rwFlags = rwFlags | 1
 	end
 
 	if itemType:isWritable() then
-		rwFlags = bit.bor(rwFlags, 2)
+		rwFlags = rwFlags | 2
 	end
 	return rwFlags
 end
@@ -1353,13 +1277,11 @@ function Game.convertIpToString(ip)
 		return ip
 	end
 
-	local band = bit.band
-	local rshift = bit.rshift
 	return string.format("%d.%d.%d.%d",
-		band(ip, 0xFF),
-		band(rshift(ip, 8), 0xFF),
-		band(rshift(ip, 16), 0xFF),
-		rshift(ip, 24)
+		ip & 0xFF,
+		(ip >> 8) & 0xFF,
+		(ip >> 16) & 0xFF,
+		ip >> 24
 	)
 end
 
@@ -1608,7 +1530,7 @@ do
 end
 
 function indexToCombatType(idx)
-	return bit.lshift(1, idx)
+	return 1 << idx
 end
 
 function showpos(v)
@@ -1619,6 +1541,14 @@ end
 if not unpack then unpack = table.unpack end
 
 if not loadstring then loadstring = load end
+
+bit = bit or {}
+function bit.bnot(a) return ~a end
+function bit.band(a, b) return a & b end
+function bit.bor(a, b) return a | b end
+function bit.bxor(a, b) return a ~ b end
+function bit.lshift(a, b) return a << b end
+function bit.rshift(a, b) return a >> b end
 
 function table.maxn(t)
 	local max = 0
