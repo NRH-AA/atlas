@@ -15,5 +15,3 @@ end
 
 action:id(2114)
 action:register()
-
-printPigLib()

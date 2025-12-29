@@ -327,6 +327,7 @@ void tfs::lua::registerGlobals(LuaScriptInterface& lsi)
 	registerEnum(lsi, RELOAD_TYPE_SPELLS);
 	registerEnum(lsi, RELOAD_TYPE_TALKACTIONS);
 	registerEnum(lsi, RELOAD_TYPE_WEAPONS);
+	registerEnum(lsi, RELOAD_TYPE_MODULES);
 
 	lsi.registerGlobalBoolean("VIRTUAL_PARENT", true);
 

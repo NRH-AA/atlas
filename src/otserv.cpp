@@ -9,7 +9,7 @@
 #include "game.h"
 #include "http/http.h"
 #include "iomarket.h"
-#include "modules.h"
+#include "lua/modules.h"
 #include "monsters.h"
 #include "outfit.h"
 #include "protocolstatus.h"
@@ -219,7 +219,6 @@ void mainLoader(ServiceManager* services)
 		return;
 	}
 
-	std::cout << ">> Loading modules" << std::endl;
 	if (!tfs::lua::modules::load()) {
 		startupErrorMessage("Unable to load modules!");
 		return;

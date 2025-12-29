@@ -17,12 +17,6 @@ namespace {
 int luaCreateTalkaction(lua_State* L)
 {
 	// TalkAction(words)
-	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
-		tfs::lua::reportError(L, "TalkActions can only be registered in the Scripts interface.");
-		lua_pushnil(L);
-		return 1;
-	}
-
 	TalkAction* talkAction = new TalkAction(tfs::lua::getScriptEnv()->getScriptInterface());
 	for (int i = 2; i <= lua_gettop(L); i++) {
 		talkAction->setWords(tfs::lua::getString(L, i));

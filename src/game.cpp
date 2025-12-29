@@ -17,7 +17,7 @@
 #include "iologindata.h"
 #include "iomarket.h"
 #include "items.h"
-#include "modules.h"
+#include "lua/modules.h"
 #include "movement.h"
 #include "outfit.h"
 #include "party.h"

@@ -18,12 +18,6 @@ namespace {
 int luaCreateGlobalEvent(lua_State* L)
 {
 	// GlobalEvent(eventName)
-	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
-		tfs::lua::reportError(L, "GlobalEvents can only be registered in the Scripts interface.");
-		lua_pushnil(L);
-		return 1;
-	}
-
 	GlobalEvent* globalEvent = new GlobalEvent(tfs::lua::getScriptEnv()->getScriptInterface());
 	globalEvent->setName(tfs::lua::getString(L, 2));
 	globalEvent->setEventType(GLOBALEVENT_NONE);

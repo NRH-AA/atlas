@@ -83,10 +83,6 @@ ec.onMonsterSpawn = {}
 
 local EventMeta = {
 	__newindex = function(self, key, callback)
-		if not isScriptsInterface() then
-			return
-		end
-
 		local eventType = callbacks[key]
 		if not eventType then
 			debugPrint(string.format("[Warning - Event::%s] is not a valid callback.", key))
@@ -104,10 +100,6 @@ local EventMeta = {
 }
 
 local function register(self, triggerIndex)
-	if not isScriptsInterface() then
-		return
-	end
-
 	local eventType = rawget(self, 'eventType')
 	local callback = rawget(self, 'callback')
 	if not eventType or not callback then

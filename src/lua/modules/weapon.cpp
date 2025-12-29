@@ -16,12 +16,6 @@ namespace {
 int luaCreateWeapon(lua_State* L)
 {
 	// Weapon(type)
-	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
-		tfs::lua::reportError(L, "Weapons can only be registered in the Scripts interface.");
-		lua_pushnil(L);
-		return 1;
-	}
-
 	WeaponType_t type = tfs::lua::getNumber<WeaponType_t>(L, 2);
 	switch (type) {
 		case WEAPON_SWORD:

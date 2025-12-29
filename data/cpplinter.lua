@@ -1182,10 +1182,6 @@ function sendChannelMessage(channelId, type, message) end
 function sendGuildChannelMessage(guildId, type, message) end
 ---@alias sendGuildChannelMessage fun(guildId: number, type: number, message: string)
 
---- Checks if the current interface is a scripts interface.
-function isScriptsInterface() end
----@alias isScriptsInterface fun(): boolean
-
 function getNpcCid() end
 function selfSay(message, player) end
 function selfMove(direction) end

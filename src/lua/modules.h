@@ -2,8 +2,10 @@
 
 #include "script.h"
 
-namespace tfs::lua {
+namespace tfs::lua::modules {
 
-void importModules(LuaScriptInterface& lsi);
+void import(LuaScriptInterface& lsi);
+bool load();
+bool reload();
 
-} // namespace tfs::lua
+} // namespace tfs::lua::modules

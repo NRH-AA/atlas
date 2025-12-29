@@ -16,12 +16,6 @@ namespace {
 int luaCreateAction(lua_State* L)
 {
 	// Action()
-	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
-		tfs::lua::reportError(L, "Actions can only be registered in the Scripts interface.");
-		lua_pushnil(L);
-		return 1;
-	}
-
 	Action* action = new Action(tfs::lua::getScriptEnv()->getScriptInterface());
 	action->fromLua = true;
 	tfs::lua::pushUserdata(L, action);

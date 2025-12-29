@@ -589,12 +589,6 @@ int luaGameCreateTile(lua_State* L)
 int luaGameCreateMonsterType(lua_State* L)
 {
 	// Game.createMonsterType(name)
-	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
-		tfs::lua::reportError(L, "MonsterTypes can only be registered in the Scripts interface.");
-		lua_pushnil(L);
-		return 1;
-	}
-
 	const std::string& name = tfs::lua::getString(L, 1);
 	if (name.length() == 0) {
 		lua_pushnil(L);

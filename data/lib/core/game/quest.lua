@@ -24,10 +24,6 @@ do
 	end
 
 	function Game.createQuest(name, quest)
-		if not isScriptsInterface() then
-			return
-		end
-
 		if type(quest) == "table" then
 			setmetatable(quest, Quest)
 			quest.id = -1

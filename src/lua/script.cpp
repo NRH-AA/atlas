@@ -317,18 +317,6 @@ int luaSendGuildChannelMessage(lua_State* L)
 	return 1;
 }
 
-int luaIsScriptsInterface(lua_State* L)
-{
-	// isScriptsInterface()
-	if (tfs::lua::getScriptEnv()->getScriptInterface() == &g_scripts->getScriptInterface()) {
-		tfs::lua::pushBoolean(L, true);
-	} else {
-		tfs::lua::reportError(L, "Event: can only be called inside (data/scripts/)");
-		tfs::lua::pushBoolean(L, false);
-	}
-	return 1;
-}
-
 int luaAddEvent(lua_State* L)
 {
 	// addEvent(callback, delay, ...)
@@ -889,9 +877,6 @@ void LuaScriptInterface::registerFunctions()
 	// sendGuildChannelMessage(guildId, type, message)
 	lua_register(L, "sendGuildChannelMessage", luaSendGuildChannelMessage);
 
-	// isScriptsInterface()
-	lua_register(L, "isScriptsInterface", luaIsScriptsInterface);
-
 	/* New functions */
 	// registerClass(className, baseClass, newFunction)
 	// registerTable(tableName)
@@ -903,7 +888,7 @@ void LuaScriptInterface::registerFunctions()
 	// registerEnum(value)
 	// registerEnumIn(tableName, value)
 
-	tfs::lua::importModules(*this);
+	tfs::lua::modules::import(*this);
 }
 
 LuaEnvironment::LuaEnvironment() : LuaScriptInterface("Main Interface") {}

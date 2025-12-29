@@ -16,12 +16,6 @@ namespace {
 int luaCreateMoveEvent(lua_State* L)
 {
 	// MoveEvent()
-	if (tfs::lua::getScriptEnv()->getScriptInterface() != &g_scripts->getScriptInterface()) {
-		tfs::lua::reportError(L, "MoveEvents can only be registered in the Scripts interface.");
-		lua_pushnil(L);
-		return 1;
-	}
-
 	MoveEvent* moveevent = new MoveEvent(tfs::lua::getScriptEnv()->getScriptInterface());
 	moveevent->fromLua = true;
 	tfs::lua::pushUserdata(L, moveevent);
