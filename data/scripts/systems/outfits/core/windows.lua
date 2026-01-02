@@ -88,12 +88,12 @@ function Player.sendOutfitWindow(self)
 	msg:addByte(0xC8)
 
 	msg:addOutfit(currentOutfit)
-	if currentOutfit.lookMount == 0 then
-		msg:addByte(currentOutfit.lookMountHead)
-		msg:addByte(currentOutfit.lookMountBody)
-		msg:addByte(currentOutfit.lookMountLegs)
-		msg:addByte(currentOutfit.lookMountFeet)
-	end
+
+	msg:addU16(currentOutfit.lookMount)
+	msg:addByte(currentOutfit.lookMountHead)
+	msg:addByte(currentOutfit.lookMountBody)
+	msg:addByte(currentOutfit.lookMountLegs)
+	msg:addByte(currentOutfit.lookMountFeet)
 
 	msg:addU16(0) -- current familiar looktype
 

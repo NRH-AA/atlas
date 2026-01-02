@@ -16,7 +16,6 @@ function NetworkMessage:addItemId(itemId)
 end
 
 function NetworkMessage:addOutfit(outfit)
-	-- outfit
 	self:addU16(outfit.lookType)
 	if outfit.lookType ~= 0 then
 		self:addByte(outfit.lookHead)
@@ -26,14 +25,5 @@ function NetworkMessage:addOutfit(outfit)
 		self:addByte(outfit.lookAddons)
 	else
 		self:addItemId(outfit.lookTypeEx)
-	end
-
-	-- mount
-	self:addU16(outfit.lookMount)
-	if outfit.lookMount ~= 0 then
-		self:addByte(outfit.lookMountHead)
-		self:addByte(outfit.lookMountBody)
-		self:addByte(outfit.lookMountLegs)
-		self:addByte(outfit.lookMountFeet)
 	end
 end
