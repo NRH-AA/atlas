@@ -39,11 +39,11 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
     end
 
     if not canEvictSleeper(player, house) then
-		return true
-	end
+        return true
+    end
 
-	headboard:removeSleeper()
-	footboard:removeSleeper()
+    headboard:removeSleeper()
+    footboard:removeSleeper()
     return true
 end
 

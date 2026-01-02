@@ -1,12 +1,21 @@
 local action = Action()
 
-local skillChoices = {
-	{ text = "Sword Fighting and Shielding", skill = SKILL_SWORD },
-	{ text = "Axe Fighting and Shielding", skill = SKILL_AXE },
-	{ text = "Club Fighting and Shielding", skill = SKILL_CLUB },
-	{ text = "Distance Fighting and Shielding", skill = SKILL_DISTANCE },
-	{ text = "Magic Level and Shielding", skill = SKILL_MAGLEVEL },
-}
+local skillChoices = {{
+    text = "Sword Fighting and Shielding",
+    skill = SKILL_SWORD
+}, {
+    text = "Axe Fighting and Shielding",
+    skill = SKILL_AXE
+}, {
+    text = "Club Fighting and Shielding",
+    skill = SKILL_CLUB
+}, {
+    text = "Distance Fighting and Shielding",
+    skill = SKILL_DISTANCE
+}, {
+    text = "Magic Level and Shielding",
+    skill = SKILL_MAGLEVEL
+}}
 
 local function canUse(player, bed)
     if player:getZone() ~= ZONE_PROTECTION then
@@ -68,11 +77,11 @@ local function sleep(player, headboardPos)
 end
 
 local function abortOfflineTraining(player)
-	player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Offline training aborted.")
+    player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Offline training aborted.")
 end
 
 local function sendOfflineTrainingModal(player, headboardPos)
-    local offlineTrainingModal = ModalWindow{
+    local offlineTrainingModal = ModalWindow {
         title = "Choose a Skill",
         message = "Please choose a skill:",
         priority = true

@@ -28,9 +28,15 @@ end
 
 function Bed.getBedParts(self)
     local partner = self:getPartnerBed()
-    if not partner then return nil, nil end
-    if self:isHeadboard() and partner:isFootboard() then return self, partner end
-    if self:isFootboard() and partner:isHeadboard() then return partner, self end
+    if not partner then
+        return nil, nil
+    end
+    if self:isHeadboard() and partner:isFootboard() then
+        return self, partner
+    end
+    if self:isFootboard() and partner:isHeadboard() then
+        return partner, self
+    end
     return nil, nil
 end
 
@@ -83,7 +89,7 @@ function Bed.removeSleeper(self)
     end
 
     self:setSpecialDescription(nil)
-	self:removeCustomAttribute(Beds.SleeperGuidKey)
+    self:removeCustomAttribute(Beds.SleeperGuidKey)
 
     local targetId = self:getTransformToFree()
     return targetId ~= nil and self:transform(targetId)
@@ -113,7 +119,7 @@ function Tile.getHeadboard(self)
     end
 
     for _, item in ipairs(items) do
-		local bed = item:getBed()
+        local bed = item:getBed()
         if bed ~= nil and bed:isHeadboard() then
             return bed
         end
@@ -129,7 +135,10 @@ function Item.getBed(self)
         return nil
     end
 
-    local wrapper = { _bed = bed, _item = self }
+    local wrapper = {
+        _bed = bed,
+        _item = self
+    }
 
     setmetatable(wrapper, {
         __index = function(t, k)
@@ -146,7 +155,7 @@ function Item.getBed(self)
             end
 
             return inner
-        end,
+        end
     })
 
     return wrapper

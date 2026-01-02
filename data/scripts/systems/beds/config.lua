@@ -10,5 +10,5 @@ Beds = {
     SoulTickSeconds = 15 * 60,
 
     -- Advanced settings
-    SleeperGuidKey = "sleeperGuid",
+    SleeperGuidKey = "sleeperGuid"
 }
