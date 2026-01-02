@@ -28,6 +28,25 @@ function onUpdateDatabase()
 		result.free(resultId)
 	end
 
+	-- Migrate currentmount and randomizemount from players table
+	local resultId = db.storeQuery("SELECT `id`, `currentmount`, `randomizemount` FROM `players` WHERE `currentmount` IS NOT NULL OR `randomizemount` IS NOT NULL")
+	if resultId then
+		repeat
+			local playerId = result.getNumber(resultId, "id")
+			local currentMount = result.getNumber(resultId, "currentmount")
+			local randomizeMount = result.getNumber(resultId, "randomizemount")
+
+			if currentMount ~= nil and currentMount > 0 then
+				table.insert(rows, {playerId = playerId, key = PlayerStorageKeys.currentMount, value = currentMount})
+			end
+
+			if randomizeMount ~= nil and randomizeMount > 0 then
+				table.insert(rows, {playerId = playerId, key = PlayerStorageKeys.randomizeMount, value = randomizeMount})
+			end
+		until not result.next(resultId)
+		result.free(resultId)
+	end
+
 	if #rows > 0 then
 		local query = "INSERT INTO `player_storage` (`player_id`, `key`, `value`) VALUES "
 		for i, row in ipairs(rows) do
