@@ -54,7 +54,7 @@ end
 
 function event.onLogin(player)
 	local headboard, footboard = findRelevantBed(player)
-	if not headboard or not footboard or headboard:getSleeper() ~= player:getId() then
+	if not headboard or not footboard or headboard:getSleeper() ~= player:getGuid() then
 		return true
 	end
 
@@ -66,7 +66,7 @@ function event.onLogin(player)
 
 	regeneratePlayer(player, sleptSeconds)
 
-	if headboard:getSleeper() == player:getId() then
+	if headboard:getSleeper() == player:getGuid() then
 		return headboard:removeSleeper() and footboard:removeSleeper()
 	end
 

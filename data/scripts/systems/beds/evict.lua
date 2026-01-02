@@ -19,7 +19,7 @@ local function canEvictSleeper(player, house)
         return false
     end
 
-    return player:getGroup():getAccess() or house:getOwnerGuid() == player:getId()
+    return player:getGroup():getAccess() or house:getOwnerGuid() == player:getGuid()
 end
 
 function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)

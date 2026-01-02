@@ -93,7 +93,7 @@ function Bed.setSleeper(self, player)
     end
 
     self:setSpecialDescription(string.format("%s is sleeping there.", player:getName()))
-    self:setCustomAttribute(Beds.SleeperGuidKey, player:getId())
+    self:setCustomAttribute(Beds.SleeperGuidKey, player:getGuid())
 
     local targetId = self:getTransformToOccupied(player:getSex())
     return targetId ~= nil and self:transform(targetId)
