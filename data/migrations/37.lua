@@ -42,11 +42,11 @@ function onUpdateDatabase()
 			local currentMount = result.getNumber(resultId, "currentmount")
 			local randomizeMount = result.getNumber(resultId, "randomizemount")
 
-			if currentMount ~= nil and currentMount > 0 then
+			if currentMount > 0 then
 				table.insert(rows, {playerId = playerId, key = PlayerStorageKeys.currentMount, value = currentMount})
 			end
 
-			if randomizeMount ~= nil and randomizeMount > 0 then
+			if randomizeMount > 0 then
 				table.insert(rows, {playerId = playerId, key = PlayerStorageKeys.randomizeMount, value = randomizeMount})
 			end
 		until not result.next(resultId)
@@ -65,11 +65,11 @@ function onUpdateDatabase()
 					query = query .. ","
 				end
 			end
-		end
 
-		if not db.query(query) then
-			db.query("ROLLBACK")
-			return false
+			if not db.query(query) then
+				db.query("ROLLBACK")
+				return false
+			end
 		end
 	end
 
