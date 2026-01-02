@@ -170,16 +170,17 @@ end
 -- Behavior:
 -- - When mounted is true: mounts using the selected mount (or a random owned mount if randomize is enabled).
 -- - When mounted is false: dismounts.
--- Enforces cooldown, protection-zone restriction, premium/ownership rules, and CONDITION_OUTFIT.
+-- Enforces cooldown when mounting, protection-zone restriction, premium/ownership rules, and CONDITION_OUTFIT.
 function Player.toggleMount(self, mounted)
-    if not self:getGroup():getAccess() then
-        local lastMountToggle = self:getLastMountToggle()
-        if os.mtime() - lastMountToggle < Outfits.ToggleMountCooldown and not self:getWasMounted() then
-            return false
-        end
-    end
 
     if mounted then
+        if not self:getGroup():getAccess() and self:getWasMounted() then
+            local lastMountToggle = self:getLastMountToggle()
+            if os.mtime() - lastMountToggle < Outfits.ToggleMountCooldown then
+                return false
+            end
+        end
+
         if self:isMounted() then
             return false
         end
