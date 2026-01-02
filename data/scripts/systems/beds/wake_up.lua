@@ -66,7 +66,9 @@ function event.onLogin(player)
 
 	regeneratePlayer(player, sleptSeconds)
 
-	return headboard:removeSleeper() and footboard:removeSleeper()
+	headboard:removeSleeper()
+	footboard:removeSleeper()
+	return true
 end
 
 event:register()
