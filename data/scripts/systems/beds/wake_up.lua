@@ -66,11 +66,7 @@ function event.onLogin(player)
 
 	regeneratePlayer(player, sleptSeconds)
 
-	if headboard:getSleeper() == player:getGuid() then
-		return headboard:removeSleeper() and footboard:removeSleeper()
-	end
-
-	return true
+	return headboard:removeSleeper() and footboard:removeSleeper()
 end
 
 event:register()
