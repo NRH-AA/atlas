@@ -19,9 +19,9 @@ local function findRelevantBed(player)
 	for _, dir in ipairs(directions) do
 		local checkPos = Position(pos)
 		checkPos:getNextPosition(dir)
-		local tile = Tile(checkPos)
-		if tile then
-			local headboard = tile:getHeadboard()
+		local adjacentTile = Tile(checkPos)
+		if adjacentTile then
+			local headboard = adjacentTile:getHeadboard()
 			if headboard then
 				local footboard = headboard:getPartnerBed()
 				if footboard and footboard:isFootboard() then

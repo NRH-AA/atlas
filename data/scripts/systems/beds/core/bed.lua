@@ -59,6 +59,8 @@ function Bed.getPartnerBed(self)
             return item:getBed()
         end
     end
+
+    return nil
 end
 
 function Bed.isHeadboard(self)

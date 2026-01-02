@@ -49,16 +49,14 @@ local function sleep(player, headboardPos)
         return false
     end
 
-    headboard:setSleeper(player)
-    footboard:setSleeper(player)
-
     headboardPos:sendMagicEffect(CONST_ME_SLEEP)
 
     if not player:teleportTo(headboardPos, true) then
-        headboard:removeSleeper()
-        footboard:removeSleeper()
         return false
     end
+
+    headboard:setSleeper(player)
+    footboard:setSleeper(player)
 
     addEvent(function(pid)
         local player = Player(pid)
