@@ -1,5 +1,11 @@
 local BATCH_SIZE = 10000
 
+-- must match PlayerStorageKeys in storages.lua, change accordingly if modified
+local CURRENT_MOUNT = 60000
+local RANDOMIZE_MOUNT = 60001
+local OUTFITS_BASE = 600000
+local MOUNTS_BASE = 610000
+
 function onUpdateDatabase()
     print("> Updating database to version 38 (revert outfits/mounts to storages)")
 
@@ -18,7 +24,7 @@ function onUpdateDatabase()
                 local outfitId = result.getNumber(resultId, "outfit_id")
                 local addons = result.getNumber(resultId, "addons")
 
-                local storageKey = PlayerStorageKeys.outfitsBase + outfitId
+                local storageKey = OUTFITS_BASE + outfitId
                 table.insert(rows, {
                     playerId = playerId,
                     key = storageKey,
@@ -36,7 +42,7 @@ function onUpdateDatabase()
                 local playerId = result.getNumber(resultId, "player_id")
                 local mountId = result.getNumber(resultId, "mount_id")
 
-                local storageKey = PlayerStorageKeys.mountsBase + mountId
+                local storageKey = MOUNTS_BASE + mountId
                 table.insert(rows, {
                     playerId = playerId,
                     key = storageKey,
@@ -60,7 +66,7 @@ function onUpdateDatabase()
                 if currentMount > 0 then
                     table.insert(rows, {
                         playerId = playerId,
-                        key = PlayerStorageKeys.currentMount,
+                        key = CURRENT_MOUNT,
                         value = currentMount
                     })
                 end
@@ -68,7 +74,7 @@ function onUpdateDatabase()
                 if randomizeMount > 0 then
                     table.insert(rows, {
                         playerId = playerId,
-                        key = PlayerStorageKeys.randomizeMount,
+                        key = RANDOMIZE_MOUNT,
                         value = randomizeMount
                     })
                 end
