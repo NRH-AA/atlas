@@ -46,7 +46,7 @@ function onUpdateDatabase()
     -- Migrate currentmount and randomizemount from players table
     do
         local resultId = db.storeQuery(
-            "SELECT `id`, `currentmount`, `randomizemount` FROM `players` WHERE `currentmount` IS NOT NULL OR `randomizemount` IS NOT NULL")
+            "SELECT `id`, `currentmount`, `randomizemount` FROM `players` WHERE `currentmount` > 0 OR `randomizemount` > 0")
         if resultId then
             repeat
                 local playerId = result.getNumber(resultId, "id")
