@@ -66,18 +66,22 @@ function onUpdateDatabase()
     end
 
     if not query:execute() then
+        tx.rollback()
         return false
     end
 
     if not db.query("DROP TABLE IF EXISTS `player_outfits`") then
+        tx.rollback()
         return false
     end
 
     if not db.query("DROP TABLE IF EXISTS `player_mounts`") then
+        tx.rollback()
         return false
     end
 
     if not db.query("ALTER TABLE `players` DROP COLUMN `currentmount`, DROP COLUMN `randomizemount`") then
+        tx.rollback()
         return false
     end
 
