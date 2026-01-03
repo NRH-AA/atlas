@@ -4,11 +4,11 @@ local handler = PacketHandler(0xD2)
 -- Payload: (empty)
 -- Response: 0xC8 (Outfit Window) via Player.sendOutfitWindow in systems/outfits/core/windows.lua
 function handler.onReceive(player, msg)
-	if not Outfits.AllowChangeOutfit then
-		return
-	end
+    if not Outfits.AllowChangeOutfit then
+        return
+    end
 
-	player:sendOutfitWindow()
+    player:sendOutfitWindow()
 end
 
 handler:register()

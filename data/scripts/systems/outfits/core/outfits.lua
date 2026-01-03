@@ -9,7 +9,6 @@
 --   - bit 1 => addon 2
 -- - Functions that take `addon` expect an addon index (1 or 2), not a bitmask.
 -- - Functions that take `addons` expect a bitmask (e.g. 1, 2, or 3).
-
 -- player:addOutfit(lookType)
 -- Grants outfit ownership for the given lookType.
 function Player.addOutfit(self, lookType)
