@@ -79,7 +79,7 @@ function handler.onReceive(player, msg)
         outfit.lookMountLegs = msg:getByte()
         outfit.lookMountFeet = msg:getByte()
 
-        -- open store?
+        -- TODO: Implement store outfit preview window
     elseif outfitType == 2 then -- set podium outfit
         local position = msg:getPosition()
         local clientId = msg:getU16()
