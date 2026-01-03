@@ -1574,6 +1574,10 @@ function Game.getOutfitByLookType(lookType)
 end
 
 function Game.getOutfitByName(name, sex)
+    if type(name) ~= "string" then
+        return nil
+    end
+
     for lookType, outfit in pairs(outfits) do
         if outfit.name:lower() == name:lower() and outfit.sex == sex then
             return {
