@@ -18,4 +18,7 @@ Outfits = {
 
     -- Cooldown (ms) enforced for manual mount toggles (Ctrl+R). Forced zone toggles may bypass this.
     ToggleMountCooldown = 3000,
+
+    -- Print outfit/mount command usage to console.
+    PrintCommandsToConsole = true
 }
