@@ -112,8 +112,9 @@ function handler.onReceive(player, msg)
             return
         end
 
-        local itemPosition = item:getPosition()
-        if itemPosition.stackpos ~= stackpos then
+        -- Verify item is at expected stack position
+        local thingAtPos = tile:getThing(stackpos)
+        if not thingAtPos or thingAtPos ~= item then
             return
         end
 
