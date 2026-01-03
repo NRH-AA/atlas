@@ -1,5 +1,3 @@
-local BATCH_SIZE = 10000
-
 -- must match PlayerStorageKeys in storages.lua, change accordingly if modified
 local CURRENT_MOUNT = 60000
 local RANDOMIZE_MOUNT = 60001
@@ -14,7 +12,7 @@ function onUpdateDatabase()
         return false
     end
 
-    local rows = {}
+    local query = DBInsert("INSERT INTO `player_storage` (`player_id`, `key`, `value`) VALUES ")
 
     do
         local resultId = db.storeQuery("SELECT `player_id`, `outfit_id`, `addons` FROM `player_outfits`")
@@ -25,11 +23,7 @@ function onUpdateDatabase()
                 local addons = result.getNumber(resultId, "addons")
 
                 local storageKey = OUTFITS_BASE + outfitId
-                table.insert(rows, {
-                    playerId = playerId,
-                    key = storageKey,
-                    value = addons
-                })
+                query:addRow(string.format("%d, %d, %d", playerId, storageKey, addons))
             until not result.next(resultId)
             result.free(resultId)
         end
@@ -43,11 +37,7 @@ function onUpdateDatabase()
                 local mountId = result.getNumber(resultId, "mount_id")
 
                 local storageKey = MOUNTS_BASE + mountId
-                table.insert(rows, {
-                    playerId = playerId,
-                    key = storageKey,
-                    value = 1
-                })
+                query:addRow(string.format("%d, %d, %d", playerId, storageKey, 1))
             until not result.next(resultId)
             result.free(resultId)
         end
@@ -64,39 +54,19 @@ function onUpdateDatabase()
                 local randomizeMount = result.getNumber(resultId, "randomizemount")
 
                 if currentMount > 0 then
-                    table.insert(rows, {
-                        playerId = playerId,
-                        key = CURRENT_MOUNT,
-                        value = currentMount
-                    })
+                    query:addRow(string.format("%d, %d, %d", playerId, CURRENT_MOUNT, currentMount))
                 end
 
                 if randomizeMount > 0 then
-                    table.insert(rows, {
-                        playerId = playerId,
-                        key = RANDOMIZE_MOUNT,
-                        value = randomizeMount
-                    })
+                    query:addRow(string.format("%d, %d, %d", playerId, RANDOMIZE_MOUNT, randomizeMount))
                 end
             until not result.next(resultId)
             result.free(resultId)
         end
     end
 
-    if #rows > 0 then
-        for start = 1, #rows, BATCH_SIZE do
-            local end_ = math.min(start + BATCH_SIZE - 1, #rows)
-
-            local query = DBInsert("INSERT INTO `player_storage` (`player_id`, `key`, `value`) VALUES ")
-            for i = start, end_ do
-                local row = rows[i]
-                query:addRow(string.format("%d, %d, %d", row.playerId, row.key, row.value))
-            end
-
-            if not query:execute() then
-                return false
-            end
-        end
+    if not query:execute() then
+        return false
     end
 
     if not db.query("DROP TABLE IF EXISTS `player_outfits`") then
