@@ -135,9 +135,11 @@ function Item.getBed(self)
         return nil
     end
 
+    local methodCache = {}
     local wrapper = {
         _bed = bed,
-        _item = self
+        _item = self,
+        _methodCache = methodCache
     }
 
     setmetatable(wrapper, {
@@ -147,11 +149,18 @@ function Item.getBed(self)
                 return v
             end
 
+            local cached = methodCache[k]
+            if cached ~= nil then
+                return cached
+            end
+
             local inner = t._item[k]
             if type(inner) == "function" then
-                return function(_, ...)
+                local fn = function(_, ...)
                     return inner(t._item, ...)
                 end
+                methodCache[k] = fn
+                return fn
             end
 
             return inner
