@@ -3,7 +3,8 @@ local BATCH_SIZE = 10000
 function onUpdateDatabase()
     print("> Updating database to version 38 (revert outfits/mounts to storages)")
 
-    if not db.query("START TRANSACTION") then
+    local tx = DBTransaction()
+    if not tx.begin() then
         return false
     end
 
@@ -80,36 +81,29 @@ function onUpdateDatabase()
         for start = 1, #rows, BATCH_SIZE do
             local end_ = math.min(start + BATCH_SIZE - 1, #rows)
 
-            local query = "INSERT INTO `player_storage` (`player_id`, `key`, `value`) VALUES "
+            local query = DBInsert("INSERT INTO `player_storage` (`player_id`, `key`, `value`) VALUES ")
             for i = start, end_ do
                 local row = rows[i]
-                query = query .. string.format("(%d, %d, %d)", row.playerId, row.key, row.value)
-                if i < end_ then
-                    query = query .. ","
-                end
+                query:addRow(string.format("%d, %d, %d", row.playerId, row.key, row.value))
             end
 
-            if not db.query(query) then
-                db.query("ROLLBACK")
+            if not query:execute() then
                 return false
             end
         end
     end
 
     if not db.query("DROP TABLE IF EXISTS `player_outfits`") then
-        db.query("ROLLBACK")
         return false
     end
 
     if not db.query("DROP TABLE IF EXISTS `player_mounts`") then
-        db.query("ROLLBACK")
         return false
     end
 
     if not db.query("ALTER TABLE `players` DROP COLUMN `currentmount`, DROP COLUMN `randomizemount`") then
-        db.query("ROLLBACK")
         return false
     end
 
-    return db.query("COMMIT")
+    return tx.commit()
 end

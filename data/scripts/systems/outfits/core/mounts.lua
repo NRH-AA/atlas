@@ -8,7 +8,6 @@
 -- Session-only state:
 -- - lastMountToggle[playerId]: used for Outfits.ToggleMountCooldown
 -- - wasMounted[playerId]: remembers intent while forcibly dismounted in protection zones
-
 do
     local lastMountToggle = {}
     function Player.getLastMountToggle(self)
@@ -172,7 +171,6 @@ end
 -- - When mounted is false: dismounts.
 -- Enforces cooldown when mounting, protection-zone restriction, premium/ownership rules, and CONDITION_OUTFIT.
 function Player.toggleMount(self, mounted)
-
     if mounted then
         if not self:getGroup():getAccess() and self:getWasMounted() then
             local lastMountToggle = self:getLastMountToggle()
