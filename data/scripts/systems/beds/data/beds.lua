@@ -385,8 +385,9 @@ local beds = {
     }
 }
 
-function Game.getBeds()
+do
     local allBeds = {}
+
     for id, bed in pairs(beds) do
         allBeds[id] = {
             occupied = false,
@@ -405,5 +406,8 @@ function Game.getBeds()
             }
         end
     end
-    return allBeds
+
+    function Game.getBeds()
+        return allBeds
+    end
 end
