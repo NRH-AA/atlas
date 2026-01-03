@@ -1558,22 +1558,6 @@ local outfits = {
     }
 }
 
-function Game.getOutfits(sex)
-    local result = {}
-    for lookType, outfit in pairs(outfits) do
-        if outfit.sex == sex and outfit.enabled then
-            table.insert(result, {
-                lookType = lookType,
-                name = outfit.name,
-                sex = outfit.sex,
-                premium = outfit.premium,
-                unlocked = outfit.unlocked
-            })
-        end
-    end
-    return result
-end
-
 function Game.getOutfitByLookType(lookType)
     local outfit = outfits[lookType]
     if not outfit then
@@ -1610,4 +1594,27 @@ function Game.getOutfit(param, sex)
         return Game.getOutfitByLookType(lookType)
     end
     return Game.getOutfitByName(param, sex)
+end
+
+do
+    local cachedOutfits = {
+        [PLAYERSEX_FEMALE] = {},
+        [PLAYERSEX_MALE] = {}
+    }
+
+    for lookType, outfit in pairs(outfits) do
+        if outfit.enabled then
+            table.insert(cachedOutfits[outfit.sex], {
+                lookType = lookType,
+                name = outfit.name,
+                sex = outfit.sex,
+                premium = outfit.premium,
+                unlocked = outfit.unlocked
+            })
+        end
+    end
+
+    function Game.getOutfits(sex)
+        return cachedOutfits[sex]
+    end
 end

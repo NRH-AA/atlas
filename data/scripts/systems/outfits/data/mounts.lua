@@ -1058,19 +1058,6 @@ local mounts = {
     }
 }
 
-function Game.getMounts()
-    local result = {}
-    for lookType, mount in pairs(mounts) do
-        table.insert(result, {
-            lookType = lookType,
-            name = mount.name,
-            speed = mount.speed,
-            premium = mount.premium
-        })
-    end
-    return result
-end
-
 function Game.getMountByLookType(lookType)
     local mount = mounts[lookType]
     if not mount then
@@ -1105,4 +1092,21 @@ function Game.getMount(param)
         return Game.getMountByLookType(lookType)
     end
     return Game.getMountByName(param)
+end
+
+do
+    local cachedMounts = {}
+
+    for lookType, mount in pairs(mounts) do
+        table.insert(cachedMounts, {
+            lookType = lookType,
+            name = mount.name,
+            speed = mount.speed,
+            premium = mount.premium
+        })
+    end
+
+    function Game.getMounts()
+        return cachedMounts
+    end
 end
