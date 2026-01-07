@@ -21,20 +21,6 @@
 	<action itemid="10513" script="tools/tool_gear.lua" />
 	<action itemid="10515" script="tools/tool_gear.lua" />
 
-	<!-- Transform and decay -->
-	<action fromid="1873" toid="1876" script="others/decayto.lua" />
-	<action fromid="2041" toid="2042" script="others/decayto.lua" />
-	<action fromid="2044" toid="2045" script="others/decayto.lua" />
-	<action fromid="2047" toid="2048" script="others/decayto.lua" />
-	<action fromid="2050" toid="2055" script="others/decayto.lua" />
-	<action fromid="2162" toid="2163" script="others/decayto.lua" />
-	<action fromid="5812" toid="5813" script="others/decayto.lua" />
-	<action itemid="7183" script="others/decayto.lua" />
-	<action itemid="10719" script="others/decayto.lua" />
-	<action itemid="11401" script="others/decayto.lua" />
-	<action fromid="25545" toid="25546" script="others/decayto.lua" />
-	<action fromid="26098" toid="26099" script="others/decayto.lua" />
-
 	<!-- Food -->
 	<action itemid="2362" script="others/food.lua" />
 	<action fromid="2666" toid="2691" script="others/food.lua" />

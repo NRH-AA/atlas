@@ -1,3 +1,5 @@
+local action = Action()
+
 local decayItems = {
 	[1873] = 1874, [1874] = 1873, -- cuckoo clock
 	[1875] = 1876, [1876] = 1875, -- cuckoo clock
@@ -16,7 +18,7 @@ local decayItems = {
 	[26098] = 26099 -- baby dragon
 }
 
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	local transformIds = decayItems[item:getId()]
 	if not transformIds then
 		return false
@@ -26,3 +28,8 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	item:decay()
 	return true
 end
+
+for k, _ in pairs(decayItems) do
+	action:id(k)
+end
+action:register()
