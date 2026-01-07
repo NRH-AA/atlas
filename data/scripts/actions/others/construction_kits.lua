@@ -1,3 +1,5 @@
+local action = Action()
+
 local constructionKits = {
 	[3901] = 1666, [3902] = 1670, [3903] = 1652, [3904] = 1674, [3905] = 1658,
 	[3906] = 3813, [3907] = 3817, [3908] = 1619, [3909] = 2105, [3910] = 12799,
@@ -13,12 +15,7 @@ local constructionKits = {
 	[20254] = 20295, [20255] = 20297, [20257] = 20299
 }
 
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
-	local kit = constructionKits[item.itemid]
-	if not kit then
-		return false
-	end
-
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	local tile = Tile(item:getPosition())
 	if tile and tile:getHouse() then
 		if fromPosition.x ~= CONTAINER_POSITION or item:getParent():getId() == ITEM_BROWSEFIELD then
@@ -33,3 +30,8 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	end
 	return true
 end
+
+for k, _ in pairs(constructionKits) do
+	action:id(k)
+end
+action:register()
