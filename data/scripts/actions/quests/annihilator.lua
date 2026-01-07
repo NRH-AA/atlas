@@ -1,3 +1,5 @@
+local action = Action()
+
 local playerPosition = {
 	{x = 247, y = 659, z = 13},
 	{x = 247, y = 660, z = 13},
@@ -12,7 +14,7 @@ local newPosition = {
 	{x = 189, y = 653, z = 13}
 }
 
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	if item.itemid == 1945 then
 		local players = {}
 		for _, position in ipairs(playerPosition) do
@@ -38,3 +40,6 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 
 	return true
 end
+
+action:uid(uniqueIds.annihilatorLever)
+action:register()

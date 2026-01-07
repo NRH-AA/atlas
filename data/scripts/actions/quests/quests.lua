@@ -1,5 +1,8 @@
+local action = Action()
+
 local annihilatorReward = {1990, 2400, 2431, 2494}
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	if item.uid <= 1250 or item.uid >= 30000 then
 		return false
 	end
@@ -43,3 +46,6 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	end
 	return true
 end
+
+action:id(1740, 1747, 1748, 1749)
+action:register()
