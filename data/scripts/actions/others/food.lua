@@ -1,3 +1,5 @@
+local action = Action()
+
 local foods = {
 	[2362] = {5, "Crunch."}, -- carrot
 	[2666] = {15, "Munch."}, -- meat
@@ -114,10 +116,10 @@ local foods = {
 	[32854] = {40, "Mmmm."}, -- meringue cake
 	[32858] = {15, "Slurp."}, -- winterberry liquor
 	[34216] = {40, "Slurp."}, -- goanna meat
-	[34725] = {15, "Slurp."}, -- candy floss
+	[34725] = {15, "Slurp."} -- candy floss
 }
 
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	local food = foods[item.itemid]
 	if not food then
 		return false
@@ -134,3 +136,8 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	end
 	return true
 end
+
+for k, _ in pairs(foods) do
+	action:id(k)
+end
+action:register()

@@ -29,7 +29,5 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	return true
 end
 
-for k, _ in pairs(decayItems) do
-	action:id(k)
-end
+for k, _ in pairs(decayItems) do action:id(k) end
 action:register()

@@ -214,7 +214,13 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	return true
 end
 
-for k, _ in pairs(equipment) do action:id(k) end
-for k, _ in pairs(valuables) do action:id(k) end
-for k, _ in pairs(items) do action:id(k) end
+for k, _ in pairs(equipment) do
+	action:id(k)
+end
+for k, _ in pairs(valuables) do
+	action:id(k)
+end
+for k, _ in pairs(items) do
+	action:id(k)
+end
 action:register()
