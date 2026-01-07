@@ -1,6 +1,6 @@
 local action = Action()
 
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
     return onUseKitchenKnife(player, item, fromPosition, target, toPosition, isHotkey)
 end
 

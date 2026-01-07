@@ -57,7 +57,7 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
     player:say(potion.text, TALKTYPE_POTION)
     player:getPosition():sendMagicEffect(potion.effect)
 
-    if not configManager.getBoolean(configKeys.REMOVE_POTION_CHARGES) then
+    if configManager.getBoolean(configKeys.REMOVE_POTION_CHARGES) then
         item:remove(1)
     end
 

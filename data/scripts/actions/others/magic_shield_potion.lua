@@ -12,17 +12,15 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
         return false
     end
 
-    local potion = potions[item:getId()]
-    if not player:getGroup():getAccess() and (potion.level and player:getLevel() < potion.level or potion.vocations and
-        not table.contains(potion.vocations, player:getVocation():getId())) then
-        player:say(potion.description, TALKTYPE_POTION)
+    if not player:getGroup():getAccess() and (minLevel and player:getLevel() < minLevel or vocations and
+        not table.contains(vocations, player:getVocation():getId())) then
+        player:say(description, TALKTYPE_POTION)
         return true
     end
 
     manaShield:setParameter(CONDITION_PARAM_MANASHIELD_BREAKABLE,
         math.min(player:getMaxMana(), 300 + 7.6 * player:getLevel() + 7 * player:getMagicLevel()))
     player:addCondition(manaShield)
-    player:say(potion.text, TALKTYPE_POTION)
     player:getPosition():sendMagicEffect(CONST_ME_ENERGYAREA)
 
     if configManager.getBoolean(configKeys.REMOVE_POTION_CHARGES) then

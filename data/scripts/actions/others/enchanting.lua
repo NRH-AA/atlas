@@ -183,7 +183,7 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 					end
 
 					local storageValue = player:getStorageValue(storage.key)
-					if not storageValue then
+					if storageValue == -1 or storageValue == nil then
 						return false
 					end
 

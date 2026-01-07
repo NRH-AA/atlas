@@ -19,7 +19,7 @@ local decayItems = {
 }
 
 function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
-	item:transform(transformIds)
+	item:transform(decayItems[item:getId()])
 	item:decay()
 	return true
 end

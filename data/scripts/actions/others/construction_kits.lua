@@ -16,6 +16,7 @@ local constructionKits = {
 }
 
 function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
+	local kit = constructionKits[item:getId()]
 	local tile = Tile(item:getPosition())
 	if tile and tile:getHouse() then
 		if fromPosition.x ~= CONTAINER_POSITION or item:getParent():getId() == ITEM_BROWSEFIELD then
