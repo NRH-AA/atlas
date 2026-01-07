@@ -1,3 +1,5 @@
+local action = Action()
+
 local waterIds = {493, 4608, 4609, 4610, 4611, 4612, 4613, 4614, 4615, 4616, 4617, 4618, 4619, 4620, 4621, 4622, 4623, 4624, 4625, 7236, 10499, 15401, 15402}
 local lootTrash = {2234, 2238, 2376, 2509, 2667}
 local lootCommon = {2152, 2167, 2168, 2669, 7588, 7589}
@@ -5,7 +7,7 @@ local lootRare = {2143, 2146, 2149, 7158, 7159}
 local lootVeryRare = {7632, 7633, 10220}
 local useWorms = true
 
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	local targetId = target.itemid
 	if not table.contains(waterIds, targetId) then
 		return false
@@ -80,3 +82,7 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	end
 	return true
 end
+
+action:id(2580)
+action:allowFarUse(true)
+action:register()

@@ -1,4 +1,6 @@
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+local action = Action()
+
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	if math.random(100) > 5 then
 		return onUseRope(player, item, fromPosition, target, toPosition, isHotkey)
 		or onUseShovel(player, item, fromPosition, target, toPosition, isHotkey)
@@ -15,3 +17,6 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	end
 	return true
 end
+
+action:id(10511, 10513, 10515)
+action:register()
