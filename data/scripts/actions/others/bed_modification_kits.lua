@@ -1,3 +1,5 @@
+local action = Action()
+
 local beds = {
 	[7904] = {{7811, 7812}, {7813, 7814}}, -- green kit
 	[7905] = {{7819, 7820}, {7821, 7822}}, -- yellow kit
@@ -16,7 +18,7 @@ local function internalBedTransform(item, targetItem, toPosition, itemArray)
 	item:remove()
 end
 
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	local newBed = beds[item:getId()]
 	if not newBed or type(target) ~= "userdata" or not target:isItem() then
 		return false
@@ -48,3 +50,8 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	end
 	return true
 end
+
+for k, _v in pairs(beds) do
+	action:id(k)
+end
+action:register()
