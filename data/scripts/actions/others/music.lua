@@ -1,3 +1,5 @@
+local action = Action()
+
 local instruments = {
 	[2070] = {effect = CONST_ME_SOUND_GREEN}, -- wooden flute
 	[2071] = {effect = CONST_ME_SOUND_GREEN}, -- lyre
@@ -34,7 +36,7 @@ local instruments = {
 	[23923] = {effect = CONST_ME_SOUND_WHITE} -- small crystal bell
 }
 
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	local instrument = instruments[item:getId()]
 	local chance
 	if instrument.chance then
@@ -64,3 +66,8 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	player:addAchievementProgress("Rockstar", 10000)
 	return true
 end
+
+for k, _ in pairs(instruments) do
+	action:id(k)
+end
+action:register()

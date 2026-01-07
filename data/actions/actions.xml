@@ -21,18 +21,6 @@
 	<action itemid="10513" script="tools/tool_gear.lua" />
 	<action itemid="10515" script="tools/tool_gear.lua" />
 
-	<!-- Music -->
-	<action fromid="2070" toid="2085" script="others/music.lua" />
-	<action itemid="2332" script="others/music.lua" />
-	<action itemid="2364" script="others/music.lua" />
-	<action fromid="2367" toid="2373" script="others/music.lua" />
-	<action fromid="3951" toid="3953" script="others/music.lua" />
-	<action itemid="3957" script="others/music.lua" />
-	<action itemid="5786" script="others/music.lua" />
-	<action fromid="6572" toid="6573" script="others/music.lua" />
-	<action itemid="13759" script="others/music.lua" />
-	<action itemid="23923" script="others/music.lua" />
-
 	<!-- Fluids -->
 	<action itemid="1775" script="others/fluids.lua" />
 	<action fromid="2005" toid="2009" script="others/fluids.lua" />
