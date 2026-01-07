@@ -97,7 +97,7 @@ local equipment = {
 			},
 			effects = {failure = CONST_ME_POFF, success = CONST_ME_THUNDER},
 			message = {text = "The helmet cannot be enchanted while worn."},
-			usesStorage = true
+			storage = PlayerStorageKeys.werewolfHelmet
 		},
 		slot = {type = CONST_SLOT_HEAD, check = true}
 	},
@@ -175,14 +175,8 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 				player:sendSupplyUsed(target)
 				target:remove(1)
 			else
-				if targetItem.usesStorage then
-					local vocationId = player:getVocation():getDemotion():getId()
-					local storage = storages[itemId] and storages[itemId][targetId] and storages[itemId][targetId][vocationId]
-					if not storage then
-						return false
-					end
-
-					local storageValue = player:getStorageValue(storage.key)
+				if targetItem.storage then
+					local storageValue = player:getStorageValue(targetItem.storage)
 					if storageValue == -1 or storageValue == nil then
 						return false
 					end
