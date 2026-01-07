@@ -101,7 +101,6 @@ local equipment = {
 		},
 		slot = {type = CONST_SLOT_HEAD, check = true}
 	},
-	charges = 1000, effect = CONST_ME_MAGIC_RED
 }
 
 local valuables = {
@@ -109,7 +108,6 @@ local valuables = {
 	[2147] = {id = 7760, shrine = {7504, 7505, 7506, 7507}}, -- small ruby
 	[2149] = {id = 7761, shrine = {7516, 7517, 7518, 7519}}, -- small emerald
 	[2150] = {id = 7762, shrine = {7512, 7513, 7514, 7515}}, -- small amethyst
-	soul = 2, mana = 300, effect = CONST_ME_HOLYDAMAGE
 }
 
 local items = {
@@ -138,20 +136,20 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 			return true
 		end
 
-		if player:getMana() < valuables.mana then
+		if player:getMana() < 300 then
 			player:sendCancelMessage(RETURNVALUE_NOTENOUGHMANA)
 			return true
 		end
 
-		if player:getSoul() < valuables.soul then
+		if player:getSoul() < 2 then
 			player:sendCancelMessage(RETURNVALUE_NOTENOUGHSOUL)
 			return true
 		end
-		player:addSoul(-valuables.soul)
-		player:addMana(-valuables.mana)
-		player:addManaSpent(valuables.mana)
+		player:addSoul(-2)
+		player:addMana(-300)
+		player:addManaSpent(300)
 		player:addItem(targetType.id)
-		player:getPosition():sendMagicEffect(valuables.effect)
+		player:getPosition():sendMagicEffect(CONST_ME_HOLYDAMAGE)
 		player:sendSupplyUsed(item)
 		item:remove(1)
 	else
@@ -203,20 +201,17 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 				end
 
 				if target:hasAttribute(ITEM_ATTRIBUTE_CHARGES) then
-					target:setAttribute(ITEM_ATTRIBUTE_CHARGES, equipment.charges)
+					target:setAttribute(ITEM_ATTRIBUTE_CHARGES, 1000)
 				end
 				player:sendSupplyUsed(item)
 				item:remove(1)
 			end
 		end
-		player:getPosition():sendMagicEffect(targetItem.effects and (isInSlot and targetItem.effects.failure or targetItem.effects.success) or equipment.effect)
+		player:getPosition():sendMagicEffect(targetItem.effects and (isInSlot and targetItem.effects.failure or targetItem.effects.success) or CONST_ME_MAGIC_RED)
 	end
 	return true
 end
 
-for k, _ in pairs(equipment) do
-	action:id(k)
-end
 for k, _ in pairs(valuables) do
 	action:id(k)
 end

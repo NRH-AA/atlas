@@ -4,5 +4,5 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
     return onUseCrowbar(player, item, fromPosition, target, toPosition, isHotkey)
 end
 
-action:id(2417)
+action:id(2416)
 action:register()
