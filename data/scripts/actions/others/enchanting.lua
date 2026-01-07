@@ -154,7 +154,7 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 		item:remove(1)
 	else
 		local targetItem = targetType[items[itemId].combatType]
-		if not targetItem or targetItem.targetId and targetItem.targetId ~= targetId then
+		if not targetItem or (targetItem.targetId and targetItem.targetId ~= targetId) then
 			return false
 		end
 
@@ -177,7 +177,7 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 			else
 				if targetItem.storage then
 					local storageValue = player:getStorageValue(targetItem.storage)
-					if storageValue == -1 or storageValue == nil then
+					if storageValue == nil then
 						return false
 					end
 
