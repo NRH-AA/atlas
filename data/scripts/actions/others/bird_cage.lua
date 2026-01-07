@@ -1,4 +1,6 @@
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+local action = Action()
+
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	if math.random(100) == 1 then
 		item:transform(2094)
 		player:addAchievement("Oops")
@@ -7,3 +9,6 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	end
 	return true
 end
+
+action:id(2095)
+action:register()

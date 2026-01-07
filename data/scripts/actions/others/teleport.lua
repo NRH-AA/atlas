@@ -1,4 +1,7 @@
+local action = Action()
+
 local upFloorIds = {1386, 3678, 5543, 22845, 22846}
+
 function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	if table.contains(upFloorIds, item.itemid) then
 		fromPosition:moveUpstairs()
@@ -14,3 +17,6 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	player:teleportTo(fromPosition, false)
 	return true
 end
+
+action:id(430, table.unpack(upFloorIds))
+action:register()

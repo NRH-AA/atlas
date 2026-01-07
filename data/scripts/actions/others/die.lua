@@ -1,7 +1,9 @@
+local action = Action()
+
 local depotTiles = {11062, 11063}
 local diceEnabledOnDepot = true
 
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	local position = item:getPosition()
 	local value = math.random(1, 6)
 	local isInGhostMode = player:isInGhostMode()
@@ -23,3 +25,6 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	item:transform(5791 + value)
 	return true
 end
+
+action:id(5792)
+action:register()

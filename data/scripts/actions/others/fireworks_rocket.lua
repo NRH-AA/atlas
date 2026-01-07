@@ -1,4 +1,6 @@
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+local action = Action()
+
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	if fromPosition.x ~= CONTAINER_POSITION then
 		fromPosition:sendMagicEffect(math.random(CONST_ME_FIREWORK_YELLOW, CONST_ME_FIREWORK_BLUE))
 	else
@@ -12,3 +14,6 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	item:remove()
 	return true
 end
+
+action:id(6576)
+action:register()

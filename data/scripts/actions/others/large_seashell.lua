@@ -1,4 +1,6 @@
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+local action = Action()
+
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	if player:getStorageValue(PlayerStorageKeys.delayLargeSeaShell) <= os.time() then
 		local chance = math.random(100)
 		local msg = ""
@@ -22,3 +24,6 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	end
 	return true
 end
+
+action:id(7552)
+action:register()

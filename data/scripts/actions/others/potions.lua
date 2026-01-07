@@ -1,3 +1,5 @@
+local action = Action()
+
 local berserk = Condition(CONDITION_ATTRIBUTES)
 berserk:setParameter(CONDITION_PARAM_TICKS, 10 * 60 * 1000)
 berserk:setParameter(CONDITION_PARAM_SKILL_MELEE, 5)
@@ -15,63 +17,7 @@ bullseye:setParameter(CONDITION_PARAM_SKILL_DISTANCE, 5)
 bullseye:setParameter(CONDITION_PARAM_SKILL_SHIELD, -10)
 bullseye:setParameter(CONDITION_PARAM_BUFF_SPELL, true)
 
-local manaShield = Condition(CONDITION_MANASHIELD_BREAKABLE)
-manaShield:setParameter(CONDITION_PARAM_TICKS, 3 * 60 * 1000)
-
-local function magicShieldCapacity(player)
-	manaShield:setParameter(CONDITION_PARAM_MANASHIELD_BREAKABLE, math.min(player:getMaxMana(), 300 + 7.6 * player:getLevel() + 7 * player:getMagicLevel()))
-end
-
 local potions = {
-	[6558] = { -- flask of demonic blood
-		transform = {7588, 7589},
-		effect = CONST_ME_DRAWBLOOD
-	},
-	[7439] = { -- berserk potion
-		condition = berserk,
-		vocations = {
-			VOCATION_KNIGHT,
-			VOCATION_ELITE_KNIGHT
-		},
-		effect = CONST_ME_MAGIC_RED,
-		description = "Only knights may drink this potion.",
-		text = "You feel stronger."
-	},
-	[7440] = { -- mastermind potion
-		condition = mastermind,
-		vocations = {
-			VOCATION_SORCERER,
-			VOCATION_DRUID,
-			VOCATION_MASTER_SORCERER,
-			VOCATION_ELDER_DRUID
-		},
-		effect = CONST_ME_MAGIC_BLUE,
-		description = "Only sorcerers and druids may drink this potion.",
-		text = "You feel smarter."
-	},
-	[7443] = { -- bullseye potion
-		condition = bullseye,
-		vocations = {
-			VOCATION_PALADIN,
-			VOCATION_ROYAL_PALADIN
-		},
-		effect = CONST_ME_MAGIC_GREEN,
-		description = "Only paladins may drink this potion.",
-		text = "You feel more accurate."
-	},
-	[38219] = { -- magic shield potion
-		condition = manaShield,
-		vocations = {
-			VOCATION_SORCERER,
-			VOCATION_DRUID,
-			VOCATION_MASTER_SORCERER,
-			VOCATION_ELDER_DRUID
-		},
-		level = 14,
-		effect = CONST_ME_ENERGYAREA,
-		description = "Only sorcerers and druids of level 14 or above may drink this potion.",
-		capacity = magicShieldCapacity
-	},
 	[7588] = { -- strong health potion
 		health = {250, 350},
 		vocations = {
@@ -186,7 +132,7 @@ local potions = {
 	}
 }
 
-function onUse(player, item, fromPosition, target, toPosition, isHotkey)
+function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 	if type(target) == "userdata" and not target:isPlayer() then
 		return false
 	end
@@ -197,48 +143,31 @@ function onUse(player, item, fromPosition, target, toPosition, isHotkey)
 		return true
 	end
 
-	if potion.condition then
-		if potion.capacity then
-			potion.capacity(player)
-		end
-		player:addCondition(potion.condition)
-		player:say(potion.text, TALKTYPE_POTION)
-		player:getPosition():sendMagicEffect(potion.effect)
-	elseif potion.transform then
-		local reward = potion.transform[math.random(#potion.transform)]
-		if fromPosition.x == CONTAINER_POSITION then
-			local targetContainer = Container(item:getParent().uid)
-			targetContainer:addItem(reward, 1)
-		else
-			Game.createItem(reward, 1, fromPosition)
-		end
-
-		item:getPosition():sendMagicEffect(potion.effect)
-		item:remove(1)
-		return true
-	else
-		if potion.health then
-			doTargetCombat(player, target, COMBAT_HEALING, potion.health[1], potion.health[2])
-		end
-
-		if potion.mana then
-			doTargetCombat(player, target, COMBAT_MANADRAIN, potion.mana[1], potion.mana[2])
-		end
-
-		if potion.antidote then
-			target:removeCondition(CONDITION_POISON)
-		end
-
-		player:addAchievementProgress("Potion Addict", 100000)
-		player:addItem(potion.flask)
-		target:say("Aaaah...", TALKTYPE_POTION)
-		target:getPosition():sendMagicEffect(CONST_ME_MAGIC_BLUE)
+	if potion.health then
+		doTargetCombat(player, target, COMBAT_HEALING, potion.health[1], potion.health[2])
 	end
+
+	if potion.mana then
+		doTargetCombat(player, target, COMBAT_MANADRAIN, potion.mana[1], potion.mana[2])
+	end
+
+	if potion.antidote then
+		target:removeCondition(CONDITION_POISON)
+	end
+
+	player:addAchievementProgress("Potion Addict", 100000)
+	player:addItem(potion.flask)
+	target:say("Aaaah...", TALKTYPE_POTION)
+	target:getPosition():sendMagicEffect(CONST_ME_MAGIC_BLUE)
 
 	if not configManager.getBoolean(configKeys.REMOVE_POTION_CHARGES) then
-		return true
+		item:remove(1)
 	end
 
-	item:remove(1)
 	return true
 end
+
+for k, _ in pairs(potions) do
+	action:id(k)
+end
+action:register()
