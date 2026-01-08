@@ -66,9 +66,8 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 		local fluidSource = targetItemType and targetItemType:getFluidSource() or FLUID_NONE
 		if fluidSource ~= FLUID_NONE then
 			item:transform(item:getId(), fluidSource)
-		elseif table.contains(distillery, item.itemid) then
-			local targetItem = distillery[target.itemid]
-			if targetItem then
+		elseif table.contains(distillery, target.itemid) then
+			if distillery[target.itemid] ~= nil then
 				item:transform(item:getId(), FLUID_NONE)
 			else
 				player:sendCancelMessage("You have to process the bunch into the distillery to get rum.")
