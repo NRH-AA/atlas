@@ -196,7 +196,7 @@ void Creature::onWalk()
 		}
 	}
 
-	removeFollowers();
+	removeOutOfRangeFollowers();
 	updateFollowersPaths();
 
 	if (cancelNextWalk) {
@@ -517,6 +517,11 @@ void Creature::onDeath()
 
 	if (droppedCorpse) {
 		g_game.removeCreature(this, false);
+	} else {
+		if (followCreature) {
+			followCreature->removeFollower(this);
+		}
+		releaseFollowers();
 	}
 }
 
@@ -728,7 +733,6 @@ void Creature::setAttackedCreature(Creature* creature)
 	}
 
 	attackedCreature = creature;
-	creature->addFollower(this);
 	onAttackedCreature(attackedCreature);
 	attackedCreature->onAttacked();
 	forceUpdatePath();
@@ -823,19 +827,17 @@ void Creature::addFollower(Creature* creature)
 	}
 }
 
-void Creature::removeFollower(Creature* creature)
+void Creature::removeFollower(const Creature* creature)
 {
 	auto it = std::find(followers.begin(), followers.end(), creature);
 	if (it != followers.end()) {
-		creature->decrementReferenceCounter();
 		followers.erase(it);
 	}
 }
 
-void Creature::removeFollowers()
+void Creature::removeOutOfRangeFollowers()
 {
 	const Position& position = getPosition();
-
 	followers.erase(std::remove_if(followers.begin(), followers.end(),
 	                               [&position](Creature* creature) {
 		                               const Position& followerPosition = creature->getPosition();
@@ -854,6 +856,7 @@ void Creature::removeFollowers()
 void Creature::releaseFollowers()
 {
 	for (const auto& follower : followers) {
+		follower->setFollowCreature(nullptr);
 		follower->decrementReferenceCounter();
 	}
 }

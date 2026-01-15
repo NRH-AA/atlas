@@ -544,6 +544,9 @@ bool Game::removeCreature(Creature* creature, bool isLogout /* = true*/)
 		return false;
 	}
 
+	if (creature->followCreature) {
+		creature->followCreature->removeFollower(creature);
+	}
 	creature->releaseFollowers();
 
 	Tile* tile = creature->getTile();
