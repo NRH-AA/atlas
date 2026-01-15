@@ -856,7 +856,7 @@ void Creature::removeOutOfRangeFollowers()
 void Creature::releaseFollowers()
 {
 	for (const auto& follower : followers) {
-		follower->setFollowCreature(nullptr);
+		follower->removeFollowCreature();
 		follower->decrementReferenceCounter();
 	}
 }
