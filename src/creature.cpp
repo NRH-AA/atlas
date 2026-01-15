@@ -1006,6 +1006,12 @@ bool Creature::onKilledCreature(Creature* target, bool)
 		master->onKilledCreature(target);
 	}
 
+	if (getPlayer()) {
+		if (followCreature && followCreature == target) {
+			decrementReferenceCounter();
+		}
+	}
+
 	// scripting event - onKill
 	const CreatureEventList& killEvents = getCreatureEvents(CREATURE_EVENT_KILL);
 	for (CreatureEvent* killEvent : killEvents) {
