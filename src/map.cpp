@@ -755,7 +755,7 @@ bool Map::getPathMatching(const std::shared_ptr<const Creature>& creature, const
 	while (n) {
 		iterations++;
 
-		if (iterations >= Map::maxViewportX * Map::maxViewportY) {
+		if (iterations >= AStarNodes::GRID_SIZE) {
 			return false;
 		}
 

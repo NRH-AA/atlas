@@ -55,7 +55,8 @@ public:
 	AStarNode* getBestNode();
 
 	static uint16_t getMapWalkCost(AStarNode* node, const Position& neighborPos);
-	static uint16_t getTileWalkCost(const Creature& creature, const Tile* tile);
+	static uint16_t getTileWalkCost(const std::shared_ptr<const Creature>& creature,
+	                                const std::shared_ptr<const Tile>& tile);
 
 private:
 	inline int index(uint16_t x, uint16_t y) const
